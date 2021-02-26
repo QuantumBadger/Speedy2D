@@ -1,0 +1,93 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+
+  build:
+    name: Build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macOS-latest ]
+
+    steps:
+      -   uses: actions/checkout@v2
+
+      -   name: Build
+          run: cargo build
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install xvfb
+        run: sudo apt-get --yes install xvfb
+
+      - name: Start X server and run tests
+        run: xvfb-run --auto-servernum cargo test
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Clippy
+        run: cargo clippy
+
+  fmt:
+    name: Formatting
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install nightly toolchain
+        run: rustup install nightly
+
+      - name: Install rustfmt
+        run: rustup component add rustfmt --toolchain nightly
+
+      - name: Formatting
+        run: cargo +nightly fmt -- --check
+
+  doc:
+    name: Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Documentation
+        run: cargo doc
+
+  build_nowindowing:
+    name: Build (no windowing)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macOS-latest ]
+
+    steps:
+      -   uses: actions/checkout@v2
+
+      -   name: Build
+          run: cargo build --no-default-features
+
+  test_nowindowing:
+    name: Test (no windowing)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install xvfb
+        run: sudo apt-get --yes install xvfb
+
+      - name: Start X server and run tests
+        run: xvfb-run --auto-servernum cargo test  --no-default-features --lib --examples --tests

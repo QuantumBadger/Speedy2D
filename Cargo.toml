@@ -1,0 +1,67 @@
+[package]
+name = "speedy2d"
+version = "1.0.0"
+authors = ["QuantumBadger <speedy2d@redreader.org>"]
+edition = "2018"
+license = "Apache-2.0"
+readme = "README.md"
+description = """
+Hardware-accelerated drawing of shapes, images, and text, with an easy to use API.
+
+Speedy2D aims to be:
+
+ - The simplest Rust API for creating a window, rendering graphics, and handling input
+ - Compatible with any device supporting OpenGL 2.0+ or OpenGL ES 2.0+
+ - Very fast
+
+Documentation and getting started guide: https://docs.rs/speedy2d
+
+By default, Speedy2D contains support for setting up a window with an OpenGL context. If
+you'd like to handle this yourself, and use Speedy2D only for rendering, you can disable
+the `windowing` feature.
+"""
+keywords = ["opengl", "gamedev", "graphics", "font"]
+categories = ["rendering::graphics-api", "game-development", "graphics"]
+repository = "https://github.com/QuantumBadger/Speedy2D"
+documentation = "https://docs.rs/speedy2d"
+
+[features]
+default = ["windowing"]
+windowing = ["glutin"]
+
+[dependencies]
+gl = "0.14"
+log = "0.4"
+backtrace = "0.3"
+rusttype = { version = "0.9", default-features = false }
+unicode-normalization = "0.1"
+num-traits = "0.2"
+
+# For windowing feature
+glutin = { version = "0.26", optional = true }
+
+# Tests using a headless GL context.
+
+[[test]]
+name = "test"
+path = "test/main.rs"
+harness = false
+
+[dev-dependencies]
+simple_logger = "1.11"
+glutin = "0.26"
+image = { version = "0.23", default-features = false, features = ["png"] }
+
+# Examples: must be listed manually as they require the "windowing" feature.
+
+[[example]]
+name = "hello_world"
+required-features = ["windowing"]
+
+[[example]]
+name = "user_events"
+required-features = ["windowing"]
+
+[[example]]
+name = "input_callbacks"
+required-features = ["windowing"]
