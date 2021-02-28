@@ -24,6 +24,9 @@
 //!  - Compatible with any device supporting OpenGL 2.0+ or OpenGL ES 2.0+
 //!  - Very fast
 //!
+//! Supports Windows, Mac, and Linux. Should also work on Android and iOS
+//! (for rendering only).
+//!
 //! By default, Speedy2D contains support for setting up a window with an OpenGL
 //! context. If you'd like to handle this yourself, and use Speedy2D only for
 //! rendering, you can disable the `windowing` feature.
