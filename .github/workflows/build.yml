@@ -17,6 +17,9 @@ jobs:
       -   name: Build
           run: cargo build
 
+      - name: Build (release)
+        run: cargo build --release
+
   test:
     name: Test
     runs-on: ubuntu-latest
@@ -29,6 +32,9 @@ jobs:
 
       - name: Start X server and run tests
         run: xvfb-run --auto-servernum cargo test
+
+      - name: Start X server and run tests in release mode
+        run: xvfb-run --auto-servernum cargo test --release
 
   clippy:
     name: Clippy
@@ -79,6 +85,9 @@ jobs:
       -   name: Build
           run: cargo build --no-default-features
 
+      -   name: Build (release)
+          run: cargo build --no-default-features --release
+
   test_nowindowing:
     name: Test (no windowing)
     runs-on: ubuntu-latest
@@ -90,4 +99,7 @@ jobs:
         run: sudo apt-get --yes install xvfb
 
       - name: Start X server and run tests
-        run: xvfb-run --auto-servernum cargo test  --no-default-features --lib --examples --tests
+        run: xvfb-run --auto-servernum cargo test --no-default-features --lib --examples --tests
+
+      - name: Start X server and run tests (release)
+        run: xvfb-run --auto-servernum cargo test --release --no-default-features --lib --examples --tests
