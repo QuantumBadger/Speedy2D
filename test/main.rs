@@ -21,13 +21,13 @@ use std::os::raw::c_void;
 use glutin::dpi::PhysicalSize;
 use glutin::event_loop::EventLoop;
 use glutin::window::WindowBuilder;
-use image::{ColorType, ImageFormat, GenericImageView};
+use image::{ColorType, GenericImageView, ImageFormat};
 use speedy2d::color::Color;
 use speedy2d::dimen::Vector2;
 use speedy2d::font::{Font, TextAlignment, TextLayout, TextOptions};
+use speedy2d::image::{ImageDataType, ImageSmoothingMode};
 use speedy2d::shape::Rectangle;
 use speedy2d::GLRenderer;
-use speedy2d::image::{ImageDataType, ImageSmoothingMode};
 
 const NOTO_SANS_REGULAR_BYTES: &[u8] =
     include_bytes!("../assets/fonts/NotoSans-Regular.ttf");
@@ -532,18 +532,21 @@ fn main()
         height: 640,
         name: "image_load_from_raw_pixels".to_string(),
         action: Box::new(|renderer| {
-
-            let image = image::open("test/assets/expected_images/test_half_circle.png").unwrap();
+            let image =
+                image::open("test/assets/expected_images/test_half_circle.png").unwrap();
             let size = image.dimensions();
 
             renderer.draw_frame(|graphics| {
                 graphics.clear_screen(Color::WHITE);
 
-                let texture = graphics.create_image_from_raw_pixels(
-                    ImageDataType::RGBA,
-                    ImageSmoothingMode::Linear,
-                    Vector2::new(size.0, size.1),
-                    &image.to_rgba8()).unwrap();
+                let texture = graphics
+                    .create_image_from_raw_pixels(
+                        ImageDataType::RGBA,
+                        ImageSmoothingMode::Linear,
+                        Vector2::new(size.0, size.1),
+                        &image.to_rgba8()
+                    )
+                    .unwrap();
 
                 graphics.draw_image(Vector2::new(200.0, 200.0), &texture);
             });
