@@ -6,19 +6,9 @@ edition = "2018"
 license = "Apache-2.0"
 readme = "README.md"
 description = """
-Hardware-accelerated drawing of shapes, images, and text, with an easy to use API.
-
-Speedy2D aims to be:
-
- - The simplest Rust API for creating a window, rendering graphics, and handling input
- - Compatible with any device supporting OpenGL 2.0+ or OpenGL ES 2.0+
- - Very fast
-
-Documentation and getting started guide: https://docs.rs/speedy2d
-
-By default, Speedy2D contains support for setting up a window with an OpenGL context. If
-you'd like to handle this yourself, and use Speedy2D only for rendering, you can disable
-the `windowing` feature.
+Hardware-accelerated drawing of shapes, images, and text, with an easy to use
+API. Speedy2D aims to be the simplest Rust API for creating a window, rendering graphics,
+and handling input.
 """
 keywords = ["opengl", "gamedev", "graphics", "font"]
 categories = ["rendering::graphics-api", "game-development", "graphics"]
