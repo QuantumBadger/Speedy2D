@@ -22,7 +22,6 @@ use Speedy2D only for rendering, you can disable the `windowing` feature.
 
 * Documentation and getting started guide: https://docs.rs/speedy2d
 * Crate: https://crates.io/crates/speedy2d
-* Example code: https://github.com/QuantumBadger/Speedy2D
 
 ## Example code
 
