@@ -14,6 +14,9 @@ Speedy2D aims to be:
  - Compatible with any device supporting OpenGL 2.0+ or OpenGL ES 2.0+
  - Very fast
 
+Supports Windows, Mac, and Linux. Should also work on Android and iOS -- if you
+encounter any issues on mobile platforms, please open an issue.
+
 By default, Speedy2D contains support for setting up a window with an OpenGL
 context, and receiving input events. If you'd like to handle this yourself, and
 use Speedy2D only for rendering, you can disable the `windowing` feature.
