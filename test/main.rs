@@ -528,6 +528,22 @@ fn main()
     });
 
     tests.push(GLTest {
+        width: 3000,
+        height: 2000,
+        name: "huge_text".to_string(),
+        action: Box::new(|renderer| {
+            let typeface = Font::new(NOTO_SANS_REGULAR_BYTES).unwrap();
+
+            let text = typeface.layout_text("Hello World", 1000.0, TextOptions::new());
+
+            renderer.draw_frame(|graphics| {
+                graphics.clear_screen(Color::WHITE);
+                graphics.draw_text(Vector2::new(0.0, 0.0), Color::BLACK, &text);
+            });
+        })
+    });
+
+    tests.push(GLTest {
         width: 640,
         height: 640,
         name: "image_load_from_raw_pixels".to_string(),
