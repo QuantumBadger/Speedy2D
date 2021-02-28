@@ -1,6 +1,6 @@
 [package]
 name = "speedy2d"
-version = "1.0.1"
+version = "1.0.2"
 authors = ["QuantumBadger <speedy2d@redreader.org>"]
 edition = "2018"
 license = "Apache-2.0"
@@ -23,7 +23,7 @@ windowing = ["glutin"]
 gl = "0.14"
 log = "0.4"
 backtrace = "0.3"
-rusttype = { version = "0.9", default-features = false }
+rusttype = { version = "0.9" }
 unicode-normalization = "0.1"
 num-traits = "0.2"
 
