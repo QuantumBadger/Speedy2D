@@ -989,6 +989,10 @@ impl GLContextManager
             return;
         }
 
+        // Drop separately to avoid a duplicate borrow of `state`.
+        let old_active_texture = self.state.borrow_mut().active_texture.take();
+        std::mem::drop(old_active_texture);
+
         self.state.borrow_mut().active_texture = Some(texture.clone());
 
         unsafe {

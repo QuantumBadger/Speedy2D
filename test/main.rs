@@ -553,6 +553,34 @@ fn main()
         })
     });
 
+    tests.push(GLTest {
+        width: 640,
+        height: 640,
+        name: "image_load_from_raw_pixels_multiple_times".to_string(),
+        action: Box::new(|renderer| {
+            let image =
+                image::open("test/assets/expected_images/test_half_circle.png").unwrap();
+            let size = image.dimensions();
+
+            for _ in 0..10 {
+                renderer.draw_frame(|graphics| {
+                    graphics.clear_screen(Color::WHITE);
+
+                    let texture = graphics
+                        .create_image_from_raw_pixels(
+                            ImageDataType::RGBA,
+                            ImageSmoothingMode::Linear,
+                            Vector2::new(size.0, size.1),
+                            &image.to_rgba8()
+                        )
+                        .unwrap();
+
+                    graphics.draw_image(Vector2::new(200.0, 200.0), &texture);
+                });
+            }
+        })
+    });
+
     for test in tests {
         log::info!("Running test {}", test.name);
 
