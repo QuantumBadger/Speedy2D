@@ -106,7 +106,6 @@ fn create_context_and_run<R, F: FnOnce(&mut GLRenderer) -> R>(
     let context_builder = glutin::ContextBuilder::new()
         .with_gl_debug_flag(true)
         .with_multisampling(0)
-        .with_gl_profile(glutin::GlProfile::Core)
         .with_gl(glutin::GlRequest::Specific(glutin::Api::OpenGl, (2, 0)));
 
     let _context: Box<dyn Any> = if cfg!(target_os = "windows") {
