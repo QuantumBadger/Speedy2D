@@ -14,13 +14,11 @@
  *  limitations under the License.
  */
 
-use std::any::Any;
 use std::convert::TryInto;
 use std::os::raw::c_void;
 
 use glutin::dpi::PhysicalSize;
 use glutin::event_loop::EventLoop;
-use glutin::window::WindowBuilder;
 use image::{ColorType, GenericImageView, ImageFormat};
 use speedy2d::color::Color;
 use speedy2d::dimen::Vector2;
@@ -108,10 +106,11 @@ fn create_context_and_run<R, F: FnOnce(&mut GLRenderer) -> R>(
         .with_multisampling(0)
         .with_gl(glutin::GlRequest::Specific(glutin::Api::OpenGl, (2, 0)));
 
-    let _context: Box<dyn Any> = if cfg!(target_os = "windows") {
+    #[cfg(not(target_os = "linux"))]
+    let _context = {
         let context = context_builder
             .build_windowed(
-                WindowBuilder::new().with_inner_size(PhysicalSize::new(width, height)),
+                glutin::window::WindowBuilder::new().with_inner_size(PhysicalSize::new(width, height)),
                 &event_loop
             )
             .unwrap();
@@ -120,8 +119,11 @@ fn create_context_and_run<R, F: FnOnce(&mut GLRenderer) -> R>(
 
         gl::load_with(|ptr| context.get_proc_address(ptr) as *const _);
 
-        Box::new(context)
-    } else {
+        context
+    };
+
+    #[cfg(target_os = "linux")]
+    let _context = {
         let context = context_builder
             .with_vsync(false)
             .build_headless(&event_loop, PhysicalSize::new(width, height))
@@ -131,7 +133,7 @@ fn create_context_and_run<R, F: FnOnce(&mut GLRenderer) -> R>(
 
         gl::load_with(|ptr| context.get_proc_address(ptr) as *const _);
 
-        Box::new(context)
+        context
     };
 
     let mut renderer =
