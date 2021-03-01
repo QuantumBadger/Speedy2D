@@ -640,9 +640,10 @@ fn position_window(
             );
 
             window.set_outer_position(PhysicalPosition::new(
-                monitor_position.x + ((monitor_size.width - outer_size.width) / 2) as i32,
+                monitor_position.x
+                    + ((monitor_size.width as i32 - outer_size.width as i32) / 2),
                 monitor_position.y
-                    + ((monitor_size.height - outer_size.height) / 2) as i32
+                    + ((monitor_size.height as i32 - outer_size.height as i32) / 2)
             ));
         }
 
