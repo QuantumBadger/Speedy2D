@@ -110,7 +110,8 @@ fn create_context_and_run<R, F: FnOnce(&mut GLRenderer) -> R>(
     let _context = {
         let context = context_builder
             .build_windowed(
-                glutin::window::WindowBuilder::new().with_inner_size(PhysicalSize::new(width, height)),
+                glutin::window::WindowBuilder::new()
+                    .with_inner_size(PhysicalSize::new(width, height)),
                 &event_loop
             )
             .unwrap();
