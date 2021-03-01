@@ -12,4 +12,8 @@
 
 ## 1.0.3
 
-* Fixed negative overflow issue where monitor size is misdetected or less than window size 
+* Fixed negative overflow issue where monitor size is misdetected or less than window size
+
+## 1.0.4
+
+* No longer specifies core profile for GL 2.0 (fixes issue on Macs)

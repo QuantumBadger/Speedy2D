@@ -594,7 +594,6 @@ fn create_best_context<UserEventType>(
 
             let mut windowed_context = glutin::ContextBuilder::new()
                 .with_vsync(*vsync)
-                .with_gl_profile(glutin::GlProfile::Core)
                 .with_gl(glutin::GlRequest::Specific(glutin::Api::OpenGl, (2, 0)));
 
             if *multisampling > 1 {
