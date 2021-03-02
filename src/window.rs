@@ -1717,13 +1717,13 @@ impl WindowCreationOptions
     {
         WindowCreationOptions {
             mode,
-            multisampling: 8,
+            multisampling: 16,
             vsync: true
         }
     }
 
     /// Sets the maximum level of multisampling which will be applied. By
-    /// default this is set to `8`.
+    /// default this is set to `16`.
     ///
     /// Note that this depends on platform support, and setting this may have no
     /// effect.

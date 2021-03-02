@@ -17,3 +17,7 @@
 ## 1.0.4
 
 * No longer specifies core profile for GL 2.0 (fixes issue on Macs)
+
+## 1.0.5
+
+* Setting multisampling level to 16 by default
