@@ -514,6 +514,8 @@ impl<UserEventType> WindowImpl<UserEventType>
             }
 
             GlutinEvent::RedrawEventsCleared => {
+                // Don't unset redraw_requested here, to ensure we return Poll from the
+                // event loop
                 if redraw_requested.get() {
                     window_context.window().request_redraw();
                 }
@@ -561,7 +563,13 @@ impl<UserEventType> WindowImpl<UserEventType>
                             event,
                             &helper.redraw_requested
                         ) {
-                            WindowEventLoopAction::Continue => ControlFlow::Wait,
+                            WindowEventLoopAction::Continue => {
+                                if helper.redraw_requested.get() {
+                                    ControlFlow::Poll
+                                } else {
+                                    ControlFlow::Wait
+                                }
+                            }
                             WindowEventLoopAction::Exit => {
                                 handler = Option::None;
                                 ControlFlow::Exit
