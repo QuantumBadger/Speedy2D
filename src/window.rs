@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+use std::cell::Cell;
 use std::ffi::CStr;
 use std::fmt::{Display, Formatter};
 use std::rc::Rc;
@@ -72,18 +73,8 @@ impl<UserEventType> UserEventSender<UserEventType>
 pub(crate) struct WindowImplHelper<UserEventType: 'static>
 {
     window_context: Rc<glutin::ContextWrapper<glutin::PossiblyCurrent, GlutinWindow>>,
-    event_proxy: EventLoopProxy<UserEventType>
-}
-
-impl<UserEventType> Clone for WindowImplHelper<UserEventType>
-{
-    fn clone(&self) -> Self
-    {
-        Self {
-            window_context: self.window_context.clone(),
-            event_proxy: self.event_proxy.clone()
-        }
-    }
+    event_proxy: EventLoopProxy<UserEventType>,
+    redraw_requested: Cell<bool>
 }
 
 impl<UserEventType> WindowImplHelper<UserEventType>
@@ -96,7 +87,8 @@ impl<UserEventType> WindowImplHelper<UserEventType>
     {
         WindowImplHelper {
             window_context: context.clone(),
-            event_proxy
+            event_proxy,
+            redraw_requested: Cell::new(false)
         }
     }
 
@@ -139,7 +131,7 @@ impl<UserEventType> WindowImplHelper<UserEventType>
     #[inline]
     pub fn request_redraw(&self)
     {
-        self.window_context.window().request_redraw();
+        self.redraw_requested.set(true);
     }
 
     pub fn set_title(&self, title: &str)
@@ -333,7 +325,7 @@ pub(crate) struct WindowImpl<UserEventType: 'static>
 {
     event_loop: EventLoop<UserEventType>,
     window_context: Rc<glutin::ContextWrapper<glutin::PossiblyCurrent, GlutinWindow>>,
-    helper: WindowImplHelper<UserEventType>
+    helper: Rc<WindowImplHelper<UserEventType>>
 }
 
 impl<UserEventType> WindowImpl<UserEventType>
@@ -425,7 +417,7 @@ impl<UserEventType> WindowImpl<UserEventType>
         Result::Ok(WindowImpl {
             event_loop,
             window_context,
-            helper
+            helper: Rc::new(helper)
         })
     }
 
@@ -444,7 +436,8 @@ impl<UserEventType> WindowImpl<UserEventType>
     fn loop_iter<Handler>(
         window_context: &glutin::ContextWrapper<glutin::PossiblyCurrent, GlutinWindow>,
         handler: &mut Handler,
-        event: GlutinEvent<UserEventType>
+        event: GlutinEvent<UserEventType>,
+        redraw_requested: &Cell<bool>
     ) -> WindowEventLoopAction
     where
         Handler: WindowImplHandler<UserEventType> + 'static
@@ -514,9 +507,18 @@ impl<UserEventType> WindowImpl<UserEventType>
             },
 
             GlutinEvent::RedrawRequested(_) => {
+                redraw_requested.set(false);
                 let result = handler.on_draw();
                 window_context.swap_buffers().unwrap();
                 result
+            }
+
+            GlutinEvent::RedrawEventsCleared => {
+                if redraw_requested.get() {
+                    window_context.window().request_redraw();
+                }
+
+                WindowEventLoopAction::Continue
             }
 
             _ => WindowEventLoopAction::Continue
@@ -543,6 +545,8 @@ impl<UserEventType> WindowImpl<UserEventType>
 
         let mut handler = Option::Some(handler);
 
+        let helper = self.helper.clone();
+
         self.event_loop.run(
             move |event: GlutinEvent<UserEventType>,
                   _,
@@ -554,7 +558,8 @@ impl<UserEventType> WindowImpl<UserEventType>
                         match WindowImpl::loop_iter(
                             &window_context,
                             handler.as_mut().unwrap(),
-                            event
+                            event,
+                            &helper.redraw_requested
                         ) {
                             WindowEventLoopAction::Continue => ControlFlow::Wait,
                             WindowEventLoopAction::Exit => {
@@ -568,7 +573,7 @@ impl<UserEventType> WindowImpl<UserEventType>
         )
     }
 
-    pub(crate) fn helper(&self) -> &WindowImplHelper<UserEventType>
+    pub fn helper(&self) -> &Rc<WindowImplHelper<UserEventType>>
     {
         &self.helper
     }
@@ -991,7 +996,7 @@ pub struct WindowHelper<UserEventType = ()>
 where
     UserEventType: 'static
 {
-    helper: WindowImplHelper<UserEventType>,
+    helper: Rc<WindowImplHelper<UserEventType>>,
     event_loop_action: WindowEventLoopAction
 }
 
@@ -1004,7 +1009,7 @@ impl<UserEventType> WindowHelper<UserEventType>
     }
 
     #[inline]
-    pub(crate) fn new(helper: WindowImplHelper<UserEventType>) -> Self
+    pub(crate) fn new(helper: Rc<WindowImplHelper<UserEventType>>) -> Self
     {
         WindowHelper {
             helper,
