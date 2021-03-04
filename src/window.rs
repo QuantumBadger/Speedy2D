@@ -507,20 +507,19 @@ impl<UserEventType> WindowImpl<UserEventType>
             },
 
             GlutinEvent::RedrawRequested(_) => {
-                redraw_requested.set(false);
-                let result = handler.on_draw();
-                window_context.swap_buffers().unwrap();
-                result
+                redraw_requested.set(true);
+                WindowEventLoopAction::Continue
             }
 
             GlutinEvent::RedrawEventsCleared => {
-                // Don't unset redraw_requested here, to ensure we return Poll from the
-                // event loop
                 if redraw_requested.get() {
-                    window_context.window().request_redraw();
+                    redraw_requested.set(false);
+                    let result = handler.on_draw();
+                    window_context.swap_buffers().unwrap();
+                    result
+                } else {
+                    WindowEventLoopAction::Continue
                 }
-
-                WindowEventLoopAction::Continue
             }
 
             _ => WindowEventLoopAction::Continue
