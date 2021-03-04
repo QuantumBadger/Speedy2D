@@ -337,22 +337,7 @@ impl GLProgram
             return Err(GLError::msg(format!("Program linking failed: '{}'", msg)));
         }
 
-        unsafe {
-            gl::ValidateProgram(program.handle.handle);
-        }
-
         gl_check_error_always()?;
-
-        {
-            let validate_msg = gl_get_program_info_log(&program)?;
-
-            if !validate_msg.is_empty() {
-                return Err(GLError::msg(format!(
-                    "Program validate log was not empty: '{}'",
-                    validate_msg
-                )));
-            }
-        }
 
         for attribute_name in attribute_names.into_iter() {
             program.attribute_handles.insert(
