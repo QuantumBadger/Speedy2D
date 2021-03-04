@@ -31,6 +31,7 @@ fn main()
 {
     simple_logger::SimpleLogger::new().init().unwrap();
 
+    // Change "String" below to any event type of your choice
     let window: Window<String> = Window::new_with_user_events(
         "Speedy2D: User Events Example",
         WindowCreationOptions::new_windowed(

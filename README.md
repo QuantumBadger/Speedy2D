@@ -29,6 +29,7 @@ use Speedy2D only for rendering, you can disable the `windowing` feature.
 ## Example code
 
 * [Hello world, with text rendering](examples/hello_world.rs)
+* [Animation](examples/animation.rs)
 * [All input callbacks](examples/input_callbacks.rs)
 * [User-generated events](examples/user_events.rs)
 
