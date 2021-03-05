@@ -72,8 +72,8 @@ jobs:
       - name: Documentation
         run: cargo doc
 
-  build_nowindowing:
-    name: Build (no windowing)
+  build_features_disabled:
+    name: Build (features disabled)
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -82,14 +82,14 @@ jobs:
     steps:
       -   uses: actions/checkout@v2
 
-      -   name: Build
+      -   name: Build (no features)
           run: cargo build --no-default-features
 
-      -   name: Build (release)
+      -   name: Build (no features, release)
           run: cargo build --no-default-features --release
 
-  test_nowindowing:
-    name: Test (no windowing)
+  test_features_disabled:
+    name: Test (features disabled)
     runs-on: ubuntu-latest
 
     steps:

@@ -15,7 +15,6 @@
  */
 
 use std::convert::TryInto;
-use std::io::Cursor;
 use std::os::raw::c_void;
 
 use glutin::dpi::PhysicalSize;
@@ -600,6 +599,7 @@ fn main()
         })
     });
 
+    #[cfg(feature = "image-loading")]
     tests.push(GLTest {
         width: 640,
         height: 640,
@@ -620,6 +620,7 @@ fn main()
         })
     });
 
+    #[cfg(feature = "image-loading")]
     tests.push(GLTest {
         width: 640,
         height: 640,
@@ -629,7 +630,7 @@ fn main()
                 .create_image_from_file_bytes(
                     None,
                     ImageSmoothingMode::Linear,
-                    Cursor::new(include_bytes!(
+                    std::io::Cursor::new(include_bytes!(
                         "assets/expected_images/test_half_circle.png"
                     ))
                 )
