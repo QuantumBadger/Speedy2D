@@ -229,6 +229,13 @@
 use std::fmt::{Display, Formatter};
 use std::rc::Rc;
 
+#[cfg(any(feature = "image-loading", doc, doctest))]
+use {
+    crate::image::ImageFileFormat,
+    std::io::{BufRead, Seek},
+    std::path::Path
+};
+
 use crate::color::Color;
 use crate::dimen::Vector2;
 use crate::error::{BacktraceError, ErrorMessage};
@@ -390,6 +397,68 @@ impl GLRenderer
             .create_image_from_raw_pixels(data_type, smoothing_mode, size, data)
     }
 
+    /// Loads an image from the specified file path.
+    ///
+    /// If no `data_type` is provided, an attempt will be made to guess the file
+    /// format.
+    ///
+    /// For a list of supported image types, see [image::ImageFileFormat].
+    ///
+    /// The returned [ImageHandle] is valid only for the current graphics
+    /// context.
+    #[cfg(any(feature = "image-loading", doc, doctest))]
+    pub fn create_image_from_file_path<S: AsRef<Path>>(
+        &mut self,
+        data_type: Option<ImageFileFormat>,
+        smoothing_mode: ImageSmoothingMode,
+        path: S
+    ) -> Result<ImageHandle, BacktraceError<ErrorMessage>>
+    {
+        self.renderer
+            .create_image_from_file_path(data_type, smoothing_mode, path)
+    }
+
+    /// Loads an image from the provided encoded image file data.
+    ///
+    /// If no `data_type` is provided, an attempt will be made to guess the file
+    /// format.
+    ///
+    /// The data source must implement `std::io::BufRead` and `std::io::Seek`.
+    /// For example, if you have a `&[u8]`, you may wrap it in a
+    /// `std::io::Cursor` as follows:
+    ///
+    /// ```rust,no_run
+    /// # use speedy2d::GLRenderer;
+    /// # use speedy2d::dimen::Vector2;
+    /// # use speedy2d::color::Color;
+    /// # use speedy2d::image::ImageSmoothingMode;
+    /// use std::io::Cursor;
+    /// # let mut renderer = unsafe {GLRenderer::new_for_current_context((0,0))}.unwrap();
+    ///
+    /// let image_bytes : &[u8] = include_bytes!("../assets/screenshots/hello_world.png");
+    ///
+    /// let image_result = renderer.create_image_from_file_bytes(
+    ///     None,
+    ///     ImageSmoothingMode::Linear,
+    ///     Cursor::new(image_bytes));
+    /// ```
+    ///
+    /// For a list of supported image types, see [image::ImageFileFormat].
+    ///
+    /// The returned [ImageHandle] is valid only for the current graphics
+    /// context.
+    #[cfg(any(feature = "image-loading", doc, doctest))]
+    pub fn create_image_from_file_bytes<R: Seek + BufRead>(
+        &mut self,
+        data_type: Option<ImageFileFormat>,
+        smoothing_mode: ImageSmoothingMode,
+        file_bytes: R
+    ) -> Result<ImageHandle, BacktraceError<ErrorMessage>>
+    {
+        self.renderer
+            .create_image_from_file_bytes(data_type, smoothing_mode, file_bytes)
+    }
+
     /// Starts the process of drawing a frame. A `Graphics2D` object will be
     /// provided to the callback. When the callback returns, the internal
     /// render queue will be flushed.
@@ -448,6 +517,70 @@ impl Graphics2D
             size.into(),
             data
         )
+    }
+
+    /// Loads an image from the specified file path.
+    ///
+    /// If no `data_type` is provided, an attempt will be made to guess the file
+    /// format.
+    ///
+    /// For a list of supported image types, see [image::ImageFileFormat].
+    ///
+    /// The returned [ImageHandle] is valid only for the current graphics
+    /// context.
+    #[cfg(any(feature = "image-loading", doc, doctest))]
+    pub fn create_image_from_file_path<S: AsRef<Path>>(
+        &mut self,
+        data_type: Option<ImageFileFormat>,
+        smoothing_mode: ImageSmoothingMode,
+        path: S
+    ) -> Result<ImageHandle, BacktraceError<ErrorMessage>>
+    {
+        self.renderer
+            .create_image_from_file_path(data_type, smoothing_mode, path)
+    }
+
+    /// Loads an image from the provided encoded image file data.
+    ///
+    /// If no `data_type` is provided, an attempt will be made to guess the file
+    /// format.
+    ///
+    /// The data source must implement `std::io::BufRead` and `std::io::Seek`.
+    /// For example, if you have a `&[u8]`, you may wrap it in a
+    /// `std::io::Cursor` as follows:
+    ///
+    /// ```rust,no_run
+    /// # use speedy2d::GLRenderer;
+    /// # use speedy2d::dimen::Vector2;
+    /// # use speedy2d::color::Color;
+    /// # use speedy2d::image::ImageSmoothingMode;
+    /// use std::io::Cursor;
+    /// # let mut renderer = unsafe {GLRenderer::new_for_current_context((0,0))}.unwrap();
+    /// # renderer.draw_frame(|graphics| {
+    ///
+    /// let image_bytes : &[u8] = include_bytes!("../assets/screenshots/hello_world.png");
+    ///
+    /// let image_result = graphics.create_image_from_file_bytes(
+    ///     None,
+    ///     ImageSmoothingMode::Linear,
+    ///     Cursor::new(image_bytes));
+    /// # });
+    /// ```
+    ///
+    /// For a list of supported image types, see [image::ImageFileFormat].
+    ///
+    /// The returned [ImageHandle] is valid only for the current graphics
+    /// context.
+    #[cfg(any(feature = "image-loading", doc, doctest))]
+    pub fn create_image_from_file_bytes<R: Seek + BufRead>(
+        &mut self,
+        data_type: Option<ImageFileFormat>,
+        smoothing_mode: ImageSmoothingMode,
+        file_bytes: R
+    ) -> Result<ImageHandle, BacktraceError<ErrorMessage>>
+    {
+        self.renderer
+            .create_image_from_file_bytes(data_type, smoothing_mode, file_bytes)
     }
 
     /// Fills the screen with the specified color.
@@ -694,8 +827,10 @@ impl Graphics2D
     /// Draws an image at the specified pixel location. The image will be
     /// drawn at its original size with no scaling.
     #[inline]
-    pub fn draw_image(&mut self, position: Vector2<f32>, image: &ImageHandle)
+    pub fn draw_image<P: Into<Vector2<f32>>>(&mut self, position: P, image: &ImageHandle)
     {
+        let position = position.into();
+
         self.draw_rectangle_image(
             Rectangle::new(position, position + image.size().into_f32()),
             image

@@ -38,3 +38,11 @@
 * `WindowCreationOptions::with_always_on_top()`
 * `WindowCreationOptions::with_maximized()`
 * `WindowCreationOptions::with_decorations()`
+* `Graphics2D::create_image_from_file_path()`
+* `Graphics2D::create_image_from_file_bytes()`
+* `GLRenderer::create_image_from_file_path()`
+* `GLRenderer::create_image_from_file_bytes()`
+
+### Other changes
+
+* `Graphics2D::draw_image()` is now able to take a tuple as a position

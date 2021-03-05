@@ -16,6 +16,15 @@
 
 use std::rc::Rc;
 
+#[cfg(any(feature = "image-loading", doc, doctest))]
+use {
+    crate::image::ImageFileFormat,
+    image::GenericImageView,
+    std::fs::File,
+    std::io::{BufRead, BufReader, Seek},
+    std::path::Path
+};
+
 use crate::color::Color;
 use crate::dimen::Vector2;
 use crate::error::{BacktraceError, Context, ErrorMessage};
@@ -622,6 +631,68 @@ impl Renderer2D
             .context("Failed to upload image data")?;
 
         Ok(ImageHandle { size, texture })
+    }
+
+    #[cfg(any(feature = "image-loading", doc, doctest))]
+    pub fn create_image_from_file_path<P: AsRef<Path>>(
+        &mut self,
+        data_type: Option<ImageFileFormat>,
+        smoothing_mode: ImageSmoothingMode,
+        path: P
+    ) -> Result<ImageHandle, BacktraceError<ErrorMessage>>
+    {
+        let file = File::open(path.as_ref()).context(format!(
+            "Failed to open file '{:?}' for reading",
+            path.as_ref()
+        ))?;
+
+        self.create_image_from_file_bytes(data_type, smoothing_mode, BufReader::new(file))
+    }
+
+    #[cfg(any(feature = "image-loading", doc, doctest))]
+    pub fn create_image_from_file_bytes<R: Seek + BufRead>(
+        &mut self,
+        data_type: Option<ImageFileFormat>,
+        smoothing_mode: ImageSmoothingMode,
+        file_bytes: R
+    ) -> Result<ImageHandle, BacktraceError<ErrorMessage>>
+    {
+        let mut reader = image::io::Reader::new(file_bytes);
+
+        match data_type {
+            None => {
+                reader = reader
+                    .with_guessed_format()
+                    .context("Could not guess file format")?
+            }
+            Some(format) => reader.set_format(match format {
+                ImageFileFormat::PNG => image::ImageFormat::Png,
+                ImageFileFormat::JPEG => image::ImageFormat::Jpeg,
+                ImageFileFormat::GIF => image::ImageFormat::Gif,
+                ImageFileFormat::BMP => image::ImageFormat::Bmp,
+                ImageFileFormat::ICO => image::ImageFormat::Ico,
+                ImageFileFormat::TIFF => image::ImageFormat::Tiff,
+                ImageFileFormat::WebP => image::ImageFormat::WebP,
+                ImageFileFormat::AVIF => image::ImageFormat::Avif,
+                ImageFileFormat::PNM => image::ImageFormat::Pnm,
+                ImageFileFormat::DDS => image::ImageFormat::Dds,
+                ImageFileFormat::TGA => image::ImageFormat::Tga,
+                ImageFileFormat::Farbfeld => image::ImageFormat::Farbfeld
+            })
+        }
+
+        let image = reader.decode().context("Failed to parse image data")?;
+
+        let dimensions = image.dimensions();
+
+        let bytes_rgba8 = image.into_rgba8().into_raw();
+
+        self.create_image_from_raw_pixels(
+            ImageDataType::RGBA,
+            smoothing_mode,
+            dimensions,
+            bytes_rgba8.as_slice()
+        )
     }
 
     #[inline]

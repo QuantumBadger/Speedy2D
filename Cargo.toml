@@ -16,8 +16,9 @@ repository = "https://github.com/QuantumBadger/Speedy2D"
 documentation = "https://docs.rs/speedy2d"
 
 [features]
-default = ["windowing"]
+default = ["windowing", "image-loading"]
 windowing = ["glutin"]
+image-loading = ["image"]
 
 [dependencies]
 gl = "0.14"
@@ -30,6 +31,9 @@ num-traits = "0.2"
 # For windowing feature
 glutin = { version = "0.26", optional = true }
 
+# For image_loading feature
+image = { version = "0.23", optional = true }
+
 # Tests using a headless GL context.
 
 [[test]]
@@ -40,7 +44,7 @@ harness = false
 [dev-dependencies]
 simple_logger = "1.11"
 glutin = "0.26"
-image = { version = "0.23", default-features = false, features = ["png"] }
+image = { version = "0.23" }
 
 # Examples: must be listed manually as they require the "windowing" feature.
 
@@ -59,3 +63,7 @@ required-features = ["windowing"]
 [[example]]
 name = "animation"
 required-features = ["windowing"]
+
+[[example]]
+name = "load_image"
+required-features = ["windowing", "image-loading"]

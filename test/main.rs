@@ -15,6 +15,7 @@
  */
 
 use std::convert::TryInto;
+use std::io::Cursor;
 use std::os::raw::c_void;
 
 use glutin::dpi::PhysicalSize;
@@ -596,6 +597,48 @@ fn main()
                     graphics.draw_image(Vector2::new(200.0, 200.0), &texture);
                 });
             }
+        })
+    });
+
+    tests.push(GLTest {
+        width: 640,
+        height: 640,
+        name: "image_load_from_file_path".to_string(),
+        action: Box::new(|renderer| {
+            let image = renderer
+                .create_image_from_file_path(
+                    None,
+                    ImageSmoothingMode::Linear,
+                    "test/assets/expected_images/test_half_circle.png"
+                )
+                .unwrap();
+
+            renderer.draw_frame(|graphics| {
+                graphics.clear_screen(Color::WHITE);
+                graphics.draw_image(Vector2::new(200.0, 200.0), &image);
+            });
+        })
+    });
+
+    tests.push(GLTest {
+        width: 640,
+        height: 640,
+        name: "image_load_from_file_bytes".to_string(),
+        action: Box::new(|renderer| {
+            let image = renderer
+                .create_image_from_file_bytes(
+                    None,
+                    ImageSmoothingMode::Linear,
+                    Cursor::new(include_bytes!(
+                        "assets/expected_images/test_half_circle.png"
+                    ))
+                )
+                .unwrap();
+
+            renderer.draw_frame(|graphics| {
+                graphics.clear_screen(Color::WHITE);
+                graphics.draw_image(Vector2::new(200.0, 200.0), &image);
+            });
         })
     });
 

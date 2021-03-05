@@ -56,7 +56,7 @@ impl ImageHandle
 /// source image don't align perfectly with the pixels of the screen. This could
 /// be because the image is a different size, or because it is rendered at a
 /// position which is a non-integer number of pixels.
-#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
 pub enum ImageSmoothingMode
 {
     /// The pixel drawn on the screen will be the closest pixel from the source
@@ -69,4 +69,38 @@ pub enum ImageSmoothingMode
     /// than `NearestNeighbor`, but in cases where the image is intended to
     /// be pixel-aligned it may cause unnecessary blurriness.
     Linear
+}
+
+/// Supported image formats.
+///
+///  The following image formats are supported:
+///
+/// * `PNG`
+/// * `JPEG` (baseline and progressive)
+/// * `GIF`
+/// * `BMP`
+/// * `ICO`
+/// * `TIFF`: Baseline (no fax support) + LZW + PackBits
+/// * `WebP`: Lossy (luma channel only)
+/// * `AVIF`: Only 8-bit
+/// * `PNM`: PBM, PGM, PPM, standard PAM
+/// * `DDS`: DXT1, DXT3, DXT5
+/// * `TGA`
+/// * `farbfeld`
+#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
+#[allow(missing_docs)]
+pub enum ImageFileFormat
+{
+    PNG,
+    JPEG,
+    GIF,
+    BMP,
+    ICO,
+    TIFF,
+    WebP,
+    AVIF,
+    PNM,
+    DDS,
+    TGA,
+    Farbfeld
 }
