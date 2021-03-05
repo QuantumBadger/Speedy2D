@@ -357,7 +357,12 @@ impl<UserEventType> WindowImpl<UserEventType>
             );
         }
 
-        let mut window_builder = GlutinWindowBuilder::new().with_title(title);
+        let mut window_builder = GlutinWindowBuilder::new()
+            .with_title(title)
+            .with_resizable(options.resizable)
+            .with_always_on_top(options.always_on_top)
+            .with_maximized(options.maximized)
+            .with_decorations(options.decorations);
 
         match &options.mode() {
             WindowCreationMode::Windowed { size, .. } => {
@@ -592,16 +597,8 @@ fn create_best_context<UserEventType>(
     options: &WindowCreationOptions
 ) -> Option<glutin::WindowedContext<glutin::NotCurrent>>
 {
-    for vsync in &[true, false] {
-        if *vsync && !options.vsync() {
-            continue;
-        }
-
-        for multisampling in &[16, 8, 4, 2, 1, 0] {
-            if *multisampling > 1 && *multisampling > options.multisampling() {
-                continue;
-            }
-
+    for vsync in &[options.vsync, true, false] {
+        for multisampling in &[options.multisampling, 16, 8, 4, 2, 1, 0] {
             log::info!("Trying vsync={}, multisampling={}...", vsync, multisampling);
 
             let mut windowed_context = glutin::ContextBuilder::new()
@@ -1702,7 +1699,11 @@ pub struct WindowCreationOptions
 {
     mode: WindowCreationMode,
     multisampling: u16,
-    vsync: bool
+    vsync: bool,
+    always_on_top: bool,
+    resizable: bool,
+    maximized: bool,
+    decorations: bool
 }
 
 impl WindowCreationOptions
@@ -1730,7 +1731,11 @@ impl WindowCreationOptions
         WindowCreationOptions {
             mode,
             multisampling: 16,
-            vsync: true
+            vsync: true,
+            always_on_top: false,
+            resizable: true,
+            maximized: false,
+            decorations: true
         }
     }
 
@@ -1760,25 +1765,51 @@ impl WindowCreationOptions
         self
     }
 
+    /// Sets whether or not the window can be resized by the user. The default
+    /// is `true`.
+    #[inline]
+    #[must_use]
+    pub fn with_resizable(mut self, resizable: bool) -> Self
+    {
+        self.resizable = resizable;
+        self
+    }
+
+    /// If set to `true`, the window will be placed above other windows. The
+    /// default is `false`.
+    #[inline]
+    #[must_use]
+    pub fn with_always_on_top(mut self, always_on_top: bool) -> Self
+    {
+        self.always_on_top = always_on_top;
+        self
+    }
+
+    /// If set to `true`, the window will be initially maximized. The default is
+    /// `false`.
+    #[inline]
+    #[must_use]
+    pub fn with_maximized(mut self, maximized: bool) -> Self
+    {
+        self.maximized = maximized;
+        self
+    }
+
+    /// If set to `false`, the window will have no border.  The default is
+    /// `true`.
+    #[inline]
+    #[must_use]
+    pub fn with_decorations(mut self, decorations: bool) -> Self
+    {
+        self.decorations = decorations;
+        self
+    }
+
     #[inline]
     #[must_use]
     fn mode(&self) -> &WindowCreationMode
     {
         &self.mode
-    }
-
-    #[inline]
-    #[must_use]
-    fn multisampling(&self) -> u16
-    {
-        self.multisampling
-    }
-
-    #[inline]
-    #[must_use]
-    fn vsync(&self) -> bool
-    {
-        self.vsync
     }
 }
 

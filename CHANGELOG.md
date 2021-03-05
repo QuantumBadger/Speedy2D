@@ -21,3 +21,20 @@
 ## 1.0.5
 
 * Setting multisampling level to 16 by default
+
+## 1.0.6
+
+* Ensure event loop gets woken up when redrawing on Windows
+
+## 1.0.7
+
+* Fix error on some platforms due to GL shader program validation
+
+## 1.1.0
+
+### New APIs
+
+* `WindowCreationOptions::with_resizable()`
+* `WindowCreationOptions::with_always_on_top()`
+* `WindowCreationOptions::with_maximized()`
+* `WindowCreationOptions::with_decorations()`
