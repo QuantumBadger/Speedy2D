@@ -611,6 +611,26 @@ impl Renderer2D
     {
         let size = size.into();
 
+        let pixel_bytes = match data_type {
+            ImageDataType::RGB => 3,
+            ImageDataType::RGBA => 4
+        };
+
+        {
+            let expected_bytes = pixel_bytes * size.x as usize * size.y as usize;
+
+            if expected_bytes != data.len() {
+                return Err(ErrorMessage::msg(format!(
+                    "Expecting {} bytes ({}x{}x{}), got {}",
+                    expected_bytes,
+                    size.x,
+                    size.y,
+                    pixel_bytes,
+                    data.len()
+                )));
+            }
+        }
+
         let gl_format = match data_type {
             ImageDataType::RGB => GLTextureImageFormatU8::RGB,
             ImageDataType::RGBA => GLTextureImageFormatU8::RGBA
