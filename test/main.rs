@@ -599,6 +599,32 @@ fn main()
         })
     });
 
+    tests.push(GLTest {
+        width: 640,
+        height: 640,
+        name: "image_load_from_raw_pixels_no_alpha".to_string(),
+        action: Box::new(|renderer| {
+            let image =
+                image::open("test/assets/expected_images/test_half_circle.png").unwrap();
+            let size = image.dimensions();
+
+            renderer.draw_frame(|graphics| {
+                graphics.clear_screen(Color::WHITE);
+
+                let texture = graphics
+                    .create_image_from_raw_pixels(
+                        ImageDataType::RGB,
+                        ImageSmoothingMode::Linear,
+                        Vector2::new(size.0, size.1),
+                        &image.to_rgb8()
+                    )
+                    .unwrap();
+
+                graphics.draw_image(Vector2::new(200.0, 200.0), &texture);
+            });
+        })
+    });
+
     #[cfg(feature = "image-loading")]
     tests.push(GLTest {
         width: 640,
