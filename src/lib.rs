@@ -241,6 +241,7 @@ use crate::color::Color;
 use crate::dimen::Vector2;
 use crate::error::{BacktraceError, ErrorMessage};
 use crate::font::FormattedTextBlock;
+use crate::glbackend::{GLBackend, GLBackendGLRS};
 use crate::glwrapper::GLContextManager;
 use crate::image::{ImageDataType, ImageHandle, ImageSmoothingMode};
 use crate::renderer2d::Renderer2D;
@@ -284,6 +285,7 @@ pub mod image;
 pub mod window;
 
 mod font_cache;
+mod glbackend;
 mod glwrapper;
 mod renderer2d;
 mod texture_packer;
@@ -327,7 +329,7 @@ impl Display for GLRendererCreationError
 /// a window for you.
 pub struct GLRenderer
 {
-    context: Rc<GLContextManager>,
+    context: GLContextManager,
     renderer: Graphics2D
 }
 
@@ -352,9 +354,17 @@ impl GLRenderer
         viewport_size_pixels: V
     ) -> Result<Self, BacktraceError<GLRendererCreationError>>
     {
+        Self::new_with_gl_backend(viewport_size_pixels, Rc::new(GLBackendGLRS {}))
+    }
+
+    fn new_with_gl_backend<V: Into<Vector2<u32>>>(
+        viewport_size_pixels: V,
+        gl_backend: Rc<dyn GLBackend>
+    ) -> Result<Self, BacktraceError<GLRendererCreationError>>
+    {
         let viewport_size_pixels = viewport_size_pixels.into();
 
-        let context = GLContextManager::create().map_err(|err| {
+        let context = GLContextManager::create(gl_backend).map_err(|err| {
             GLRendererCreationError::msg_with_cause(
                 "GL context manager creation failed",
                 err
@@ -1065,9 +1075,10 @@ impl<UserEventType: 'static> Window<UserEventType>
     {
         let window_impl = WindowImpl::new(title, options)?;
 
-        let renderer = unsafe {
-            GLRenderer::new_for_current_context(window_impl.get_inner_size_pixels())
-        }
+        let renderer = GLRenderer::new_with_gl_backend(
+            window_impl.get_inner_size_pixels(),
+            window_impl.gl_backend().clone()
+        )
         .map_err(|err| {
             BacktraceError::new_with_cause(
                 WindowCreationError::RendererCreationFailed,

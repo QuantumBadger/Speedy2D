@@ -14,8 +14,6 @@
  *  limitations under the License.
  */
 
-use std::rc::Rc;
-
 use crate::dimen::Vector2;
 use crate::glwrapper::GLTexture;
 
@@ -40,7 +38,7 @@ pub enum ImageDataType
 pub struct ImageHandle
 {
     pub(crate) size: Vector2<u32>,
-    pub(crate) texture: Rc<GLTexture>
+    pub(crate) texture: GLTexture
 }
 
 impl ImageHandle

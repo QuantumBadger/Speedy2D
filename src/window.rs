@@ -15,11 +15,10 @@
  */
 
 use std::cell::Cell;
-use std::ffi::CStr;
+use std::convert::TryInto;
 use std::fmt::{Display, Formatter};
 use std::rc::Rc;
 
-use gl::types::*;
 use glutin::dpi::{LogicalSize, PhysicalPosition, PhysicalSize};
 use glutin::event::{
     ElementState as GlutinElementState,
@@ -37,6 +36,8 @@ use glutin::window::{
 
 use crate::dimen::Vector2;
 use crate::error::{BacktraceError, ErrorMessage};
+use crate::glbackend::constants::GL_VERSION;
+use crate::glbackend::{GLBackend, GLBackendGlow};
 use crate::{GLRenderer, Graphics2D};
 
 /// Error occuring when sending a user event.
@@ -239,51 +240,6 @@ pub(crate) trait WindowImplHandler<UserEventType>
     ) -> WindowEventLoopAction;
 }
 
-extern "system" fn gl_log_callback(
-    _source: GLenum,
-    _gltype: GLenum,
-    _id: GLuint,
-    severity: GLenum,
-    length: GLsizei,
-    message: *const GLchar,
-    _user_param: *mut std::os::raw::c_void
-)
-{
-    let msg = if length < 0 {
-        unsafe { String::from_utf8_lossy(std::ffi::CStr::from_ptr(message).to_bytes()) }
-    } else {
-        unsafe {
-            String::from_utf8_lossy(std::slice::from_raw_parts(
-                message as *const u8,
-                length as usize
-            ))
-        }
-    };
-
-    match severity {
-        gl::DEBUG_SEVERITY_HIGH => log::error!("GL debug log: {}", msg),
-        gl::DEBUG_SEVERITY_MEDIUM => log::warn!("GL debug log: {}", msg),
-        gl::DEBUG_SEVERITY_LOW => log::info!("GL debug log: {}", msg),
-        _ => log::debug!("GL debug log: {}", msg)
-    }
-}
-
-fn gl_setup_debug_log_callback()
-{
-    if !gl::DebugMessageCallback::is_loaded() {
-        log::error!("Cannot register GL debug log: function not loaded");
-        return;
-    }
-
-    log::info!("Setting up GL debug log");
-
-    unsafe {
-        gl::DebugMessageCallback(Some(gl_log_callback), std::ptr::null());
-        gl::Enable(gl::DEBUG_OUTPUT);
-        gl::Enable(gl::DEBUG_OUTPUT_SYNCHRONOUS);
-    }
-}
-
 /// Error occurring when creating a window.
 #[derive(Clone, Copy, Debug, Hash, Eq, PartialEq)]
 pub enum WindowCreationError
@@ -325,7 +281,8 @@ pub(crate) struct WindowImpl<UserEventType: 'static>
 {
     event_loop: EventLoop<UserEventType>,
     window_context: Rc<glutin::ContextWrapper<glutin::PossiblyCurrent, GlutinWindow>>,
-    helper: Rc<WindowImplHelper<UserEventType>>
+    helper: Rc<WindowImplHelper<UserEventType>>,
+    gl_backend: Rc<dyn GLBackend>
 }
 
 impl<UserEventType> WindowImpl<UserEventType>
@@ -406,23 +363,29 @@ impl<UserEventType> WindowImpl<UserEventType>
             }
         }
 
-        gl::load_with(|ptr| window_context.get_proc_address(ptr) as *const _);
-
-        let version = unsafe {
-            let data = CStr::from_ptr(gl::GetString(gl::VERSION) as *const _).to_bytes();
-            String::from_utf8_lossy(data)
+        let glow_context = unsafe {
+            glow::Context::from_loader_function(|ptr| {
+                window_context.get_proc_address(ptr) as *const _
+            })
         };
+
+        let gl_backend = Rc::new(GLBackendGlow::new(glow_context));
+
+        let version = unsafe { gl_backend.gl_get_string(GL_VERSION) };
 
         log::info!("Using OpenGL version: {}", version);
 
-        gl_setup_debug_log_callback();
+        unsafe {
+            gl_backend.gl_enable_debug_message_callback();
+        };
 
         let helper = WindowImplHelper::new(&window_context, event_loop.create_proxy());
 
         Result::Ok(WindowImpl {
             event_loop,
             window_context,
-            helper: Rc::new(helper)
+            helper: Rc::new(helper),
+            gl_backend
         })
     }
 
@@ -442,7 +405,8 @@ impl<UserEventType> WindowImpl<UserEventType>
         window_context: &glutin::ContextWrapper<glutin::PossiblyCurrent, GlutinWindow>,
         handler: &mut Handler,
         event: GlutinEvent<UserEventType>,
-        redraw_requested: &Cell<bool>
+        redraw_requested: &Cell<bool>,
+        gl_backend: &Rc<dyn GLBackend>
     ) -> WindowEventLoopAction
     where
         Handler: WindowImplHandler<UserEventType> + 'static
@@ -462,11 +426,11 @@ impl<UserEventType> WindowImpl<UserEventType>
                     log::info!("Resized: {:?}", physical_size);
                     window_context.resize(physical_size);
                     unsafe {
-                        gl::Viewport(
+                        gl_backend.gl_viewport(
                             0,
                             0,
-                            physical_size.width as i32,
-                            physical_size.height as i32
+                            physical_size.width.try_into().unwrap(),
+                            physical_size.height.try_into().unwrap()
                         )
                     }
                     handler.on_resize(physical_size.into())
@@ -535,7 +499,7 @@ impl<UserEventType> WindowImpl<UserEventType>
     where
         Handler: WindowImplHandler<UserEventType> + 'static
     {
-        let window_context = self.window_context;
+        let window_context = self.window_context.clone();
 
         match handler.on_start(WindowStartupInfo::new(
             window_context.window().inner_size().into(),
@@ -552,6 +516,7 @@ impl<UserEventType> WindowImpl<UserEventType>
         let mut handler = Option::Some(handler);
 
         let helper = self.helper.clone();
+        let gl_backend = self.gl_backend().clone();
 
         self.event_loop.run(
             move |event: GlutinEvent<UserEventType>,
@@ -565,7 +530,8 @@ impl<UserEventType> WindowImpl<UserEventType>
                             &window_context,
                             handler.as_mut().unwrap(),
                             event,
-                            &helper.redraw_requested
+                            &helper.redraw_requested,
+                            &gl_backend
                         ) {
                             WindowEventLoopAction::Continue => {
                                 if helper.redraw_requested.get() {
@@ -585,9 +551,18 @@ impl<UserEventType> WindowImpl<UserEventType>
         )
     }
 
+    #[inline]
+    #[must_use]
     pub fn helper(&self) -> &Rc<WindowImplHelper<UserEventType>>
     {
         &self.helper
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn gl_backend(&self) -> &Rc<dyn GLBackend>
+    {
+        &self.gl_backend
     }
 }
 

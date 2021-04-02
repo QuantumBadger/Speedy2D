@@ -27,7 +27,6 @@ use crate::error::{BacktraceError, Context, ErrorMessage};
 use crate::font;
 use crate::glwrapper::{
     GLContextManager,
-    GLError,
     GLTexture,
     GLTextureImageFormatU8,
     GLTextureSmoothing
@@ -47,17 +46,13 @@ pub(crate) trait GlyphCacheInterface
         output: &mut Vec<Renderer2DAction>
     );
 
-    fn add_to_cache(
-        &mut self,
-        context: &Rc<GLContextManager>,
-        glyph: &font::FormattedGlyph
-    );
+    fn add_to_cache(&mut self, context: &GLContextManager, glyph: &font::FormattedGlyph);
 
     fn on_new_frame_start(&mut self);
 
     fn prepare_for_draw(
         &mut self,
-        context: &Rc<GLContextManager>
+        context: &GLContextManager
     ) -> Result<(), BacktraceError<ErrorMessage>>;
 }
 
@@ -236,7 +231,7 @@ impl GlyphCacheInterface for GlyphCache
 
     fn add_to_cache(
         &mut self,
-        _context: &Rc<GLContextManager>,
+        _context: &GLContextManager,
         formatted_glyph: &font::FormattedGlyph
     )
     {
@@ -310,7 +305,7 @@ impl GlyphCacheInterface for GlyphCache
 
     fn prepare_for_draw(
         &mut self,
-        context: &Rc<GLContextManager>
+        context: &GLContextManager
     ) -> Result<(), BacktraceError<ErrorMessage>>
     {
         if self.try_insert_pending().is_err() {
@@ -426,7 +421,7 @@ impl GlyphCache
     }
 
     fn internal_rearrange_append_glyph(
-        context: &Rc<GLContextManager>,
+        context: &GLContextManager,
         current_textures: &mut Vec<GlyphCacheTexture>,
         previous_textures: &mut Vec<GlyphCacheTexture>,
         key: &GlyphCacheKey,
@@ -542,9 +537,9 @@ impl BitmapRGBA
 
     fn upload_to_texture(
         &self,
-        context: &Rc<GLContextManager>,
-        texture: &Rc<GLTexture>
-    ) -> Result<(), BacktraceError<GLError>>
+        context: &GLContextManager,
+        texture: &GLTexture
+    ) -> Result<(), BacktraceError<ErrorMessage>>
     {
         texture.set_image_data(
             context,
@@ -572,7 +567,7 @@ struct GlyphTextureCacheEntry
 struct GlyphCacheTexture
 {
     bitmap: BitmapRGBA,
-    texture: Rc<GLTexture>,
+    texture: GLTexture,
     invalidated: bool,
 
     packer: TexturePacker,
@@ -616,7 +611,7 @@ impl GlyphCacheTexture
 {
     const SIZE: u32 = 1024;
 
-    fn new(context: &Rc<GLContextManager>) -> Result<Self, BacktraceError<ErrorMessage>>
+    fn new(context: &GLContextManager) -> Result<Self, BacktraceError<ErrorMessage>>
     {
         Ok(GlyphCacheTexture {
             bitmap: BitmapRGBA::new(Vector2::new(
@@ -667,8 +662,8 @@ impl GlyphCacheTexture
 
     fn revalidate(
         &mut self,
-        context: &Rc<GLContextManager>
-    ) -> Result<(), BacktraceError<GLError>>
+        context: &GLContextManager
+    ) -> Result<(), BacktraceError<ErrorMessage>>
     {
         if self.invalidated {
             self.invalidated = false;

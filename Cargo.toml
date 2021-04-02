@@ -22,6 +22,7 @@ image-loading = ["image"]
 
 [dependencies]
 gl = "0.14"
+glow = "0.7"
 log = "0.4"
 backtrace = "0.3"
 rusttype = { version = "0.9" }

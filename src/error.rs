@@ -180,15 +180,14 @@ impl<R, E: std::error::Error + 'static> Context<R> for Result<R, E>
         description: S
     ) -> Result<R, BacktraceError<ErrorMessage>>
     {
-        if self.is_ok() {
-            return Ok(self.ok().unwrap());
+        match self {
+            Ok(result) => Ok(result),
+            Err(err) => Err(BacktraceError::new_with_cause(
+                ErrorMessage {
+                    description: description.as_ref().to_string()
+                },
+                err
+            ))
         }
-
-        Err(BacktraceError::new_with_cause(
-            ErrorMessage {
-                description: description.as_ref().to_string()
-            },
-            self.err().unwrap()
-        ))
     }
 }

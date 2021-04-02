@@ -120,13 +120,14 @@ impl AttributeBuffers
         self.texture_mix.len()
     }
 
-    pub fn upload_and_clear(&mut self)
+    pub fn upload_and_clear(&mut self, context: &GLContextManager)
     {
-        self.glbuf_position.set_data(&self.position);
-        self.glbuf_color.set_data(&self.color);
-        self.glbuf_texture_coord.set_data(&self.texture_coord);
-        self.glbuf_texture_mix.set_data(&self.texture_mix);
-        self.glbuf_circle_mix.set_data(&self.circle_mix);
+        self.glbuf_position.set_data(context, &self.position);
+        self.glbuf_color.set_data(context, &self.color);
+        self.glbuf_texture_coord
+            .set_data(context, &self.texture_coord);
+        self.glbuf_texture_mix.set_data(context, &self.texture_mix);
+        self.glbuf_circle_mix.set_data(context, &self.circle_mix);
         self.clear();
     }
 
@@ -182,32 +183,39 @@ struct Uniforms
 
 impl Uniforms
 {
-    fn new(program: &Rc<GLProgram>) -> Result<Uniforms, BacktraceError<ErrorMessage>>
+    fn new(
+        context: &GLContextManager,
+        program: &Rc<GLProgram>
+    ) -> Result<Uniforms, BacktraceError<ErrorMessage>>
     {
         Ok(Uniforms {
             scale_x: program
-                .get_uniform_handle(Renderer2D::UNIFORM_NAME_SCALE_X)
+                .get_uniform_handle(context, Renderer2D::UNIFORM_NAME_SCALE_X)
                 .context("Failed to find SCALE_X uniform")?,
             scale_y: program
-                .get_uniform_handle(Renderer2D::UNIFORM_NAME_SCALE_Y)
+                .get_uniform_handle(context, Renderer2D::UNIFORM_NAME_SCALE_Y)
                 .context("Failed to find SCALE_Y uniform")?,
             texture: program
-                .get_uniform_handle(Renderer2D::UNIFORM_NAME_TEXTURE)
+                .get_uniform_handle(context, Renderer2D::UNIFORM_NAME_TEXTURE)
                 .context("Failed to find TEXTURE uniform")?
         })
     }
 
-    fn set_viewport_size_pixels(&self, viewport_size_pixels: Vector2<u32>)
+    fn set_viewport_size_pixels(
+        &self,
+        context: &GLContextManager,
+        viewport_size_pixels: Vector2<u32>
+    )
     {
         self.scale_x
-            .set_value_float(2.0 / viewport_size_pixels.x as f32);
+            .set_value_float(context, 2.0 / viewport_size_pixels.x as f32);
         self.scale_y
-            .set_value_float(-2.0 / viewport_size_pixels.y as f32);
+            .set_value_float(context, -2.0 / viewport_size_pixels.y as f32);
     }
 
-    fn set_texture_unit(&self, texture_unit: i32)
+    fn set_texture_unit(&self, context: &GLContextManager, texture_unit: i32)
     {
-        self.texture.set_value_int(texture_unit);
+        self.texture.set_value_int(context, texture_unit);
     }
 }
 
@@ -237,7 +245,7 @@ impl Renderer2DVertex
 
 pub(crate) struct Renderer2DAction
 {
-    pub texture: Option<Rc<GLTexture>>,
+    pub texture: Option<GLTexture>,
     pub vertices_clockwise: [Renderer2DVertex; 3]
 }
 
@@ -246,7 +254,7 @@ impl Renderer2DAction
     #[inline]
     fn update_current_texture_if_empty(
         &self,
-        current_texture: &mut Option<Rc<GLTexture>>
+        current_texture: &mut Option<GLTexture>
     ) -> bool
     {
         match &self.texture {
@@ -298,7 +306,7 @@ enum RenderQueueItem
         vertex_positions_clockwise: [Vector2<f32>; 3],
         vertex_colors_clockwise: [Color; 3],
         vertex_texture_coords_clockwise: [Vector2<f32>; 3],
-        texture: Rc<GLTexture>
+        texture: GLTexture
     }
 }
 
@@ -423,7 +431,7 @@ impl RenderQueueItem
 
 pub struct Renderer2D
 {
-    context: Rc<GLContextManager>,
+    context: GLContextManager,
 
     program: Rc<GLProgram>,
 
@@ -432,7 +440,7 @@ pub struct Renderer2D
 
     glyph_cache: crate::font_cache::GlyphCache,
     attribute_buffers: AttributeBuffers,
-    current_texture: Option<Rc<GLTexture>>,
+    current_texture: Option<GLTexture>,
 
     #[allow(dead_code)]
     uniforms: Uniforms
@@ -459,7 +467,7 @@ impl Renderer2D
     ];
 
     pub fn new(
-        context: &Rc<GLContextManager>,
+        context: &GLContextManager,
         viewport_size_pixels: Vector2<u32>
     ) -> Result<Self, BacktraceError<ErrorMessage>>
     {
@@ -486,13 +494,13 @@ impl Renderer2D
             .context("Failed to create Renderer2D program")?;
 
         let attribute_buffers = AttributeBuffers::new(context, &program)?;
-        let uniforms = Uniforms::new(&program)?;
+        let uniforms = Uniforms::new(context, &program)?;
 
         context.use_program(&program);
 
-        uniforms.set_texture_unit(0);
+        uniforms.set_texture_unit(context, 0);
 
-        uniforms.set_viewport_size_pixels(viewport_size_pixels);
+        uniforms.set_viewport_size_pixels(context, viewport_size_pixels);
 
         Ok(Renderer2D {
             context: context.clone(),
@@ -508,7 +516,8 @@ impl Renderer2D
 
     pub fn set_viewport_size_pixels(&self, viewport_size_pixels: Vector2<u32>)
     {
-        self.uniforms.set_viewport_size_pixels(viewport_size_pixels);
+        self.uniforms
+            .set_viewport_size_pixels(&self.context, viewport_size_pixels);
     }
 
     pub fn flush_render_queue(&mut self)
@@ -575,7 +584,7 @@ impl Renderer2D
         context: &GLContextManager,
         program: &Rc<GLProgram>,
         attribute_buffers: &mut AttributeBuffers,
-        current_texture: &mut Option<Rc<GLTexture>>
+        current_texture: &mut Option<GLTexture>
     )
     {
         let vertex_count = attribute_buffers.get_vertex_count();
@@ -586,7 +595,7 @@ impl Renderer2D
 
         context.use_program(program);
 
-        attribute_buffers.upload_and_clear();
+        attribute_buffers.upload_and_clear(context);
 
         let current_texture = current_texture.take();
 

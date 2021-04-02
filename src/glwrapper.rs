@@ -17,112 +17,36 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::convert::TryInto;
-use std::error::Error;
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{Debug, Formatter};
 use std::hash::{Hash, Hasher};
 use std::num::TryFromIntError;
 use std::rc::{Rc, Weak};
 
-use gl::types::*;
-
 use crate::color::Color;
 use crate::dimen::Vector2;
-use crate::error::BacktraceError;
+use crate::error::{BacktraceError, Context, ErrorMessage};
+use crate::glbackend::constants::*;
+use crate::glbackend::types::{GLenum, GLint, GLuint};
+use crate::glbackend::GLBackend;
 
-#[derive(Debug, Hash, PartialEq, Eq, Clone)]
-enum GLErrorCode
-{
-    InvalidEnum,
-    InvalidValue,
-    InvalidOperation,
-    InvalidFramebufferOperation,
-    OutOfMemory,
-    StackUnderflow,
-    StackOverflow,
-    Other(GLenum)
-}
-
-impl From<GLenum> for GLErrorCode
-{
-    fn from(constant: GLenum) -> Self
-    {
-        match constant {
-            gl::INVALID_ENUM => GLErrorCode::InvalidEnum,
-            gl::INVALID_VALUE => GLErrorCode::InvalidValue,
-            gl::INVALID_OPERATION => GLErrorCode::InvalidOperation,
-            gl::INVALID_FRAMEBUFFER_OPERATION => GLErrorCode::InvalidFramebufferOperation,
-            gl::OUT_OF_MEMORY => GLErrorCode::OutOfMemory,
-            gl::STACK_UNDERFLOW => GLErrorCode::StackUnderflow,
-            gl::STACK_OVERFLOW => GLErrorCode::StackOverflow,
-            _ => GLErrorCode::Other(constant)
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct GLError
-{
-    description: String
-}
-
-impl Display for GLError
-{
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result
-    {
-        Display::fmt("GL error: ", f)?;
-        Display::fmt(&self.description, f)
-    }
-}
-
-impl From<GLErrorCode> for BacktraceError<GLError>
-{
-    fn from(err: GLErrorCode) -> Self
-    {
-        GLError::msg(format!("Got GL error code {:?}", err))
-    }
-}
-
-impl From<TryFromIntError> for BacktraceError<GLError>
+impl From<TryFromIntError> for BacktraceError<ErrorMessage>
 {
     fn from(_: TryFromIntError) -> Self
     {
-        GLError::msg("Integer conversion failed/out of bounds")
+        ErrorMessage::msg("Integer conversion failed/out of bounds")
     }
 }
 
-impl Error for GLError {}
-
-impl GLError
+fn gl_check_error_always(
+    context: &GLContextManager
+) -> Result<(), BacktraceError<ErrorMessage>>
 {
-    fn for_zero_handle(alloc_type: GLHandleType) -> BacktraceError<Self>
-    {
-        GLError::msg(format!("GL allocation returned zero for {:?}", alloc_type))
-    }
-
-    fn msg<S: Into<String>>(description: S) -> BacktraceError<Self>
-    {
-        BacktraceError::new(GLError {
-            description: description.into()
-        })
-    }
+    context.with_gl_backend(|backend| backend.gl_check_error_always())
 }
 
-fn gl_check_error_always() -> Result<(), BacktraceError<GLError>>
+fn gl_clear_and_log_old_error(context: &GLContextManager)
 {
-    let err = unsafe { gl::GetError() };
-
-    if err != gl::NO_ERROR {
-        return Err(BacktraceError::<GLError>::from(GLErrorCode::from(err)));
-    }
-
-    Ok(())
-}
-
-fn gl_clear_and_log_old_error()
-{
-    if let Err(err) = gl_check_error_always() {
-        log::error!("Ignoring GL error from previous command: {:?}", err);
-    }
+    context.with_gl_backend(|backend| backend.gl_clear_and_log_old_error())
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
@@ -170,7 +94,8 @@ impl PartialEq for GLHandle
             Some(self_context) => match other.context.upgrade() {
                 None => return false,
                 Some(other_context) => {
-                    if *self_context.borrow() != *other_context.borrow() {
+                    if *RefCell::borrow(&self_context) != *RefCell::borrow(&other_context)
+                    {
                         return false;
                     }
                 }
@@ -185,34 +110,40 @@ impl Eq for GLHandle {}
 
 impl GLHandle
 {
-    fn wrap<F: FnOnce() -> GLuint>(
-        context: &Rc<RefCell<GLContextManagerState>>,
+    fn wrap<Err, F>(
+        context: &GLContextManager,
         handle_type: GLHandleType,
         handle_creator: F
-    ) -> Result<Self, BacktraceError<GLError>>
+    ) -> Result<Self, BacktraceError<ErrorMessage>>
+    where
+        Err: std::error::Error + 'static,
+        F: FnOnce() -> Result<GLuint, Err>
     {
         match handle_type {
-            GLHandleType::Program => gl_clear_and_log_old_error(),
-            GLHandleType::Shader => gl_clear_and_log_old_error(),
+            GLHandleType::Program => gl_clear_and_log_old_error(context),
+            GLHandleType::Shader => gl_clear_and_log_old_error(context),
             GLHandleType::Buffer => {}
             GLHandleType::Texture => {}
         }
 
-        let handle = handle_creator();
+        let handle = handle_creator().context("Handle creation failed")?;
 
         match handle_type {
-            GLHandleType::Program => gl_check_error_always()?,
-            GLHandleType::Shader => gl_check_error_always()?,
+            GLHandleType::Program => gl_check_error_always(context)?,
+            GLHandleType::Shader => gl_check_error_always(context)?,
             GLHandleType::Buffer => {}
             GLHandleType::Texture => {}
         }
 
         if handle == 0 {
-            return Err(GLError::for_zero_handle(handle_type));
+            return Err(ErrorMessage::msg(format!(
+                "GL allocation returned zero for {:?}",
+                handle_type
+            )));
         }
 
         Ok(GLHandle {
-            context: Rc::downgrade(&context),
+            context: Rc::downgrade(&context.state),
             handle,
             handle_type
         })
@@ -220,9 +151,9 @@ impl GLHandle
 
     #[inline]
     #[must_use]
-    fn is_context_still_valid(&self) -> bool
+    fn obtain_context_if_valid(&self) -> Option<GLContextManager>
     {
-        is_gl_context_valid_weak(&self.context)
+        obtain_context_from_weak_if_valid(&self.context)
     }
 }
 
@@ -230,26 +161,31 @@ impl Drop for GLHandle
 {
     fn drop(&mut self)
     {
-        if !self.is_context_still_valid() {
-            // No need to drop, the context is gone
-            return;
-        }
+        if let Some(context) = self.obtain_context_if_valid() {
+            match self.handle_type {
+                GLHandleType::Program => {
+                    context.with_gl_backend(|backend| unsafe {
+                        backend.gl_delete_program(self.handle)
+                    });
+                }
 
-        match self.handle_type {
-            GLHandleType::Program => {
-                unsafe { gl::DeleteProgram(self.handle) };
-            }
+                GLHandleType::Shader => {
+                    context.with_gl_backend(|backend| unsafe {
+                        backend.gl_delete_shader(self.handle)
+                    });
+                }
 
-            GLHandleType::Shader => {
-                unsafe { gl::DeleteShader(self.handle) };
-            }
+                GLHandleType::Buffer => {
+                    context.with_gl_backend(|backend| unsafe {
+                        backend.gl_delete_buffer(self.handle)
+                    });
+                }
 
-            GLHandleType::Buffer => {
-                unsafe { gl::DeleteBuffers(1, &self.handle) };
-            }
-
-            GLHandleType::Texture => {
-                unsafe { gl::DeleteTextures(1, &self.handle) };
+                GLHandleType::Texture => {
+                    context.with_gl_backend(|backend| unsafe {
+                        backend.gl_delete_texture(self.handle)
+                    });
+                }
             }
         }
     }
@@ -282,62 +218,66 @@ impl Eq for GLProgram {}
 
 impl GLProgram
 {
-    fn new(
-        context: &Rc<RefCell<GLContextManagerState>>
-    ) -> Result<Self, BacktraceError<GLError>>
+    fn new(context: &GLContextManager) -> Result<Self, BacktraceError<ErrorMessage>>
     {
-        Ok(GLProgram {
-            handle: GLHandle::wrap(context, GLHandleType::Program, || unsafe {
-                gl::CreateProgram()
-            })?,
-            attribute_handles: HashMap::new()
+        context.with_gl_backend(|backend| {
+            Ok(GLProgram {
+                handle: GLHandle::wrap(context, GLHandleType::Program, || unsafe {
+                    backend.gl_create_program()
+                })?,
+                attribute_handles: HashMap::new()
+            })
         })
     }
 
-    fn attach_shader(&mut self, shader: &GLShader)
-        -> Result<(), BacktraceError<GLError>>
+    fn attach_shader(
+        &mut self,
+        context: &GLContextManager,
+        shader: &GLShader
+    ) -> Result<(), BacktraceError<ErrorMessage>>
     {
-        unsafe {
-            gl::AttachShader(self.handle.handle, shader.handle.handle);
-        }
+        context.with_gl_backend(|backend| unsafe {
+            backend.gl_attach_shader(self.handle.handle, shader.handle.handle);
+        });
 
-        gl_check_error_always()?;
+        gl_check_error_always(context)?;
 
         Ok(())
     }
 
     fn link(
-        context: &Rc<RefCell<GLContextManagerState>>,
+        context: &GLContextManager,
         vertex_shader: &GLShader,
         fragment_shader: &GLShader,
         attribute_names: impl IntoIterator<Item = &'static &'static str>
-    ) -> Result<Self, BacktraceError<GLError>>
+    ) -> Result<Self, BacktraceError<ErrorMessage>>
     {
-        gl_clear_and_log_old_error();
+        gl_clear_and_log_old_error(context);
 
         let mut program = GLProgram::new(context)?;
 
-        program.attach_shader(vertex_shader)?;
-        program.attach_shader(fragment_shader)?;
+        program.attach_shader(context, vertex_shader)?;
+        program.attach_shader(context, fragment_shader)?;
 
-        unsafe {
-            gl::LinkProgram(program.handle.handle);
-        }
+        context.with_gl_backend(|backend| unsafe {
+            backend.gl_link_program(program.handle.handle);
+        });
 
-        gl_check_error_always()?;
+        gl_check_error_always(context)?;
 
-        let mut link_status: GLint = 0;
+        context.with_gl_backend(|backend| unsafe {
+            if backend.gl_get_program_link_status(program.handle.handle) {
+                Ok(())
+            } else {
+                let msg = backend.gl_get_program_info_log(program.handle.handle)?;
+                Err(ErrorMessage::msg(format!(
+                    "Program linking failed: '{}'",
+                    msg
+                )))
+            }
+        })?;
 
-        unsafe {
-            gl::GetProgramiv(program.handle.handle, gl::LINK_STATUS, &mut link_status);
-        }
-
-        if link_status == 0 {
-            let msg = gl_get_program_info_log(&program)?;
-            return Err(GLError::msg(format!("Program linking failed: '{}'", msg)));
-        }
-
-        gl_check_error_always()?;
+        gl_check_error_always(context)?;
 
         for attribute_name in attribute_names.into_iter() {
             program.attribute_handles.insert(
@@ -349,82 +289,80 @@ impl GLProgram
         Ok(program)
     }
 
-    fn enable(&self)
+    fn enable(&self, context: &GLContextManager)
     {
-        unsafe {
-            gl::UseProgram(self.handle.handle);
-        }
-
-        for attribute in self.attribute_handles.values() {
+        context.with_gl_backend(|backend| {
             unsafe {
-                gl::EnableVertexAttribArray(attribute.handle);
+                backend.gl_use_program(self.handle.handle);
             }
-        }
+
+            for attribute in self.attribute_handles.values() {
+                unsafe {
+                    backend.gl_enable_vertex_attrib_array(attribute.handle);
+                }
+            }
+        });
     }
 
-    fn disable(&self)
+    fn disable(&self, context: &GLContextManager)
     {
-        for attribute in self.attribute_handles.values() {
-            unsafe {
-                gl::DisableVertexAttribArray(attribute.handle);
+        context.with_gl_backend(|backend| {
+            for attribute in self.attribute_handles.values() {
+                unsafe {
+                    backend.gl_disable_vertex_attrib_array(attribute.handle);
+                }
             }
-        }
+        });
     }
 
     pub fn get_attribute_handle(
         &self,
         name: &str
-    ) -> Result<GLAttributeHandle, BacktraceError<GLError>>
+    ) -> Result<GLAttributeHandle, BacktraceError<ErrorMessage>>
     {
-        if !is_gl_context_valid_weak(&self.handle.context) {
-            return Err(GLError::msg("GL context no longer valid"));
-        }
+        let context = self
+            .handle
+            .obtain_context_if_valid()
+            .ok_or_else(|| ErrorMessage::msg("GL context no longer valid"))?;
 
-        let name_cstr = std::ffi::CString::new(name)
-            .map_err(|_| GLError::msg("Attribute name contained NUL"))?;
+        let handle = context.with_gl_backend(|backend| unsafe {
+            backend.gl_get_attrib_location(self.handle.handle, name)
+        });
 
-        let handle =
-            unsafe { gl::GetAttribLocation(self.handle.handle, name_cstr.as_ptr()) };
+        gl_check_error_always(&context)?;
 
-        gl_check_error_always()?;
-
-        if handle < 0 {
-            return Err(GLError::msg(format!(
+        match handle {
+            None => Err(ErrorMessage::msg(format!(
                 "Attribute handle {} is invalid",
                 name
-            )));
+            ))),
+            Some(handle) => Ok(GLAttributeHandle { handle })
         }
-
-        let handle: u32 = handle.try_into()?;
-
-        Ok(GLAttributeHandle { handle })
     }
 
     pub fn get_uniform_handle(
         &self,
+        context: &GLContextManager,
         name: &str
-    ) -> Result<GLUniformHandle, BacktraceError<GLError>>
+    ) -> Result<GLUniformHandle, BacktraceError<ErrorMessage>>
     {
-        if !is_gl_context_valid_weak(&self.handle.context) {
-            return Err(GLError::msg("GL context no longer valid"));
+        if !context.is_valid() {
+            return Err(ErrorMessage::msg("GL context no longer valid"));
         }
 
-        let name_cstr = std::ffi::CString::new(name)
-            .map_err(|_| GLError::msg("Uniform name contained NUL"))?;
+        let handle = context.with_gl_backend(|backend| unsafe {
+            backend.gl_get_uniform_location(self.handle.handle, name)
+        });
 
-        let handle =
-            unsafe { gl::GetUniformLocation(self.handle.handle, name_cstr.as_ptr()) };
+        gl_check_error_always(&context)?;
 
-        gl_check_error_always()?;
-
-        if handle < 0 {
-            return Err(GLError::msg(format!(
-                "Attribute handle {} is invalid",
+        match handle {
+            None => Err(ErrorMessage::msg(format!(
+                "Uniform handle {} is invalid",
                 name
-            )));
+            ))),
+            Some(handle) => Ok(GLUniformHandle { handle })
         }
-
-        Ok(GLUniformHandle { handle })
     }
 }
 
@@ -440,8 +378,8 @@ impl GLShaderType
     fn gl_constant(&self) -> GLenum
     {
         match self {
-            GLShaderType::Vertex => gl::VERTEX_SHADER,
-            GLShaderType::Fragment => gl::FRAGMENT_SHADER
+            GLShaderType::Vertex => GL_VERTEX_SHADER,
+            GLShaderType::Fragment => GL_FRAGMENT_SHADER
         }
     }
 }
@@ -454,68 +392,44 @@ pub struct GLShader
 impl GLShader
 {
     fn new(
-        context: &Rc<RefCell<GLContextManagerState>>,
+        context: &GLContextManager,
         shader_type: GLShaderType
-    ) -> Result<Self, BacktraceError<GLError>>
+    ) -> Result<Self, BacktraceError<ErrorMessage>>
     {
         Ok(GLShader {
-            handle: GLHandle::wrap(context, GLHandleType::Shader, || unsafe {
-                gl::CreateShader(shader_type.gl_constant())
+            handle: GLHandle::wrap(context, GLHandleType::Shader, || {
+                context.with_gl_backend(|backend| unsafe {
+                    backend.gl_create_shader(shader_type.gl_constant())
+                })
             })?
         })
     }
 
     fn compile(
-        context: &Rc<RefCell<GLContextManagerState>>,
+        context: &GLContextManager,
         shader_type: GLShaderType,
         source: &str
-    ) -> Result<Self, BacktraceError<GLError>>
+    ) -> Result<Self, BacktraceError<ErrorMessage>>
     {
-        gl_clear_and_log_old_error();
+        gl_clear_and_log_old_error(context);
 
         let shader = GLShader::new(context, shader_type)?;
 
-        let source_str: *const GLchar = source.as_ptr() as *const GLchar;
-        let source_len: i32 = source.len().try_into()?;
+        context.with_gl_backend(|backend| unsafe {
+            backend.gl_shader_source(shader.handle.handle, source);
+            backend.gl_check_error_always()?;
 
-        unsafe { gl::ShaderSource(shader.handle.handle, 1, &source_str, &source_len) };
+            backend.gl_compile_shader(shader.handle.handle);
+            backend.gl_check_error_always()?;
 
-        gl_check_error_always()?;
-
-        unsafe { gl::CompileShader(shader.handle.handle) };
-
-        gl_check_error_always()?;
-
-        let mut compile_status: GLint = 0;
-
-        unsafe {
-            gl::GetShaderiv(
-                shader.handle.handle,
-                gl::COMPILE_STATUS,
-                &mut compile_status
-            );
-        };
-
-        if compile_status == 0 {
-            let msg = gl_call_get_info_log(|buf_capacity, out_buf_len, buf| unsafe {
-                gl::GetShaderInfoLog(
-                    shader.handle.handle,
-                    buf_capacity,
-                    out_buf_len,
-                    buf
-                );
-
-                gl_check_error_always()?;
-                Ok(())
-            })?;
-
-            return Err(GLError::msg(format!(
-                "Shader compilation failed: '{}'",
-                msg
-            )));
-        }
-
-        Ok(shader)
+            if backend.gl_get_shader_compile_status(shader.handle.handle) {
+                Ok(shader)
+            } else {
+                Err(ErrorMessage::msg(context.with_gl_backend(|backend| {
+                    backend.gl_get_shader_info_log(shader.handle.handle)
+                })?))
+            }
+        })
     }
 }
 
@@ -528,68 +442,24 @@ pub struct GLAttributeHandle
 #[derive(Debug)]
 pub struct GLUniformHandle
 {
-    handle: GLint
+    handle: GLuint
 }
 
 impl GLUniformHandle
 {
-    pub fn set_value_float(&self, value: f32)
+    pub fn set_value_float(&self, context: &GLContextManager, value: f32)
     {
-        unsafe {
-            gl::Uniform1f(self.handle, value);
-        }
+        context.with_gl_backend(|backend| unsafe {
+            backend.gl_uniform_1f(self.handle, value)
+        })
     }
 
-    pub fn set_value_int(&self, value: i32)
+    pub fn set_value_int(&self, context: &GLContextManager, value: i32)
     {
-        unsafe {
-            gl::Uniform1i(self.handle, value);
-        }
+        context.with_gl_backend(|backend| unsafe {
+            backend.gl_uniform_1i(self.handle, value)
+        })
     }
-}
-
-fn gl_get_program_info_log(program: &GLProgram)
-    -> Result<String, BacktraceError<GLError>>
-{
-    gl_call_get_info_log(|buf_capacity, out_buf_len, buf| unsafe {
-        gl::GetProgramInfoLog(program.handle.handle, buf_capacity, out_buf_len, buf);
-
-        gl_check_error_always()?;
-        Ok(())
-    })
-}
-
-fn gl_call_get_info_log<F>(callback: F) -> Result<String, BacktraceError<GLError>>
-where
-    F: FnOnce(GLsizei, *mut GLsizei, *mut GLchar) -> Result<(), BacktraceError<GLError>>
-{
-    gl_clear_and_log_old_error();
-
-    let log_buf_capacity: GLsizei = 16384;
-    let mut log_buf: Vec<u8> = vec![0; log_buf_capacity as usize];
-
-    let mut log_buf_length: GLsizei = -1;
-
-    callback(
-        log_buf_capacity,
-        &mut log_buf_length,
-        log_buf.as_mut_ptr() as *mut GLchar
-    )?;
-
-    gl_clear_and_log_old_error();
-
-    if log_buf_length < 0 || log_buf_length > log_buf_capacity {
-        return Err(GLError::msg(format!(
-            "GL info log failed, log had invalid length {}",
-            log_buf_length
-        )));
-    }
-
-    unsafe { log_buf.set_len(log_buf_length as usize) };
-
-    let msg = String::from_utf8_lossy(log_buf.as_slice());
-
-    Ok(String::from(msg))
 }
 
 pub enum GLBufferTarget
@@ -604,8 +474,8 @@ impl GLBufferTarget
     fn gl_constant(&self) -> GLenum
     {
         match self {
-            GLBufferTarget::Array => gl::ARRAY_BUFFER,
-            GLBufferTarget::ElementArray => gl::ELEMENT_ARRAY_BUFFER
+            GLBufferTarget::Array => GL_ARRAY_BUFFER,
+            GLBufferTarget::ElementArray => GL_ELEMENT_ARRAY_BUFFER
         }
     }
 }
@@ -621,18 +491,16 @@ pub struct GLBuffer
 impl GLBuffer
 {
     fn new(
-        context: &Rc<RefCell<GLContextManagerState>>,
+        context: &GLContextManager,
         target: GLBufferTarget,
         components_per_vertex: GLint,
         attrib_index: GLAttributeHandle
-    ) -> Result<Self, BacktraceError<GLError>>
+    ) -> Result<Self, BacktraceError<ErrorMessage>>
     {
-        gl_clear_and_log_old_error();
+        gl_clear_and_log_old_error(context);
 
-        let handle = GLHandle::wrap(context, GLHandleType::Buffer, || unsafe {
-            let mut handle: GLuint = 0;
-            gl::GenBuffers(1, &mut handle);
-            handle
+        let handle = GLHandle::wrap(context, GLHandleType::Buffer, || {
+            context.with_gl_backend(|backend| unsafe { backend.gl_gen_buffer() })
         })?;
 
         Ok(GLBuffer {
@@ -643,51 +511,27 @@ impl GLBuffer
         })
     }
 
-    pub fn set_data(&mut self, data: &[GLfloat])
+    pub fn set_data(&mut self, context: &GLContextManager, data: &[f32])
     {
-        if !is_gl_context_valid_weak(&self.handle.context) {
+        if !context.is_valid() {
             log::warn!("Ignoring buffer set_data: invalid GL context");
             return;
         }
 
-        self.gl_bind_buffer();
-        self.gl_buffer_data_dynamic_draw(data);
-        self.gl_set_attrib_pointer_data();
-    }
+        context.with_gl_backend(|backend| unsafe {
+            backend.gl_bind_buffer(self.target.gl_constant(), self.handle.handle);
 
-    fn gl_bind_buffer(&mut self)
-    {
-        unsafe {
-            gl::BindBuffer(self.target.gl_constant(), self.handle.handle);
-        }
-    }
+            backend.gl_buffer_data_f32(self.target.gl_constant(), data, GL_DYNAMIC_DRAW);
 
-    fn gl_buffer_data_dynamic_draw(&mut self, data: &[GLfloat])
-    {
-        unsafe {
-            gl::BufferData(
-                self.target.gl_constant(),
-                (data.len() * std::mem::size_of::<GLfloat>())
-                    .try_into()
-                    .unwrap(),
-                data.as_ptr() as *const GLvoid,
-                gl::DYNAMIC_DRAW
-            );
-        }
-    }
-
-    fn gl_set_attrib_pointer_data(&mut self)
-    {
-        unsafe {
-            gl::VertexAttribPointer(
+            backend.gl_vertex_attrib_pointer_f32(
                 self.attrib_index.handle,
                 self.components_per_vertex,
-                gl::FLOAT,
-                gl::FALSE,
+                GL_FLOAT,
+                false,
                 0,
-                std::ptr::null()
-            );
-        }
+                0
+            )
+        });
     }
 }
 
@@ -712,18 +556,18 @@ impl GLTextureImageFormatU8
     fn get_internal_format(&self) -> GLenum
     {
         match self {
-            GLTextureImageFormatU8::Red => gl::R8,
-            GLTextureImageFormatU8::RGB => gl::RGB8,
-            GLTextureImageFormatU8::RGBA => gl::RGBA8
+            GLTextureImageFormatU8::Red => GL_R8,
+            GLTextureImageFormatU8::RGB => GL_RGB8,
+            GLTextureImageFormatU8::RGBA => GL_RGBA8
         }
     }
 
     fn get_format(&self) -> GLenum
     {
         match self {
-            GLTextureImageFormatU8::Red => gl::RED,
-            GLTextureImageFormatU8::RGB => gl::RGB,
-            GLTextureImageFormatU8::RGBA => gl::RGBA
+            GLTextureImageFormatU8::Red => GL_RED,
+            GLTextureImageFormatU8::RGB => GL_RGB,
+            GLTextureImageFormatU8::RGBA => GL_RGBA
         }
     }
 
@@ -737,44 +581,42 @@ impl GLTextureImageFormatU8
     }
 }
 
-#[derive(Debug, Hash, PartialEq, Eq)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct GLTexture
 {
-    handle: GLHandle
+    handle: Rc<GLHandle>
 }
 
 impl GLTexture
 {
-    fn new(
-        context: &Rc<RefCell<GLContextManagerState>>
-    ) -> Result<Rc<Self>, BacktraceError<GLError>>
+    fn new(context: &GLContextManager) -> Result<Self, BacktraceError<ErrorMessage>>
     {
-        let handle = GLHandle::wrap(context, GLHandleType::Texture, || unsafe {
-            let mut handle: GLuint = 0;
-            gl::GenTextures(1, &mut handle);
-            handle
+        let handle = GLHandle::wrap(context, GLHandleType::Texture, || {
+            context.with_gl_backend(|backend| unsafe { backend.gl_gen_texture() })
         })?;
 
-        Ok(Rc::new(GLTexture { handle }))
+        Ok(GLTexture {
+            handle: Rc::new(handle)
+        })
     }
 
     pub fn set_image_data(
-        self: &Rc<Self>,
-        context: &Rc<GLContextManager>,
+        &self,
+        context: &GLContextManager,
         format: GLTextureImageFormatU8,
         smoothing: GLTextureSmoothing,
         size: &Vector2<u32>,
         data: &[u8]
-    ) -> Result<(), BacktraceError<GLError>>
+    ) -> Result<(), BacktraceError<ErrorMessage>>
     {
-        if !is_gl_context_valid_weak(&self.handle.context) {
+        if !context.is_valid() {
             log::warn!("Ignoring texture set_image_data: invalid GL context");
             return Ok(());
         }
 
         let smoothing_constant = match smoothing {
-            GLTextureSmoothing::NearestNeighbour => gl::NEAREST,
-            GLTextureSmoothing::Linear => gl::LINEAR
+            GLTextureSmoothing::NearestNeighbour => GL_NEAREST,
+            GLTextureSmoothing::Linear => GL_LINEAR
         } as GLint;
 
         context.bind_texture(self);
@@ -791,73 +633,87 @@ impl GLTexture
             1
         };
 
-        unsafe {
-            gl::PixelStorei(gl::UNPACK_ALIGNMENT, unpack_alignment);
+        context.with_gl_backend::<Result<(), BacktraceError<ErrorMessage>>, _>(
+            |backend| unsafe {
+                backend.gl_pixel_store_i(GL_UNPACK_ALIGNMENT, unpack_alignment);
+                backend.gl_tex_parameter_i(
+                    GL_TEXTURE_2D,
+                    GL_TEXTURE_WRAP_S,
+                    GL_CLAMP_TO_EDGE as GLint
+                );
+                backend.gl_tex_parameter_i(
+                    GL_TEXTURE_2D,
+                    GL_TEXTURE_WRAP_T,
+                    GL_CLAMP_TO_EDGE as GLint
+                );
+                backend.gl_tex_parameter_i(
+                    GL_TEXTURE_2D,
+                    GL_TEXTURE_MIN_FILTER,
+                    smoothing_constant
+                );
+                backend.gl_tex_parameter_i(
+                    GL_TEXTURE_2D,
+                    GL_TEXTURE_MAG_FILTER,
+                    smoothing_constant
+                );
 
-            gl::BindTexture(gl::TEXTURE_2D, self.handle.handle);
-            gl::TexParameteri(
-                gl::TEXTURE_2D,
-                gl::TEXTURE_WRAP_S,
-                gl::CLAMP_TO_EDGE as GLint
-            );
-            gl::TexParameteri(
-                gl::TEXTURE_2D,
-                gl::TEXTURE_WRAP_T,
-                gl::CLAMP_TO_EDGE as GLint
-            );
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, smoothing_constant);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, smoothing_constant);
-        }
+                backend.gl_tex_image_2d(
+                    GL_TEXTURE_2D,
+                    0,
+                    format
+                        .get_internal_format()
+                        .try_into()
+                        .context("Failed to cast internal format")?,
+                    size.x.try_into()?,
+                    size.y.try_into()?,
+                    0,
+                    format.get_format(),
+                    GL_UNSIGNED_BYTE,
+                    Some(data)
+                );
 
-        unsafe {
-            gl::TexImage2D(
-                gl::TEXTURE_2D,
-                0,
-                format.get_internal_format().try_into()?,
-                size.x.try_into()?,
-                size.y.try_into()?,
-                0,
-                format.get_format(),
-                gl::UNSIGNED_BYTE,
-                data.as_ptr() as *const std::os::raw::c_void
-            );
-        }
-
-        Ok(())
-    }
-
-    fn unbind_texture()
-    {
-        unsafe {
-            gl::ActiveTexture(gl::TEXTURE0);
-            gl::BindTexture(gl::TEXTURE_2D, 0);
-        }
+                Ok(())
+            }
+        )
     }
 }
 
 #[must_use]
-fn is_gl_context_valid(state: &RefCell<GLContextManagerState>) -> bool
+fn obtain_context_if_valid(
+    state: &RefCell<GLContextManagerState>
+) -> Option<GLContextManager>
 {
-    state.borrow().is_valid
+    let state = state.borrow_mut();
+
+    if state.is_valid {
+        Some(GLContextManager {
+            state: state.weak_ref_to_self.upgrade().unwrap()
+        })
+    } else {
+        None
+    }
 }
 
 #[inline]
 #[must_use]
-fn is_gl_context_valid_weak(state: &Weak<RefCell<GLContextManagerState>>) -> bool
+fn obtain_context_from_weak_if_valid(
+    state: &Weak<RefCell<GLContextManagerState>>
+) -> Option<GLContextManager>
 {
     match state.upgrade() {
-        None => false,
-        Some(state) => is_gl_context_valid(&state)
+        None => None,
+        Some(state) => obtain_context_if_valid(&state)
     }
 }
 
-#[derive(Eq)]
 struct GLContextManagerState
 {
     is_valid: bool,
-    active_texture: Option<Rc<GLTexture>>,
+    active_texture: Option<GLTexture>,
     active_program: Option<Rc<GLProgram>>,
-    active_blend_mode: Option<GLBlendEnabled>
+    active_blend_mode: Option<GLBlendEnabled>,
+    gl_backend: Rc<dyn GLBackend + 'static>,
+    weak_ref_to_self: Weak<RefCell<GLContextManagerState>>
 }
 
 impl PartialEq for GLContextManagerState
@@ -868,6 +724,7 @@ impl PartialEq for GLContextManagerState
     }
 }
 
+#[derive(Clone)]
 pub struct GLContextManager
 {
     state: Rc<RefCell<GLContextManagerState>>
@@ -875,16 +732,23 @@ pub struct GLContextManager
 
 impl GLContextManager
 {
-    pub fn create() -> Result<Rc<Self>, BacktraceError<GLError>>
+    pub fn create(
+        gl_backend: Rc<dyn GLBackend>
+    ) -> Result<Self, BacktraceError<ErrorMessage>>
     {
-        let manager = Rc::new(GLContextManager {
+        let manager = GLContextManager {
             state: Rc::new(RefCell::new(GLContextManagerState {
                 is_valid: true,
                 active_texture: None,
                 active_program: None,
-                active_blend_mode: None
+                active_blend_mode: None,
+                gl_backend,
+                weak_ref_to_self: Weak::new()
             }))
-        });
+        };
+
+        RefCell::borrow_mut(&manager.state).weak_ref_to_self =
+            Rc::downgrade(&manager.state);
 
         log::info!("GL context manager created");
 
@@ -894,7 +758,7 @@ impl GLContextManager
     pub fn mark_invalid(&self)
     {
         log::info!("GL context manager is now inactive");
-        self.state.borrow_mut().is_valid = false;
+        RefCell::borrow_mut(&self.state).is_valid = false;
     }
 
     pub fn new_buffer(
@@ -902,26 +766,20 @@ impl GLContextManager
         target: GLBufferTarget,
         components_per_vertex: GLint,
         attrib_index: GLAttributeHandle
-    ) -> Result<GLBuffer, BacktraceError<GLError>>
+    ) -> Result<GLBuffer, BacktraceError<ErrorMessage>>
     {
-        if !is_gl_context_valid(&self.state) {
-            return Err(GLError::msg("GL context no longer valid"));
-        }
-
-        GLBuffer::new(&self.state, target, components_per_vertex, attrib_index)
+        self.ensure_valid()?;
+        GLBuffer::new(self, target, components_per_vertex, attrib_index)
     }
 
     pub fn new_shader(
         &self,
         shader_type: GLShaderType,
         source: &str
-    ) -> Result<GLShader, BacktraceError<GLError>>
+    ) -> Result<GLShader, BacktraceError<ErrorMessage>>
     {
-        if !is_gl_context_valid(&self.state) {
-            return Err(GLError::msg("GL context no longer valid"));
-        }
-
-        GLShader::compile(&self.state, shader_type, source)
+        self.ensure_valid()?;
+        GLShader::compile(self, shader_type, source)
     }
 
     pub fn new_program(
@@ -929,129 +787,149 @@ impl GLContextManager
         vertex_shader: &GLShader,
         fragment_shader: &GLShader,
         attribute_names: impl IntoIterator<Item = &'static &'static str>
-    ) -> Result<Rc<GLProgram>, BacktraceError<GLError>>
+    ) -> Result<Rc<GLProgram>, BacktraceError<ErrorMessage>>
     {
-        if !is_gl_context_valid(&self.state) {
-            return Err(GLError::msg("GL context no longer valid"));
-        }
+        self.ensure_valid()?;
 
         Ok(Rc::new(GLProgram::link(
-            &self.state,
+            self,
             vertex_shader,
             fragment_shader,
             attribute_names
         )?))
     }
 
-    pub fn new_texture(&self) -> Result<Rc<GLTexture>, BacktraceError<GLError>>
+    pub fn new_texture(&self) -> Result<GLTexture, BacktraceError<ErrorMessage>>
     {
-        if !is_gl_context_valid(&self.state) {
-            return Err(GLError::msg("GL context no longer valid"));
-        }
-
-        GLTexture::new(&self.state)
+        self.ensure_valid()?;
+        GLTexture::new(self)
     }
 
-    pub fn bind_texture(&self, texture: &Rc<GLTexture>)
+    pub fn bind_texture(&self, texture: &GLTexture)
     {
-        if !is_gl_context_valid(&self.state) {
+        if !self.is_valid() {
             log::warn!("Ignoring bind_texture: invalid GL context");
             return;
         }
 
-        if self.state.borrow().active_texture.as_ref() == Some(texture) {
+        if RefCell::borrow(&self.state).active_texture.as_ref() == Some(texture) {
             // Already bound
             return;
         }
 
         // Drop separately to avoid a duplicate borrow of `state`.
-        let old_active_texture = self.state.borrow_mut().active_texture.take();
+        let old_active_texture = RefCell::borrow_mut(&self.state).active_texture.take();
         std::mem::drop(old_active_texture);
 
-        self.state.borrow_mut().active_texture = Some(texture.clone());
+        RefCell::borrow_mut(&self.state).active_texture = Some(texture.clone());
 
-        unsafe {
-            gl::ActiveTexture(gl::TEXTURE0);
-            gl::BindTexture(gl::TEXTURE_2D, texture.handle.handle);
-        }
+        self.with_gl_backend(|backend| unsafe {
+            backend.gl_active_texture(GL_TEXTURE0);
+            backend.gl_bind_texture(GL_TEXTURE_2D, texture.handle.handle);
+        });
     }
 
     pub fn unbind_texture(&self)
     {
-        if !is_gl_context_valid(&self.state) {
+        if !self.is_valid() {
             log::warn!("Ignoring unbind_texture: invalid GL context");
             return;
         }
 
-        GLTexture::unbind_texture();
+        self.with_gl_backend(|backend| unsafe {
+            backend.gl_active_texture(GL_TEXTURE0);
+            backend.gl_bind_texture(GL_TEXTURE_2D, 0);
+        });
     }
 
     pub fn use_program(&self, program: &Rc<GLProgram>)
     {
-        if !is_gl_context_valid(&self.state) {
+        if !self.is_valid() {
             log::warn!("Ignoring use_program: invalid GL context");
             return;
         }
 
-        if self.state.borrow().active_program.as_ref() == Some(program) {
+        if RefCell::borrow(&self.state).active_program.as_ref() == Some(program) {
             // Already bound
             return;
         }
 
-        if let Some(existing_program) = &self.state.borrow_mut().active_program {
-            existing_program.disable();
+        if let Some(existing_program) = &RefCell::borrow_mut(&self.state).active_program {
+            existing_program.disable(self);
         }
 
-        self.state.borrow_mut().active_program = Some(program.clone());
-        program.enable();
+        RefCell::borrow_mut(&self.state).active_program = Some(program.clone());
+        program.enable(self);
     }
 
     fn set_blend_mode(&self, blend_mode: GLBlendEnabled)
     {
-        if self.state.borrow().active_blend_mode == Some(blend_mode.clone()) {
+        if RefCell::borrow(&self.state).active_blend_mode == Some(blend_mode.clone()) {
             return;
         }
 
-        self.state.borrow_mut().active_blend_mode = Some(blend_mode.clone());
+        RefCell::borrow_mut(&self.state).active_blend_mode = Some(blend_mode.clone());
 
         match blend_mode {
             GLBlendEnabled::Enabled(mode) => match mode {
-                GLBlendMode::OneMinusSrcAlpha => unsafe {
-                    gl::Enable(gl::BLEND);
-                    gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
-                }
+                GLBlendMode::OneMinusSrcAlpha => self.with_gl_backend(|backend| unsafe {
+                    backend.gl_enable(GL_BLEND);
+                    backend.gl_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                })
             },
 
-            GLBlendEnabled::Disabled => unsafe {
-                gl::Disable(gl::BLEND);
-            }
+            GLBlendEnabled::Disabled => self.with_gl_backend(|backend| unsafe {
+                backend.gl_disable(GL_BLEND);
+            })
         }
     }
 
     pub fn draw_triangles(&self, blend_mode: GLBlendEnabled, vertex_count: usize)
     {
-        if !is_gl_context_valid(&self.state) {
+        if !self.is_valid() {
             log::warn!("Ignoring draw_triangles: invalid GL context");
             return;
         }
 
         self.set_blend_mode(blend_mode);
 
-        unsafe {
-            gl::DrawArrays(gl::TRIANGLES, 0, vertex_count.try_into().unwrap());
-        }
+        self.with_gl_backend(|backend| unsafe {
+            backend.gl_draw_arrays(GL_TRIANGLES, 0, vertex_count.try_into().unwrap());
+        });
     }
 
     pub fn clear_screen(&self, color: Color)
     {
-        if !is_gl_context_valid(&self.state) {
+        if !self.is_valid() {
             log::warn!("Ignoring clear_screen: invalid GL context");
             return;
         }
 
-        unsafe {
-            gl::ClearColor(color.r(), color.g(), color.b(), color.a());
-            gl::Clear(gl::COLOR_BUFFER_BIT);
+        self.with_gl_backend(|backend| unsafe {
+            backend.gl_clear_color(color.r(), color.g(), color.b(), color.a());
+            backend.gl_clear(GL_COLOR_BUFFER_BIT);
+        });
+    }
+
+    fn with_gl_backend<Return, F>(&self, callback: F) -> Return
+    where
+        F: FnOnce(&Rc<dyn GLBackend>) -> Return
+    {
+        let state_ref = RefCell::borrow(&self.state);
+        callback(&state_ref.gl_backend)
+    }
+
+    fn is_valid(&self) -> bool
+    {
+        RefCell::borrow(&self.state).is_valid
+    }
+
+    fn ensure_valid(&self) -> Result<(), BacktraceError<ErrorMessage>>
+    {
+        if !self.is_valid() {
+            Err(ErrorMessage::msg("GL context no longer valid"))
+        } else {
+            Ok(())
         }
     }
 }
