@@ -257,9 +257,9 @@ use crate::color::Color;
 use crate::dimen::Vector2;
 use crate::error::{BacktraceError, ErrorMessage};
 use crate::font::FormattedTextBlock;
+use crate::glbackend::GLBackend;
 #[cfg(not(target_arch = "wasm32"))]
 use crate::glbackend::{GLBackendGLRS, GLBackendGlow};
-use crate::glbackend::GLBackend;
 use crate::glwrapper::GLContextManager;
 use crate::image::{ImageDataType, ImageHandle, ImageSmoothingMode};
 use crate::renderer2d::Renderer2D;
