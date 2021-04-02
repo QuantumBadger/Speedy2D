@@ -792,7 +792,6 @@ impl GLTexture
         };
 
         unsafe {
-
             gl::PixelStorei(gl::UNPACK_ALIGNMENT, unpack_alignment);
 
             gl::BindTexture(gl::TEXTURE_2D, self.handle.handle);
