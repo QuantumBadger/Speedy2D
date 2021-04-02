@@ -225,6 +225,7 @@
 // Suggested fix for len_zero is unstable, see
 // https://github.com/rust-lang/rust/issues/35428
 #![allow(clippy::len_zero)]
+#![allow(clippy::upper_case_acronyms)]
 
 use std::fmt::{Display, Formatter};
 use std::rc::Rc;

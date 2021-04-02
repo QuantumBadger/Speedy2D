@@ -367,7 +367,7 @@ impl GlyphCacheInterface for GlyphCache
             }
         }
 
-        for texture in &self.textures {
+        for texture in &mut self.textures {
             texture
                 .revalidate(context)
                 .map_err(|err| err.context("Failed to revalidate texture"))?;
@@ -666,10 +666,15 @@ impl GlyphCacheTexture
     }
 
     fn revalidate(
-        &self,
+        &mut self,
         context: &Rc<GLContextManager>
     ) -> Result<(), BacktraceError<GLError>>
     {
-        self.bitmap.upload_to_texture(context, &self.texture)
+        if self.invalidated {
+            self.invalidated = false;
+            self.bitmap.upload_to_texture(context, &self.texture)
+        } else {
+            Ok(())
+        }
     }
 }
