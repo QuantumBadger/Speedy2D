@@ -26,7 +26,16 @@ use crate::color::Color;
 use crate::dimen::Vector2;
 use crate::error::{BacktraceError, Context, ErrorMessage};
 use crate::glbackend::constants::*;
-use crate::glbackend::types::{GLenum, GLint, GLuint};
+use crate::glbackend::types::{
+    GLTypeBuffer,
+    GLTypeProgram,
+    GLTypeShader,
+    GLTypeTexture,
+    GLTypeUniformLocation,
+    GLenum,
+    GLint,
+    GLuint
+};
 use crate::glbackend::GLBackend;
 
 impl From<TryFromIntError> for BacktraceError<ErrorMessage>
@@ -49,6 +58,11 @@ fn gl_clear_and_log_old_error(context: &GLContextManager)
     context.with_gl_backend(|backend| backend.gl_clear_and_log_old_error())
 }
 
+trait GLHandleOwner<HandleType: GLHandleId>
+{
+    fn get_handle(&self) -> HandleType::HandleRawType;
+}
+
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
 enum GLHandleType
 {
@@ -58,14 +72,44 @@ enum GLHandleType
     Texture
 }
 
-struct GLHandle
+trait GLHandleId: Debug + Hash + PartialEq + Eq
+{
+    type HandleRawType;
+    fn delete(&self, context: &GLContextManager);
+}
+
+#[derive(Debug, Hash, PartialEq, Eq)]
+struct GLHandleTypeProgram
+{
+    handle: GLTypeProgram
+}
+
+#[derive(Debug, Hash, PartialEq, Eq)]
+struct GLHandleTypeShader
+{
+    handle: GLTypeShader
+}
+
+#[derive(Debug, Hash, PartialEq, Eq)]
+struct GLHandleTypeBuffer
+{
+    handle: GLTypeBuffer
+}
+
+#[derive(Debug, Hash, PartialEq, Eq)]
+struct GLHandleTypeTexture
+{
+    handle: GLTypeTexture
+}
+
+struct GLHandle<HandleType: GLHandleId>
 {
     context: Weak<RefCell<GLContextManagerState>>,
-    handle: GLuint,
+    handle: HandleType,
     handle_type: GLHandleType
 }
 
-impl Debug for GLHandle
+impl<HandleType: GLHandleId> Debug for GLHandle<HandleType>
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result
     {
@@ -76,7 +120,7 @@ impl Debug for GLHandle
     }
 }
 
-impl std::hash::Hash for GLHandle
+impl<HandleType: GLHandleId> std::hash::Hash for GLHandle<HandleType>
 {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H)
     {
@@ -85,7 +129,7 @@ impl std::hash::Hash for GLHandle
     }
 }
 
-impl PartialEq for GLHandle
+impl<HandleType: GLHandleId> PartialEq for GLHandle<HandleType>
 {
     fn eq(&self, other: &Self) -> bool
     {
@@ -106,18 +150,17 @@ impl PartialEq for GLHandle
     }
 }
 
-impl Eq for GLHandle {}
+impl<HandleType: GLHandleId> Eq for GLHandle<HandleType> {}
 
-impl GLHandle
+impl<HandleType: GLHandleId> GLHandle<HandleType>
 {
-    fn wrap<Err, F>(
+    fn wrap<F>(
         context: &GLContextManager,
         handle_type: GLHandleType,
         handle_creator: F
     ) -> Result<Self, BacktraceError<ErrorMessage>>
     where
-        Err: std::error::Error + 'static,
-        F: FnOnce() -> Result<GLuint, Err>
+        F: FnOnce() -> Result<HandleType, BacktraceError<ErrorMessage>>
     {
         match handle_type {
             GLHandleType::Program => gl_clear_and_log_old_error(context),
@@ -135,13 +178,6 @@ impl GLHandle
             GLHandleType::Texture => {}
         }
 
-        if handle == 0 {
-            return Err(ErrorMessage::msg(format!(
-                "GL allocation returned zero for {:?}",
-                handle_type
-            )));
-        }
-
         Ok(GLHandle {
             context: Rc::downgrade(&context.state),
             handle,
@@ -157,44 +193,64 @@ impl GLHandle
     }
 }
 
-impl Drop for GLHandle
+impl<HandleType: GLHandleId> Drop for GLHandle<HandleType>
 {
     fn drop(&mut self)
     {
         if let Some(context) = self.obtain_context_if_valid() {
-            match self.handle_type {
-                GLHandleType::Program => {
-                    context.with_gl_backend(|backend| unsafe {
-                        backend.gl_delete_program(self.handle)
-                    });
-                }
-
-                GLHandleType::Shader => {
-                    context.with_gl_backend(|backend| unsafe {
-                        backend.gl_delete_shader(self.handle)
-                    });
-                }
-
-                GLHandleType::Buffer => {
-                    context.with_gl_backend(|backend| unsafe {
-                        backend.gl_delete_buffer(self.handle)
-                    });
-                }
-
-                GLHandleType::Texture => {
-                    context.with_gl_backend(|backend| unsafe {
-                        backend.gl_delete_texture(self.handle)
-                    });
-                }
-            }
+            self.handle.delete(&context);
         }
+    }
+}
+
+impl GLHandleId for GLHandleTypeProgram
+{
+    type HandleRawType = GLTypeProgram;
+
+    fn delete(&self, context: &GLContextManager)
+    {
+        context
+            .with_gl_backend(|backend| unsafe { backend.gl_delete_program(self.handle) });
+    }
+}
+
+impl GLHandleId for GLHandleTypeShader
+{
+    type HandleRawType = GLTypeShader;
+
+    fn delete(&self, context: &GLContextManager)
+    {
+        context
+            .with_gl_backend(|backend| unsafe { backend.gl_delete_shader(self.handle) });
+    }
+}
+
+impl GLHandleId for GLHandleTypeBuffer
+{
+    type HandleRawType = GLTypeBuffer;
+
+    fn delete(&self, context: &GLContextManager)
+    {
+        context
+            .with_gl_backend(|backend| unsafe { backend.gl_delete_buffer(self.handle) });
+    }
+}
+
+impl GLHandleId for GLHandleTypeTexture
+{
+    type HandleRawType = GLTypeTexture;
+
+    fn delete(&self, context: &GLContextManager)
+    {
+        context
+            .with_gl_backend(|backend| unsafe { backend.gl_delete_texture(self.handle) });
     }
 }
 
 #[derive(Debug)]
 pub struct GLProgram
 {
-    handle: GLHandle,
+    handle: GLHandle<GLHandleTypeProgram>,
     attribute_handles: HashMap<&'static str, GLAttributeHandle>
 }
 
@@ -216,6 +272,14 @@ impl PartialEq for GLProgram
 
 impl Eq for GLProgram {}
 
+impl GLHandleOwner<GLHandleTypeProgram> for GLProgram
+{
+    fn get_handle(&self) -> <GLHandleTypeProgram as GLHandleId>::HandleRawType
+    {
+        self.handle.handle.handle
+    }
+}
+
 impl GLProgram
 {
     fn new(context: &GLContextManager) -> Result<Self, BacktraceError<ErrorMessage>>
@@ -223,7 +287,9 @@ impl GLProgram
         context.with_gl_backend(|backend| {
             Ok(GLProgram {
                 handle: GLHandle::wrap(context, GLHandleType::Program, || unsafe {
-                    backend.gl_create_program()
+                    Ok(GLHandleTypeProgram {
+                        handle: backend.gl_create_program()?
+                    })
                 })?,
                 attribute_handles: HashMap::new()
             })
@@ -237,7 +303,7 @@ impl GLProgram
     ) -> Result<(), BacktraceError<ErrorMessage>>
     {
         context.with_gl_backend(|backend| unsafe {
-            backend.gl_attach_shader(self.handle.handle, shader.handle.handle);
+            backend.gl_attach_shader(self.get_handle(), shader.get_handle());
         });
 
         gl_check_error_always(context)?;
@@ -260,16 +326,16 @@ impl GLProgram
         program.attach_shader(context, fragment_shader)?;
 
         context.with_gl_backend(|backend| unsafe {
-            backend.gl_link_program(program.handle.handle);
+            backend.gl_link_program(program.get_handle());
         });
 
         gl_check_error_always(context)?;
 
         context.with_gl_backend(|backend| unsafe {
-            if backend.gl_get_program_link_status(program.handle.handle) {
+            if backend.gl_get_program_link_status(program.get_handle()) {
                 Ok(())
             } else {
-                let msg = backend.gl_get_program_info_log(program.handle.handle)?;
+                let msg = backend.gl_get_program_info_log(program.get_handle())?;
                 Err(ErrorMessage::msg(format!(
                     "Program linking failed: '{}'",
                     msg
@@ -293,7 +359,7 @@ impl GLProgram
     {
         context.with_gl_backend(|backend| {
             unsafe {
-                backend.gl_use_program(self.handle.handle);
+                backend.gl_use_program(self.get_handle());
             }
 
             for attribute in self.attribute_handles.values() {
@@ -326,7 +392,7 @@ impl GLProgram
             .ok_or_else(|| ErrorMessage::msg("GL context no longer valid"))?;
 
         let handle = context.with_gl_backend(|backend| unsafe {
-            backend.gl_get_attrib_location(self.handle.handle, name)
+            backend.gl_get_attrib_location(self.get_handle(), name)
         });
 
         gl_check_error_always(&context)?;
@@ -351,7 +417,7 @@ impl GLProgram
         }
 
         let handle = context.with_gl_backend(|backend| unsafe {
-            backend.gl_get_uniform_location(self.handle.handle, name)
+            backend.gl_get_uniform_location(self.get_handle(), name)
         });
 
         gl_check_error_always(&context)?;
@@ -386,7 +452,15 @@ impl GLShaderType
 
 pub struct GLShader
 {
-    handle: GLHandle
+    handle: GLHandle<GLHandleTypeShader>
+}
+
+impl GLHandleOwner<GLHandleTypeShader> for GLShader
+{
+    fn get_handle(&self) -> <GLHandleTypeShader as GLHandleId>::HandleRawType
+    {
+        self.handle.handle.handle
+    }
 }
 
 impl GLShader
@@ -399,7 +473,9 @@ impl GLShader
         Ok(GLShader {
             handle: GLHandle::wrap(context, GLHandleType::Shader, || {
                 context.with_gl_backend(|backend| unsafe {
-                    backend.gl_create_shader(shader_type.gl_constant())
+                    Ok(GLHandleTypeShader {
+                        handle: backend.gl_create_shader(shader_type.gl_constant())?
+                    })
                 })
             })?
         })
@@ -416,17 +492,17 @@ impl GLShader
         let shader = GLShader::new(context, shader_type)?;
 
         context.with_gl_backend(|backend| unsafe {
-            backend.gl_shader_source(shader.handle.handle, source);
+            backend.gl_shader_source(shader.get_handle(), source);
             backend.gl_check_error_always()?;
 
-            backend.gl_compile_shader(shader.handle.handle);
+            backend.gl_compile_shader(shader.get_handle());
             backend.gl_check_error_always()?;
 
-            if backend.gl_get_shader_compile_status(shader.handle.handle) {
+            if backend.gl_get_shader_compile_status(shader.get_handle()) {
                 Ok(shader)
             } else {
                 Err(ErrorMessage::msg(context.with_gl_backend(|backend| {
-                    backend.gl_get_shader_info_log(shader.handle.handle)
+                    backend.gl_get_shader_info_log(shader.get_handle())
                 })?))
             }
         })
@@ -442,7 +518,7 @@ pub struct GLAttributeHandle
 #[derive(Debug)]
 pub struct GLUniformHandle
 {
-    handle: GLuint
+    handle: GLTypeUniformLocation
 }
 
 impl GLUniformHandle
@@ -450,14 +526,14 @@ impl GLUniformHandle
     pub fn set_value_float(&self, context: &GLContextManager, value: f32)
     {
         context.with_gl_backend(|backend| unsafe {
-            backend.gl_uniform_1f(self.handle, value)
+            backend.gl_uniform_1f(&self.handle, value)
         })
     }
 
     pub fn set_value_int(&self, context: &GLContextManager, value: i32)
     {
         context.with_gl_backend(|backend| unsafe {
-            backend.gl_uniform_1i(self.handle, value)
+            backend.gl_uniform_1i(&self.handle, value)
         })
     }
 }
@@ -482,10 +558,18 @@ impl GLBufferTarget
 
 pub struct GLBuffer
 {
-    handle: GLHandle,
+    handle: GLHandle<GLHandleTypeBuffer>,
     target: GLBufferTarget,
     components_per_vertex: GLint,
     attrib_index: GLAttributeHandle
+}
+
+impl GLHandleOwner<GLHandleTypeBuffer> for GLBuffer
+{
+    fn get_handle(&self) -> <GLHandleTypeBuffer as GLHandleId>::HandleRawType
+    {
+        self.handle.handle.handle
+    }
 }
 
 impl GLBuffer
@@ -500,7 +584,11 @@ impl GLBuffer
         gl_clear_and_log_old_error(context);
 
         let handle = GLHandle::wrap(context, GLHandleType::Buffer, || {
-            context.with_gl_backend(|backend| unsafe { backend.gl_gen_buffer() })
+            context.with_gl_backend(|backend| unsafe {
+                Ok(GLHandleTypeBuffer {
+                    handle: backend.gl_gen_buffer()?
+                })
+            })
         })?;
 
         Ok(GLBuffer {
@@ -519,7 +607,7 @@ impl GLBuffer
         }
 
         context.with_gl_backend(|backend| unsafe {
-            backend.gl_bind_buffer(self.target.gl_constant(), self.handle.handle);
+            backend.gl_bind_buffer(self.target.gl_constant(), self.get_handle());
 
             backend.gl_buffer_data_f32(self.target.gl_constant(), data, GL_DYNAMIC_DRAW);
 
@@ -584,7 +672,15 @@ impl GLTextureImageFormatU8
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct GLTexture
 {
-    handle: Rc<GLHandle>
+    handle: Rc<GLHandle<GLHandleTypeTexture>>
+}
+
+impl GLHandleOwner<GLHandleTypeTexture> for GLTexture
+{
+    fn get_handle(&self) -> <GLHandleTypeTexture as GLHandleId>::HandleRawType
+    {
+        self.handle.handle.handle
+    }
 }
 
 impl GLTexture
@@ -592,7 +688,11 @@ impl GLTexture
     fn new(context: &GLContextManager) -> Result<Self, BacktraceError<ErrorMessage>>
     {
         let handle = GLHandle::wrap(context, GLHandleType::Texture, || {
-            context.with_gl_backend(|backend| unsafe { backend.gl_gen_texture() })
+            context.with_gl_backend(|backend| unsafe {
+                Ok(GLHandleTypeTexture {
+                    handle: backend.gl_gen_texture()?
+                })
+            })
         })?;
 
         Ok(GLTexture {
@@ -825,7 +925,7 @@ impl GLContextManager
 
         self.with_gl_backend(|backend| unsafe {
             backend.gl_active_texture(GL_TEXTURE0);
-            backend.gl_bind_texture(GL_TEXTURE_2D, texture.handle.handle);
+            backend.gl_bind_texture(GL_TEXTURE_2D, texture.get_handle());
         });
     }
 
@@ -836,6 +936,7 @@ impl GLContextManager
             return;
         }
 
+        #[cfg(not(target_arch = "wasm32"))]
         self.with_gl_backend(|backend| unsafe {
             backend.gl_active_texture(GL_TEXTURE0);
             backend.gl_bind_texture(GL_TEXTURE_2D, 0);

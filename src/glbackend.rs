@@ -14,15 +14,13 @@
  *  limitations under the License.
  */
 
-use std::convert::TryInto;
-use std::ffi::CStr;
-use std::os::raw::c_void;
-
 use glow::HasContext;
+#[cfg(not(target_arch = "wasm32"))]
+use {std::convert::TryInto, std::ffi::CStr, std::os::raw::c_void};
 
 use crate::error::{BacktraceError, ErrorMessage};
 use crate::glbackend::constants::*;
-use crate::glbackend::types::{GLchar, GLenum, GLint, GLsizei, GLuint};
+use crate::glbackend::types::*;
 
 pub mod types
 {
@@ -31,6 +29,12 @@ pub mod types
     pub type GLint = i32;
     pub type GLchar = std::os::raw::c_char;
     pub type GLsizei = i32;
+
+    pub type GLTypeShader = glow::Shader;
+    pub type GLTypeProgram = glow::Program;
+    pub type GLTypeBuffer = glow::Buffer;
+    pub type GLTypeTexture = glow::Texture;
+    pub type GLTypeUniformLocation = glow::UniformLocation;
 }
 
 pub mod constants
@@ -147,26 +151,26 @@ impl From<GLErrorCode> for BacktraceError<ErrorMessage>
 
 pub trait GLBackend
 {
-    unsafe fn gl_delete_program(&self, handle: GLuint);
-    unsafe fn gl_delete_shader(&self, handle: GLuint);
-    unsafe fn gl_delete_buffer(&self, handle: GLuint);
-    unsafe fn gl_delete_texture(&self, handle: GLuint);
+    unsafe fn gl_delete_program(&self, handle: GLTypeProgram);
+    unsafe fn gl_delete_shader(&self, handle: GLTypeShader);
+    unsafe fn gl_delete_buffer(&self, handle: GLTypeBuffer);
+    unsafe fn gl_delete_texture(&self, handle: GLTypeTexture);
     unsafe fn gl_active_texture(&self, unit: GLenum);
-    unsafe fn gl_bind_texture(&self, target: GLenum, handle: GLuint);
+    unsafe fn gl_bind_texture(&self, target: GLenum, handle: GLTypeTexture);
     unsafe fn gl_enable(&self, cap: GLenum);
     unsafe fn gl_disable(&self, cap: GLenum);
     unsafe fn gl_blend_func(&self, sfactor: GLenum, dfactor: GLenum);
-    unsafe fn gl_use_program(&self, handle: GLuint);
+    unsafe fn gl_use_program(&self, handle: GLTypeProgram);
     unsafe fn gl_enable_vertex_attrib_array(&self, handle: GLuint);
     unsafe fn gl_disable_vertex_attrib_array(&self, handle: GLuint);
-    unsafe fn gl_uniform_1f(&self, handle: GLuint, value: f32);
-    unsafe fn gl_uniform_1i(&self, handle: GLuint, value: GLint);
-    unsafe fn gl_attach_shader(&self, program: GLuint, shader: GLuint);
-    unsafe fn gl_link_program(&self, program: GLuint);
-    unsafe fn gl_shader_source(&self, handle: GLuint, source: &str);
-    unsafe fn gl_compile_shader(&self, handle: GLuint);
+    unsafe fn gl_uniform_1f(&self, handle: &GLTypeUniformLocation, value: f32);
+    unsafe fn gl_uniform_1i(&self, handle: &GLTypeUniformLocation, value: GLint);
+    unsafe fn gl_attach_shader(&self, program: GLTypeProgram, shader: GLTypeShader);
+    unsafe fn gl_link_program(&self, program: GLTypeProgram);
+    unsafe fn gl_shader_source(&self, handle: GLTypeShader, source: &str);
+    unsafe fn gl_compile_shader(&self, handle: GLTypeShader);
     unsafe fn gl_tex_parameter_i(&self, target: GLenum, parameter: GLenum, value: GLint);
-    unsafe fn gl_bind_buffer(&self, target: GLenum, handle: GLuint);
+    unsafe fn gl_bind_buffer(&self, target: GLenum, handle: GLTypeBuffer);
     unsafe fn gl_buffer_data(&self, target: GLenum, data: &[u8], usage: GLenum);
     unsafe fn gl_draw_arrays(&self, mode: GLenum, first: GLint, count: GLsizei);
     unsafe fn gl_clear_color(&self, r: f32, g: f32, b: f32, a: f32);
@@ -214,16 +218,20 @@ pub trait GLBackend
         pixels: &[u8]
     );
 
-    unsafe fn gl_create_program(&self) -> Result<GLuint, BacktraceError<ErrorMessage>>;
+    unsafe fn gl_create_program(
+        &self
+    ) -> Result<GLTypeProgram, BacktraceError<ErrorMessage>>;
 
     unsafe fn gl_create_shader(
         &self,
         shader_type: GLenum
-    ) -> Result<GLuint, BacktraceError<ErrorMessage>>;
+    ) -> Result<GLTypeShader, BacktraceError<ErrorMessage>>;
 
-    unsafe fn gl_gen_buffer(&self) -> Result<GLuint, BacktraceError<ErrorMessage>>;
+    unsafe fn gl_gen_buffer(&self) -> Result<GLTypeBuffer, BacktraceError<ErrorMessage>>;
 
-    unsafe fn gl_gen_texture(&self) -> Result<GLuint, BacktraceError<ErrorMessage>>;
+    unsafe fn gl_gen_texture(
+        &self
+    ) -> Result<GLTypeTexture, BacktraceError<ErrorMessage>>;
 
     #[must_use]
     unsafe fn gl_get_error(&self) -> GLenum;
@@ -231,31 +239,31 @@ pub trait GLBackend
     #[must_use]
     unsafe fn gl_get_attrib_location(
         &self,
-        program: GLuint,
+        program: GLTypeProgram,
         name: &str
     ) -> Option<GLuint>;
 
     #[must_use]
     unsafe fn gl_get_uniform_location(
         &self,
-        program: GLuint,
+        program: GLTypeProgram,
         name: &str
-    ) -> Option<GLuint>;
+    ) -> Option<GLTypeUniformLocation>;
 
     #[must_use]
-    unsafe fn gl_get_program_link_status(&self, program: GLuint) -> bool;
+    unsafe fn gl_get_program_link_status(&self, program: GLTypeProgram) -> bool;
 
     #[must_use]
-    unsafe fn gl_get_shader_compile_status(&self, shader: GLuint) -> bool;
+    unsafe fn gl_get_shader_compile_status(&self, shader: GLTypeShader) -> bool;
 
     unsafe fn gl_get_program_info_log(
         &self,
-        program: GLuint
+        program: GLTypeProgram
     ) -> Result<String, BacktraceError<ErrorMessage>>;
 
     unsafe fn gl_get_shader_info_log(
         &self,
-        shader: GLuint
+        shader: GLTypeShader
     ) -> Result<String, BacktraceError<ErrorMessage>>;
 
     fn gl_check_error_always(&self) -> Result<(), BacktraceError<ErrorMessage>>
@@ -303,22 +311,22 @@ impl GLBackendGlow
 
 impl GLBackend for GLBackendGlow
 {
-    unsafe fn gl_delete_program(&self, handle: GLuint)
+    unsafe fn gl_delete_program(&self, handle: GLTypeProgram)
     {
         self.context.delete_program(handle)
     }
 
-    unsafe fn gl_delete_shader(&self, handle: GLuint)
+    unsafe fn gl_delete_shader(&self, handle: GLTypeShader)
     {
         self.context.delete_shader(handle)
     }
 
-    unsafe fn gl_delete_buffer(&self, handle: GLuint)
+    unsafe fn gl_delete_buffer(&self, handle: GLTypeBuffer)
     {
         self.context.delete_buffer(handle)
     }
 
-    unsafe fn gl_delete_texture(&self, handle: GLuint)
+    unsafe fn gl_delete_texture(&self, handle: GLTypeTexture)
     {
         self.context.delete_texture(handle)
     }
@@ -328,7 +336,7 @@ impl GLBackend for GLBackendGlow
         self.context.active_texture(unit)
     }
 
-    unsafe fn gl_bind_texture(&self, target: GLenum, handle: GLuint)
+    unsafe fn gl_bind_texture(&self, target: GLenum, handle: GLTypeTexture)
     {
         self.context.bind_texture(target, Some(handle))
     }
@@ -348,7 +356,7 @@ impl GLBackend for GLBackendGlow
         self.context.blend_func(sfactor, dfactor)
     }
 
-    unsafe fn gl_use_program(&self, handle: GLuint)
+    unsafe fn gl_use_program(&self, handle: GLTypeProgram)
     {
         self.context.use_program(Some(handle))
     }
@@ -363,32 +371,32 @@ impl GLBackend for GLBackendGlow
         self.context.disable_vertex_attrib_array(handle)
     }
 
-    unsafe fn gl_uniform_1f(&self, handle: GLuint, value: f32)
+    unsafe fn gl_uniform_1f(&self, handle: &GLTypeUniformLocation, value: f32)
     {
-        self.context.uniform_1_f32(Some(&handle), value)
+        self.context.uniform_1_f32(Some(handle), value)
     }
 
-    unsafe fn gl_uniform_1i(&self, handle: GLuint, value: GLint)
+    unsafe fn gl_uniform_1i(&self, handle: &GLTypeUniformLocation, value: GLint)
     {
-        self.context.uniform_1_i32(Some(&handle), value)
+        self.context.uniform_1_i32(Some(handle), value)
     }
 
-    unsafe fn gl_attach_shader(&self, program: u32, shader: u32)
+    unsafe fn gl_attach_shader(&self, program: GLTypeProgram, shader: GLTypeShader)
     {
         self.context.attach_shader(program, shader)
     }
 
-    unsafe fn gl_link_program(&self, program: u32)
+    unsafe fn gl_link_program(&self, program: GLTypeProgram)
     {
         self.context.link_program(program)
     }
 
-    unsafe fn gl_shader_source(&self, handle: u32, source: &str)
+    unsafe fn gl_shader_source(&self, handle: GLTypeShader, source: &str)
     {
         self.context.shader_source(handle, source)
     }
 
-    unsafe fn gl_compile_shader(&self, handle: u32)
+    unsafe fn gl_compile_shader(&self, handle: GLTypeShader)
     {
         self.context.compile_shader(handle)
     }
@@ -398,7 +406,7 @@ impl GLBackend for GLBackendGlow
         self.context.tex_parameter_i32(target, parameter, value)
     }
 
-    unsafe fn gl_bind_buffer(&self, target: u32, handle: u32)
+    unsafe fn gl_bind_buffer(&self, target: u32, handle: GLTypeBuffer)
     {
         self.context.bind_buffer(target, Some(handle))
     }
@@ -534,59 +542,46 @@ impl GLBackend for GLBackendGlow
         )
     }
 
-    unsafe fn gl_create_program(&self) -> Result<GLuint, BacktraceError<ErrorMessage>>
+    unsafe fn gl_create_program(
+        &self
+    ) -> Result<GLTypeProgram, BacktraceError<ErrorMessage>>
     {
         let handle = self.context.create_program().map_err(|err| {
             ErrorMessage::msg(format!("Failed to create program: {}", err))
         })?;
 
-        if handle == 0 {
-            Err(ErrorMessage::msg("Got program with zero handle"))
-        } else {
-            Ok(handle)
-        }
+        Ok(handle)
     }
 
     unsafe fn gl_create_shader(
         &self,
         shader_type: GLenum
-    ) -> Result<GLuint, BacktraceError<ErrorMessage>>
+    ) -> Result<GLTypeShader, BacktraceError<ErrorMessage>>
     {
         let handle = self.context.create_shader(shader_type).map_err(|err| {
             ErrorMessage::msg(format!("Failed to create shader: {}", err))
         })?;
 
-        if handle == 0 {
-            Err(ErrorMessage::msg("Got shader with zero handle"))
-        } else {
-            Ok(handle)
-        }
+        Ok(handle)
     }
 
-    unsafe fn gl_gen_buffer(&self) -> Result<GLuint, BacktraceError<ErrorMessage>>
+    unsafe fn gl_gen_buffer(&self) -> Result<GLTypeBuffer, BacktraceError<ErrorMessage>>
     {
         let handle = self.context.create_buffer().map_err(|err| {
             ErrorMessage::msg(format!("Failed to create buffer: {}", err))
         })?;
 
-        if handle == 0 {
-            Err(ErrorMessage::msg("Got buffer with zero handle"))
-        } else {
-            Ok(handle)
-        }
+        Ok(handle)
     }
 
-    unsafe fn gl_gen_texture(&self) -> Result<GLuint, BacktraceError<ErrorMessage>>
+    unsafe fn gl_gen_texture(&self)
+        -> Result<GLTypeTexture, BacktraceError<ErrorMessage>>
     {
         let handle = self.context.create_texture().map_err(|err| {
             ErrorMessage::msg(format!("Failed to create texture: {}", err))
         })?;
 
-        if handle == 0 {
-            Err(ErrorMessage::msg("Got texture with zero handle"))
-        } else {
-            Ok(handle)
-        }
+        Ok(handle)
     }
 
     unsafe fn gl_get_error(&self) -> GLenum
@@ -594,34 +589,37 @@ impl GLBackend for GLBackendGlow
         self.context.get_error()
     }
 
-    unsafe fn gl_get_attrib_location(&self, program: GLuint, name: &str)
-        -> Option<GLuint>
+    unsafe fn gl_get_attrib_location(
+        &self,
+        program: GLTypeProgram,
+        name: &str
+    ) -> Option<GLuint>
     {
         self.context.get_attrib_location(program, name)
     }
 
     unsafe fn gl_get_uniform_location(
         &self,
-        program: GLuint,
+        program: GLTypeProgram,
         name: &str
-    ) -> Option<GLuint>
+    ) -> Option<GLTypeUniformLocation>
     {
         self.context.get_uniform_location(program, name)
     }
 
-    unsafe fn gl_get_program_link_status(&self, program: u32) -> bool
+    unsafe fn gl_get_program_link_status(&self, program: GLTypeProgram) -> bool
     {
         self.context.get_program_link_status(program)
     }
 
-    unsafe fn gl_get_shader_compile_status(&self, shader: u32) -> bool
+    unsafe fn gl_get_shader_compile_status(&self, shader: GLTypeShader) -> bool
     {
         self.context.get_shader_compile_status(shader)
     }
 
     unsafe fn gl_get_program_info_log(
         &self,
-        program: u32
+        program: GLTypeProgram
     ) -> Result<String, BacktraceError<ErrorMessage>>
     {
         Ok(self.context.get_program_info_log(program))
@@ -629,15 +627,17 @@ impl GLBackend for GLBackendGlow
 
     unsafe fn gl_get_shader_info_log(
         &self,
-        shader: u32
+        shader: GLTypeShader
     ) -> Result<String, BacktraceError<ErrorMessage>>
     {
         Ok(self.context.get_shader_info_log(shader))
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub struct GLBackendGLRS {}
 
+#[cfg(not(target_arch = "wasm32"))]
 impl GLBackendGLRS
 {
     #[allow(dead_code)]
@@ -647,6 +647,7 @@ impl GLBackendGLRS
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl GLBackend for GLBackendGLRS
 {
     unsafe fn gl_delete_program(&self, handle: u32)
@@ -709,14 +710,14 @@ impl GLBackend for GLBackendGLRS
         gl::DisableVertexAttribArray(handle)
     }
 
-    unsafe fn gl_uniform_1f(&self, handle: u32, value: f32)
+    unsafe fn gl_uniform_1f(&self, handle: &u32, value: f32)
     {
-        gl::Uniform1f(handle as i32, value)
+        gl::Uniform1f(*handle as i32, value)
     }
 
-    unsafe fn gl_uniform_1i(&self, handle: u32, value: i32)
+    unsafe fn gl_uniform_1i(&self, handle: &u32, value: i32)
     {
-        gl::Uniform1i(handle as i32, value)
+        gl::Uniform1i(*handle as i32, value)
     }
 
     unsafe fn gl_attach_shader(&self, program: u32, shader: u32)
@@ -1040,6 +1041,7 @@ impl GLBackend for GLBackendGLRS
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl GLBackendGLRS
 {
     fn gl_call_get_info_log<F>(

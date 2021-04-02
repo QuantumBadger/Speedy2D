@@ -226,6 +226,11 @@
 // https://github.com/rust-lang/rust/issues/35428
 #![allow(clippy::len_zero)]
 #![allow(clippy::upper_case_acronyms)]
+// No current entry points for WebGL, will change in future versions
+#![cfg_attr(target_arch = "wasm32", allow(dead_code))]
+
+#[cfg(all(feature = "windowing", target_arch = "wasm32"))]
+compile_error!("Cannot enable windowing feature with arch wasm32");
 
 use std::fmt::{Display, Formatter};
 use std::rc::Rc;
@@ -241,7 +246,9 @@ use crate::color::Color;
 use crate::dimen::Vector2;
 use crate::error::{BacktraceError, ErrorMessage};
 use crate::font::FormattedTextBlock;
-use crate::glbackend::{GLBackend, GLBackendGLRS};
+use crate::glbackend::GLBackend;
+#[cfg(not(target_arch = "wasm32"))]
+use crate::glbackend::GLBackendGLRS;
 use crate::glwrapper::GLContextManager;
 use crate::image::{ImageDataType, ImageHandle, ImageSmoothingMode};
 use crate::renderer2d::Renderer2D;
@@ -350,6 +357,7 @@ impl GLRenderer
     /// which is why this function is marked `unsafe`. It is strongly
     /// advised not to use any other OpenGL libraries in the same thread
     /// as `GLRenderer`
+    #[cfg(not(target_arch = "wasm32"))]
     pub unsafe fn new_for_current_context<V: Into<Vector2<u32>>>(
         viewport_size_pixels: V
     ) -> Result<Self, BacktraceError<GLRendererCreationError>>
