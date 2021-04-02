@@ -726,6 +726,15 @@ impl GLTextureImageFormatU8
             GLTextureImageFormatU8::RGBA => gl::RGBA
         }
     }
+
+    fn get_bytes_per_pixel(&self) -> usize
+    {
+        match self {
+            GLTextureImageFormatU8::Red => 1,
+            GLTextureImageFormatU8::RGB => 3,
+            GLTextureImageFormatU8::RGBA => 4
+        }
+    }
 }
 
 #[derive(Debug, Hash, PartialEq, Eq)]
@@ -770,7 +779,22 @@ impl GLTexture
 
         context.bind_texture(self);
 
+        let width_stride_bytes = size.x as usize * format.get_bytes_per_pixel();
+
+        let unpack_alignment = if width_stride_bytes % 8 == 0 {
+            8
+        } else if width_stride_bytes % 4 == 0 {
+            4
+        } else if width_stride_bytes % 2 == 0 {
+            2
+        } else {
+            1
+        };
+
         unsafe {
+
+            gl::PixelStorei(gl::UNPACK_ALIGNMENT, unpack_alignment);
+
             gl::BindTexture(gl::TEXTURE_2D, self.handle.handle);
             gl::TexParameteri(
                 gl::TEXTURE_2D,
@@ -794,39 +818,6 @@ impl GLTexture
                 size.x.try_into()?,
                 size.y.try_into()?,
                 0,
-                format.get_format(),
-                gl::UNSIGNED_BYTE,
-                data.as_ptr() as *const std::os::raw::c_void
-            );
-        }
-
-        Ok(())
-    }
-
-    #[allow(dead_code)]
-    pub fn set_sub_image_data(
-        &self,
-        format: GLTextureImageFormatU8,
-        x: usize,
-        y: usize,
-        width: usize,
-        height: usize,
-        data: &[u8]
-    ) -> Result<(), BacktraceError<GLError>>
-    {
-        if !is_gl_context_valid_weak(&self.handle.context) {
-            log::warn!("Ignoring texture set_sub_image_data: invalid GL context");
-            return Ok(());
-        }
-
-        unsafe {
-            gl::TexSubImage2D(
-                gl::TEXTURE_2D,
-                0,
-                x.try_into()?,
-                y.try_into()?,
-                width.try_into()?,
-                height.try_into()?,
                 format.get_format(),
                 gl::UNSIGNED_BYTE,
                 data.as_ptr() as *const std::os::raw::c_void

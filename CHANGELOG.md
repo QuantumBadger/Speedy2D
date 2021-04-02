@@ -47,3 +47,4 @@
 
 * `Graphics2D::draw_image()` is now able to take a tuple as a position
 * When creating an image from raw bytes, the number of bytes is checked
+* Fixed texture load issues where the horizontal byte stride was not a multiple of 4
