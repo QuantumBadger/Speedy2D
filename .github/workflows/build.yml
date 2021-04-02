@@ -73,6 +73,22 @@ jobs:
       - name: Documentation
         run: cargo doc
 
+  build_wasm32:
+    name: Build (wasm32)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup wasm32 toolchain
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Build (no features)
+        run: cargo build --target=wasm32-unknown-unknown --no-default-features
+
+      - name: Build (no features, release)
+        run: cargo build --target=wasm32-unknown-unknown --no-default-features --release
+
   build_features_disabled:
     name: Build (features disabled)
     runs-on: ${{ matrix.os }}
