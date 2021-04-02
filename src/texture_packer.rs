@@ -58,7 +58,9 @@ impl TexturePacker
 {
     pub(crate) fn new(width: u32, height: u32) -> Self
     {
-        TexturePacker { areas: vec![FreeRegion::new(width, height)] }
+        TexturePacker {
+            areas: vec![FreeRegion::new(width, height)]
+        }
     }
 
     pub(crate) fn try_allocate(

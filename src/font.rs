@@ -112,6 +112,7 @@ impl Word
 
         while let Some(first_token) = reader.next() {
             let mut word_codepoints = Vec::new();
+            word_codepoints.reserve(16);
             word_codepoints.push(first_token.clone());
 
             match first_token.codepoint {
