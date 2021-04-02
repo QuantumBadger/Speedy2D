@@ -139,13 +139,24 @@
 //!
 //! If you'd rather handle the window creation and OpenGL context management
 //! yourself, simply disable Speedy2D's `windowing` feature in your `Cargo.toml`
-//! file, and create a context as follows:
+//! file, and create a context as follows. You will need to specify a loader
+//! function to allow Speedy2D to obtain the OpenGL function pointers.
 //!
 //! ```rust,no_run
 //! use speedy2d::GLRenderer;
+//! # struct WindowContext {}
+//! # impl WindowContext {
+//! #     fn get_proc_address(&self, fn_name: &str) -> *const std::ffi::c_void
+//! #     {
+//! #         std::ptr::null()
+//! #     }
+//! # }
+//! # let window_context = WindowContext {};
 //!
 //! let mut renderer = unsafe {
-//!     GLRenderer::new_for_current_context((640, 480))
+//!     GLRenderer::new_for_gl_context((640, 480), |fn_name| {
+//!         window_context.get_proc_address(fn_name) as *const _
+//!     })
 //! }.unwrap();
 //! ```
 //!
@@ -246,9 +257,9 @@ use crate::color::Color;
 use crate::dimen::Vector2;
 use crate::error::{BacktraceError, ErrorMessage};
 use crate::font::FormattedTextBlock;
-use crate::glbackend::GLBackend;
 #[cfg(not(target_arch = "wasm32"))]
 use crate::glbackend::GLBackendGLRS;
+use crate::glbackend::{GLBackend, GLBackendGlow};
 use crate::glwrapper::GLContextManager;
 use crate::image::{ImageDataType, ImageHandle, ImageSmoothingMode};
 use crate::renderer2d::Renderer2D;
@@ -350,19 +361,55 @@ impl GLRenderer
     /// Note: This function must not be called if you are letting Speedy2D
     /// create a window for you.
     ///
+    /// # Deprecation
+    ///
+    /// Note: This function will be removed in a future version of Speedy2D.
+    /// Please use [GLRenderer::new_for_gl_context] instead.
+    ///
     /// # Safety
     ///
     /// While a `GLRenderer` object is active, you must not make any changes to
     /// the active GL context. Doing so may lead to undefined behavior,
     /// which is why this function is marked `unsafe`. It is strongly
     /// advised not to use any other OpenGL libraries in the same thread
-    /// as `GLRenderer`
+    /// as `GLRenderer`.
     #[cfg(not(target_arch = "wasm32"))]
     pub unsafe fn new_for_current_context<V: Into<Vector2<u32>>>(
         viewport_size_pixels: V
     ) -> Result<Self, BacktraceError<GLRendererCreationError>>
     {
         Self::new_with_gl_backend(viewport_size_pixels, Rc::new(GLBackendGLRS {}))
+    }
+
+    /// Creates a `GLRenderer` with the specified OpenGL loader function. The
+    /// loader function takes the name of an OpenGL function, and returns the
+    /// associated function pointer. `viewport_size_pixels` should be set to
+    /// the initial viewport size, however this can be changed later using
+    /// [GLRenderer:: set_viewport_size_pixels()].
+    ///
+    /// Note: This function must not be called if you are letting Speedy2D
+    /// create a window for you.
+    ///
+    /// # Safety
+    ///
+    /// While a `GLRenderer` object is active, you must not make any changes to
+    /// the active GL context. Doing so may lead to undefined behavior,
+    /// which is why this function is marked `unsafe`. It is strongly
+    /// advised not to use any other OpenGL libraries in the same thread
+    /// as `GLRenderer`.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub unsafe fn new_for_gl_context<V, F>(
+        viewport_size_pixels: V,
+        loader_function: F
+    ) -> Result<Self, BacktraceError<GLRendererCreationError>>
+    where
+        V: Into<Vector2<u32>>,
+        F: FnMut(&str) -> *const std::os::raw::c_void
+    {
+        let backend =
+            GLBackendGlow::new(glow::Context::from_loader_function(loader_function));
+
+        Self::new_with_gl_backend(viewport_size_pixels, Rc::new(backend))
     }
 
     fn new_with_gl_backend<V: Into<Vector2<u32>>>(

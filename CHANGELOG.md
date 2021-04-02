@@ -42,6 +42,7 @@
 * `Graphics2D::create_image_from_file_bytes()`
 * `GLRenderer::create_image_from_file_path()`
 * `GLRenderer::create_image_from_file_bytes()`
+* `GLRenderer::new_for_gl_context()`, to create a `GLRenderer` from a GL loader function
 
 ### Other changes
 

@@ -94,12 +94,14 @@ fn write_framebuffer_to_png<S: AsRef<str>>(name: S, width: u32, height: u32)
     );
 }
 
-fn create_context_and_run<R, F: FnOnce(&mut GLRenderer) -> R>(
+fn create_context_and_run<R, F>(
     event_loop: &EventLoop<()>,
     width: u32,
     height: u32,
     action: F
 ) -> R
+where
+    F: FnOnce(&mut GLRenderer) -> R
 {
     let context_builder = glutin::ContextBuilder::new()
         .with_gl_debug_flag(true)
@@ -107,38 +109,31 @@ fn create_context_and_run<R, F: FnOnce(&mut GLRenderer) -> R>(
         .with_gl(glutin::GlRequest::Specific(glutin::Api::OpenGl, (2, 0)));
 
     #[cfg(not(target_os = "linux"))]
-    let _context = {
-        let context = context_builder
-            .build_windowed(
-                glutin::window::WindowBuilder::new()
-                    .with_inner_size(PhysicalSize::new(width, height)),
-                &event_loop
-            )
-            .unwrap();
-
-        let context = unsafe { context.make_current().unwrap() };
-
-        gl::load_with(|ptr| context.get_proc_address(ptr) as *const _);
-
-        context
-    };
+    let context = context_builder
+        .build_windowed(
+            glutin::window::WindowBuilder::new()
+                .with_inner_size(PhysicalSize::new(width, height)),
+            &event_loop
+        )
+        .unwrap();
 
     #[cfg(target_os = "linux")]
-    let _context = {
-        let context = context_builder
-            .with_vsync(false)
-            .build_headless(&event_loop, PhysicalSize::new(width, height))
-            .unwrap();
+    let context = context_builder
+        .with_vsync(false)
+        .build_headless(&event_loop, PhysicalSize::new(width, height))
+        .unwrap();
 
-        let context = unsafe { context.make_current().unwrap() };
+    let context = unsafe { context.make_current().unwrap() };
 
-        gl::load_with(|ptr| context.get_proc_address(ptr) as *const _);
+    // Used for glReadPixels/etc
+    gl::load_with(|ptr| context.get_proc_address(ptr) as *const _);
 
-        context
+    let mut renderer = unsafe {
+        GLRenderer::new_for_gl_context((width, height), |name| {
+            context.get_proc_address(name) as *const _
+        })
+        .unwrap()
     };
-
-    let mut renderer =
-        unsafe { GLRenderer::new_for_current_context((width, height)).unwrap() };
 
     action(&mut renderer)
 }

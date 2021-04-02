@@ -11,11 +11,12 @@ Speedy2D aims to be:
 
  - The simplest Rust API for creating a window, rendering graphics/text, and
    handling input
- - Compatible with any device supporting OpenGL 2.0+ or OpenGL ES 2.0+
+ - Compatible with any device supporting OpenGL 2.0+, with support for OpenGL
+   ES 2.0+ and WebGL coming soon
  - Very fast
 
-Supports Windows, Mac, and Linux. Should also work on Android and iOS
-(for rendering only).
+Supports Windows, Mac, and Linux. Support for Android, iOS, and WebGL is in
+development.
 
 By default, Speedy2D contains support for setting up a window with an OpenGL
 context, and receiving input events. If you'd like to handle this yourself, and
@@ -123,13 +124,16 @@ impl WindowHandler for MyWindowHandler
 
 If you'd rather handle the window creation and OpenGL context management
 yourself, simply disable Speedy2D's `windowing` feature in your `Cargo.toml`
-file, and create a context as follows:
+file, and create a context as follows. You will need to specify a loader
+function to allow Speedy2D to obtain the OpenGL function pointers.
 
 ```rust
 use speedy2d::GLRenderer;
 
 let mut renderer = unsafe {
-    GLRenderer::new_for_current_context((640, 480))
+    GLRenderer::new_for_gl_context((640, 480), |fn_name| {
+        window_context.get_proc_address(fn_name) as *const _
+    })
 }.unwrap();
 ```
 

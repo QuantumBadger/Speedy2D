@@ -41,6 +41,7 @@ pub mod constants
 {
     use crate::glbackend::types::GLenum;
 
+    #[allow(dead_code)]
     pub const GL_VERSION: GLenum = glow::VERSION;
 
     pub const GL_TEXTURE0: GLenum = glow::TEXTURE0;
