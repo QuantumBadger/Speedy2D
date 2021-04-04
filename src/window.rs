@@ -371,6 +371,13 @@ impl<UserEventType> WindowImpl<UserEventType>
 
         let gl_backend = Rc::new(GLBackendGlow::new(glow_context));
 
+        if let Some(error_name) = gl_backend.gl_get_error_name() {
+            log::warn!(
+                "Ignoring error in GL bindings during startup: {}",
+                error_name
+            );
+        }
+
         let version = unsafe { gl_backend.gl_get_string(GL_VERSION) };
 
         log::info!("Using OpenGL version: {}", version);

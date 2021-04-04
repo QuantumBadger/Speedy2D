@@ -278,6 +278,17 @@ pub trait GLBackend
         Ok(())
     }
 
+    fn gl_get_error_name(&self) -> Option<String>
+    {
+        let err = unsafe { self.gl_get_error() };
+
+        if err != GL_NO_ERROR {
+            return Some(format!("{:?}", GLErrorCode::from(err)));
+        }
+
+        None
+    }
+
     fn gl_clear_and_log_old_error(&self)
     {
         if let Err(err) = self.gl_check_error_always() {
