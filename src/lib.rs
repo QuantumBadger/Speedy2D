@@ -32,6 +32,11 @@
 //! context. If you'd like to handle this yourself, and use Speedy2D only for
 //! rendering, you can disable the `windowing` feature.
 //!
+//! # Useful Links
+//!
+//! * [Source repository](https://github.com/QuantumBadger/Speedy2D)
+//! * [Crate](https://crates.io/crates/speedy2d)
+//!
 //! # Getting Started
 //!
 //! ## Create a window
