@@ -22,6 +22,28 @@ use crate::error::{BacktraceError, ErrorMessage};
 use crate::glbackend::constants::*;
 use crate::glbackend::types::*;
 
+struct PanicOnGLError<'a>
+{
+    backend: &'a dyn GLBackend
+}
+
+impl<'a> PanicOnGLError<'a>
+{
+    fn new(backend: &'a dyn GLBackend) -> Self
+    {
+        backend.gl_clear_and_log_old_error();
+        Self { backend }
+    }
+}
+
+impl<'a> Drop for PanicOnGLError<'a>
+{
+    fn drop(&mut self)
+    {
+        self.backend.debug_panic_on_glerror()
+    }
+}
+
 pub mod types
 {
     pub type GLenum = u32;
@@ -294,6 +316,11 @@ pub trait GLBackend
 
         self.gl_buffer_data(target, data, usage)
     }
+
+    fn debug_panic_on_glerror(&self)
+    {
+        self.gl_check_error_always().unwrap();
+    }
 }
 
 pub struct GLBackendGlow
@@ -314,126 +341,152 @@ impl GLBackend for GLBackendGlow
 {
     unsafe fn gl_delete_program(&self, handle: GLTypeProgram)
     {
+        let _checker = PanicOnGLError::new(self);
         self.context.delete_program(handle)
     }
 
     unsafe fn gl_delete_shader(&self, handle: GLTypeShader)
     {
+        let _checker = PanicOnGLError::new(self);
         self.context.delete_shader(handle)
     }
 
     unsafe fn gl_delete_buffer(&self, handle: GLTypeBuffer)
     {
+        let _checker = PanicOnGLError::new(self);
         self.context.delete_buffer(handle)
     }
 
     unsafe fn gl_delete_texture(&self, handle: GLTypeTexture)
     {
+        let _checker = PanicOnGLError::new(self);
         self.context.delete_texture(handle)
     }
 
     unsafe fn gl_active_texture(&self, unit: GLenum)
     {
+        let _checker = PanicOnGLError::new(self);
         self.context.active_texture(unit)
     }
 
     unsafe fn gl_bind_texture(&self, target: GLenum, handle: GLTypeTexture)
     {
+        let _checker = PanicOnGLError::new(self);
         self.context.bind_texture(target, Some(handle))
     }
 
     unsafe fn gl_enable(&self, cap: GLenum)
     {
+        let _checker = PanicOnGLError::new(self);
         self.context.enable(cap)
     }
 
     unsafe fn gl_disable(&self, cap: GLenum)
     {
+        let _checker = PanicOnGLError::new(self);
         self.context.disable(cap)
     }
 
     unsafe fn gl_blend_func(&self, sfactor: GLenum, dfactor: GLenum)
     {
+        let _checker = PanicOnGLError::new(self);
         self.context.blend_func(sfactor, dfactor)
     }
 
     unsafe fn gl_use_program(&self, handle: GLTypeProgram)
     {
+        let _checker = PanicOnGLError::new(self);
         self.context.use_program(Some(handle))
     }
 
     unsafe fn gl_enable_vertex_attrib_array(&self, handle: GLuint)
     {
+        let _checker = PanicOnGLError::new(self);
         self.context.enable_vertex_attrib_array(handle)
     }
 
     unsafe fn gl_disable_vertex_attrib_array(&self, handle: GLuint)
     {
+        let _checker = PanicOnGLError::new(self);
         self.context.disable_vertex_attrib_array(handle)
     }
 
     unsafe fn gl_uniform_1f(&self, handle: &GLTypeUniformLocation, value: f32)
     {
+        let _checker = PanicOnGLError::new(self);
         self.context.uniform_1_f32(Some(handle), value)
     }
 
     unsafe fn gl_uniform_1i(&self, handle: &GLTypeUniformLocation, value: GLint)
     {
+        let _checker = PanicOnGLError::new(self);
         self.context.uniform_1_i32(Some(handle), value)
     }
 
     unsafe fn gl_attach_shader(&self, program: GLTypeProgram, shader: GLTypeShader)
     {
+        let _checker = PanicOnGLError::new(self);
         self.context.attach_shader(program, shader)
     }
 
     unsafe fn gl_link_program(&self, program: GLTypeProgram)
     {
+        let _checker = PanicOnGLError::new(self);
         self.context.link_program(program)
     }
 
     unsafe fn gl_shader_source(&self, handle: GLTypeShader, source: &str)
     {
+        let _checker = PanicOnGLError::new(self);
         self.context.shader_source(handle, source)
     }
 
     unsafe fn gl_compile_shader(&self, handle: GLTypeShader)
     {
+        let _checker = PanicOnGLError::new(self);
         self.context.compile_shader(handle)
     }
 
     unsafe fn gl_tex_parameter_i(&self, target: u32, parameter: u32, value: i32)
     {
+        let _checker = PanicOnGLError::new(self);
         self.context.tex_parameter_i32(target, parameter, value)
     }
 
     unsafe fn gl_bind_buffer(&self, target: u32, handle: GLTypeBuffer)
     {
+        let _checker = PanicOnGLError::new(self);
         self.context.bind_buffer(target, Some(handle))
     }
 
     unsafe fn gl_buffer_data(&self, target: u32, data: &[u8], usage: u32)
     {
+        let _checker = PanicOnGLError::new(self);
         self.context.buffer_data_u8_slice(target, data, usage)
     }
 
     unsafe fn gl_draw_arrays(&self, mode: u32, first: i32, count: i32)
     {
+        let _checker = PanicOnGLError::new(self);
         self.context.draw_arrays(mode, first, count)
     }
 
     unsafe fn gl_clear_color(&self, r: f32, g: f32, b: f32, a: f32)
     {
+        let _checker = PanicOnGLError::new(self);
         self.context.clear_color(r, g, b, a)
     }
 
     unsafe fn gl_clear(&self, mask: u32)
     {
+        let _checker = PanicOnGLError::new(self);
         self.context.clear(mask)
     }
 
     unsafe fn gl_enable_debug_message_callback(&self)
     {
+        let _checker = PanicOnGLError::new(self);
+
         if !self.context.supports_debug() {
             log::info!("Context does not support debug message callbacks");
             return;
@@ -464,16 +517,19 @@ impl GLBackend for GLBackendGlow
 
     unsafe fn gl_get_string(&self, parameter: u32) -> String
     {
+        let _checker = PanicOnGLError::new(self);
         self.context.get_parameter_string(parameter)
     }
 
     unsafe fn gl_viewport(&self, x: i32, y: i32, width: i32, height: i32)
     {
+        let _checker = PanicOnGLError::new(self);
         self.context.viewport(x, y, width, height)
     }
 
     unsafe fn gl_pixel_store_i(&self, param: u32, value: i32)
     {
+        let _checker = PanicOnGLError::new(self);
         self.context.pixel_store_i32(param, value)
     }
 
@@ -487,6 +543,7 @@ impl GLBackend for GLBackendGlow
         offset: i32
     )
     {
+        let _checker = PanicOnGLError::new(self);
         self.context
             .vertex_attrib_pointer_f32(index, size, data_type, normalized, stride, offset)
     }
@@ -504,6 +561,7 @@ impl GLBackend for GLBackendGlow
         pixels: Option<&[u8]>
     )
     {
+        let _checker = PanicOnGLError::new(self);
         self.context.tex_image_2d(
             target,
             level,
@@ -530,6 +588,7 @@ impl GLBackend for GLBackendGlow
         pixels: &[u8]
     )
     {
+        let _checker = PanicOnGLError::new(self);
         self.context.tex_sub_image_2d(
             target,
             level,
@@ -547,6 +606,8 @@ impl GLBackend for GLBackendGlow
         &self
     ) -> Result<GLTypeProgram, BacktraceError<ErrorMessage>>
     {
+        let _checker = PanicOnGLError::new(self);
+
         let handle = self.context.create_program().map_err(|err| {
             ErrorMessage::msg(format!("Failed to create program: {}", err))
         })?;
@@ -559,6 +620,8 @@ impl GLBackend for GLBackendGlow
         shader_type: GLenum
     ) -> Result<GLTypeShader, BacktraceError<ErrorMessage>>
     {
+        let _checker = PanicOnGLError::new(self);
+
         let handle = self.context.create_shader(shader_type).map_err(|err| {
             ErrorMessage::msg(format!("Failed to create shader: {}", err))
         })?;
@@ -568,6 +631,8 @@ impl GLBackend for GLBackendGlow
 
     unsafe fn gl_gen_buffer(&self) -> Result<GLTypeBuffer, BacktraceError<ErrorMessage>>
     {
+        let _checker = PanicOnGLError::new(self);
+
         let handle = self.context.create_buffer().map_err(|err| {
             ErrorMessage::msg(format!("Failed to create buffer: {}", err))
         })?;
@@ -578,6 +643,8 @@ impl GLBackend for GLBackendGlow
     unsafe fn gl_gen_texture(&self)
         -> Result<GLTypeTexture, BacktraceError<ErrorMessage>>
     {
+        let _checker = PanicOnGLError::new(self);
+
         let handle = self.context.create_texture().map_err(|err| {
             ErrorMessage::msg(format!("Failed to create texture: {}", err))
         })?;
@@ -596,6 +663,7 @@ impl GLBackend for GLBackendGlow
         name: &str
     ) -> Option<GLuint>
     {
+        let _checker = PanicOnGLError::new(self);
         self.context.get_attrib_location(program, name)
     }
 
@@ -605,16 +673,19 @@ impl GLBackend for GLBackendGlow
         name: &str
     ) -> Option<GLTypeUniformLocation>
     {
+        let _checker = PanicOnGLError::new(self);
         self.context.get_uniform_location(program, name)
     }
 
     unsafe fn gl_get_program_link_status(&self, program: GLTypeProgram) -> bool
     {
+        let _checker = PanicOnGLError::new(self);
         self.context.get_program_link_status(program)
     }
 
     unsafe fn gl_get_shader_compile_status(&self, shader: GLTypeShader) -> bool
     {
+        let _checker = PanicOnGLError::new(self);
         self.context.get_shader_compile_status(shader)
     }
 
@@ -623,6 +694,7 @@ impl GLBackend for GLBackendGlow
         program: GLTypeProgram
     ) -> Result<String, BacktraceError<ErrorMessage>>
     {
+        let _checker = PanicOnGLError::new(self);
         Ok(self.context.get_program_info_log(program))
     }
 
@@ -631,6 +703,7 @@ impl GLBackend for GLBackendGlow
         shader: GLTypeShader
     ) -> Result<String, BacktraceError<ErrorMessage>>
     {
+        let _checker = PanicOnGLError::new(self);
         Ok(self.context.get_shader_info_log(shader))
     }
 }
