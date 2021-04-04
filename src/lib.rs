@@ -21,11 +21,12 @@
 //!
 //!  - The simplest Rust API for creating a window, rendering graphics/text, and
 //!    handling input
-//!  - Compatible with any device supporting OpenGL 2.0+ or OpenGL ES 2.0+
+//!  - Compatible with any device supporting OpenGL 2.0+, with support for
+//!    OpenGL ES 2.0+ and WebGL coming soon
 //!  - Very fast
 //!
-//! Supports Windows, Mac, and Linux. Should also work on Android and iOS
-//! (for rendering only).
+//! Supports Windows, Mac, and Linux. Support for Android, iOS, and WebGL is in
+//! development.
 //!
 //! By default, Speedy2D contains support for setting up a window with an OpenGL
 //! context. If you'd like to handle this yourself, and use Speedy2D only for
@@ -231,6 +232,21 @@
 //!     32.0,
 //!     TextOptions::new().with_wrap_to_width(300.0, TextAlignment::Left));
 //! ```
+//!
+//! # Loading images
+//!
+//! Image files (in formats such as PNG, JPG, and BMP) can be loaded using the
+//! following APIs, available in both `Graphics2D` and `GLRenderer`.
+//!
+//! * [Graphics2D::create_image_from_file_path()]
+//! * [Graphics2D::create_image_from_file_bytes()]
+//! * [GLRenderer::create_image_from_file_path()]
+//! * [GLRenderer::create_image_from_file_bytes()]
+//!
+//! Alternatively, you can create an image from raw pixel data, using:
+//!
+//! * [Graphics2D::create_image_from_raw_pixels()]
+//! * [GLRenderer::create_image_from_raw_pixels()]
 #![deny(warnings)]
 #![deny(missing_docs)]
 // Suggested fix for len_zero is unstable, see
