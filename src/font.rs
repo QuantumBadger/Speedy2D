@@ -32,7 +32,7 @@ use crate::shape::Rectangle;
 
 static FONT_ID_GENERATOR: AtomicUsize = AtomicUsize::new(10000);
 
-/// Type of the [Codepoint::user_index] and [FormattedGlyph::user_index] fields.
+/// Type returned by the [FormattedGlyph::user_index()] function.
 ///
 /// The `user_index` field allows you to determine which output glyph
 /// corresponds to which input codepoint.
