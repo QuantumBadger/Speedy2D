@@ -146,6 +146,21 @@ renderer.draw_frame(|graphics| {
 });
 ```
 
+## WebGL
+
+WebGL support is currently being added. To build the WebGL sample code, first
+install the prerequisites:
+
+```shell
+cargo install wasm-bindgen-cli just
+```
+
+Then use the following command to run the build:
+
+```shell
+just build-example-webgl
+```
+
 ## License
 
 Speedy2D is licensed under the Apache license, version 2.0. See
@@ -156,12 +171,18 @@ Speedy2D is licensed under the Apache license, version 2.0. See
 Pull requests for Speedy2D are always welcome. Please ensure the following
 checks pass locally before submitting:
 
-```bash
+```shell
 cargo test
 cargo test --no-default-features --lib --examples --tests
 cargo clippy
 cargo +nightly fmt -- --check
 cargo doc
+```
+
+These commands can be run automatically using `just`:
+
+```shell
+just precommit
 ```
 
 Some tests require the ability to create a headless OpenGL context.

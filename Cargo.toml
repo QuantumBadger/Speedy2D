@@ -36,6 +36,18 @@ image = { version = "0.23", optional = true }
 # For windowing feature
 glutin = { version = "0.26", optional = true }
 
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = { version = "0.2" }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies.web-sys]
+version = "0.3"
+features = [
+    "HtmlCanvasElement",
+    "MouseEvent",
+    "WebGl2RenderingContext",
+    "Window"
+]
+
 # Tests using a headless GL context.
 
 [[test]]
@@ -47,6 +59,7 @@ harness = false
 simple_logger = "1.11"
 glutin = "0.26"
 image = { version = "0.23" }
+wasm-bindgen = { version = "0.2" }
 
 # Examples: must be listed manually as they require the "windowing" feature.
 
@@ -69,3 +82,8 @@ required-features = ["windowing"]
 [[example]]
 name = "load_image"
 required-features = ["windowing", "image-loading"]
+
+[workspace]
+members = [
+    "examples/webgl",
+]

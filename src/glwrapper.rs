@@ -38,6 +38,14 @@ use crate::glbackend::types::{
 };
 use crate::glbackend::GLBackend;
 
+#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
+#[allow(dead_code)]
+pub enum GLVersion
+{
+    OpenGL2_0,
+    WebGL2_0
+}
+
 impl From<TryFromIntError> for BacktraceError<ErrorMessage>
 {
     fn from(_: TryFromIntError) -> Self
@@ -815,6 +823,7 @@ struct GLContextManagerState
     viewport_size: Vector2<u32>,
     scissor_enabled: bool,
     gl_backend: Rc<dyn GLBackend + 'static>,
+    gl_version: GLVersion,
     weak_ref_to_self: Weak<RefCell<GLContextManagerState>>
 }
 
@@ -836,7 +845,8 @@ impl GLContextManager
 {
     pub fn create(
         gl_backend: Rc<dyn GLBackend>,
-        viewport_size_pixels: Vector2<u32>
+        viewport_size_pixels: Vector2<u32>,
+        gl_version: GLVersion
     ) -> Result<Self, BacktraceError<ErrorMessage>>
     {
         let manager = GLContextManager {
@@ -848,6 +858,7 @@ impl GLContextManager
                 viewport_size: viewport_size_pixels,
                 scissor_enabled: false,
                 gl_backend,
+                gl_version,
                 weak_ref_to_self: Weak::new()
             }))
         };
@@ -1047,8 +1058,8 @@ impl GLContextManager
     where
         F: FnOnce(&Rc<dyn GLBackend>) -> Return
     {
-        let state_ref = RefCell::borrow(&self.state);
-        callback(&state_ref.gl_backend)
+        let backend = RefCell::borrow(&self.state).gl_backend.clone();
+        callback(&backend)
     }
 
     fn is_valid(&self) -> bool
@@ -1063,6 +1074,11 @@ impl GLContextManager
         } else {
             Ok(())
         }
+    }
+
+    pub fn version(&self) -> GLVersion
+    {
+        self.state.borrow().gl_version
     }
 }
 

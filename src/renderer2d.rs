@@ -472,19 +472,36 @@ impl Renderer2D
         viewport_size_pixels: Vector2<u32>
     ) -> Result<Self, BacktraceError<ErrorMessage>>
     {
+        log::info!("Creating vertex shader");
+
+        let (vertex_shader_src, fragment_shader_src) = match context.version() {
+            GLVersion::OpenGL2_0 => {
+                log::info!("Using OpenGL 2.0 shaders");
+                (
+                    include_str!("shaders/r2d_vertex_v110.glsl"),
+                    include_str!("shaders/r2d_fragment_v110.glsl")
+                )
+            }
+            GLVersion::WebGL2_0 => {
+                log::info!("Using WebGL 2.0 shaders");
+                (
+                    include_str!("shaders/r2d_vertex_v300es.glsl"),
+                    include_str!("shaders/r2d_fragment_v300es.glsl")
+                )
+            }
+        };
+
         let vertex_shader = context
-            .new_shader(
-                GLShaderType::Vertex,
-                include_str!("shaders/r2d_vertex.glsl")
-            )
+            .new_shader(GLShaderType::Vertex, vertex_shader_src)
             .context("Failed to create Renderer2D vertex shader")?;
 
+        log::info!("Creating fragment shader");
+
         let fragment_shader = context
-            .new_shader(
-                GLShaderType::Fragment,
-                include_str!("shaders/r2d_fragment.glsl")
-            )
+            .new_shader(GLShaderType::Fragment, fragment_shader_src)
             .context("Failed to create Renderer2D fragment shader")?;
+
+        log::info!("Compiling program");
 
         let program = context
             .new_program(

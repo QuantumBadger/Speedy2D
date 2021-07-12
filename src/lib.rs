@@ -252,17 +252,16 @@
 //!
 //! * [Graphics2D::create_image_from_raw_pixels()]
 //! * [GLRenderer::create_image_from_raw_pixels()]
+
 #![deny(warnings)]
-#![deny(missing_docs)]
+// TODO re-enable
+#![allow(dead_code)]
+//#![deny(missing_docs)]
+
 // Suggested fix for len_zero is unstable, see
 // https://github.com/rust-lang/rust/issues/35428
 #![allow(clippy::len_zero)]
 #![allow(clippy::upper_case_acronyms)]
-// No current entry points for WebGL, will change in future versions
-#![cfg_attr(target_arch = "wasm32", allow(dead_code))]
-
-#[cfg(all(feature = "windowing", target_arch = "wasm32"))]
-compile_error!("Cannot enable windowing feature with arch wasm32");
 
 use std::fmt::{Display, Formatter};
 use std::rc::Rc;
@@ -281,22 +280,25 @@ use crate::font::FormattedTextBlock;
 use crate::glbackend::GLBackend;
 #[cfg(not(target_arch = "wasm32"))]
 use crate::glbackend::{GLBackendGLRS, GLBackendGlow};
-use crate::glwrapper::GLContextManager;
+use crate::glwrapper::{GLContextManager, GLVersion};
 use crate::image::{ImageDataType, ImageHandle, ImageSmoothingMode};
 use crate::renderer2d::Renderer2D;
 use crate::shape::Rectangle;
-#[cfg(any(feature = "windowing", doc, doctest))]
+use crate::web::WebCanvasElement;
+#[cfg(any(doc, doctest, all(feature = "windowing")))]
+use crate::window::WindowHandler;
+#[cfg(any(doc, doctest, all(feature = "windowing", not(target_arch = "wasm32"))))]
 use crate::window::{
-    DrawingWindowHandler,
     UserEventSender,
     WindowCreationError,
     WindowCreationOptions,
-    WindowHandler,
-    WindowHelper,
-    WindowImpl,
     WindowPosition,
     WindowSize
 };
+#[cfg(any(doc, doctest, all(feature = "windowing", not(target_arch = "wasm32"))))]
+use crate::window_internal_glutin::WindowGlutin;
+#[cfg(any(doc, doctest, all(feature = "windowing", target_arch = "wasm32")))]
+use crate::window_internal_web::WebCanvasImpl;
 
 /// Types representing colors.
 pub mod color;
@@ -320,8 +322,17 @@ pub mod error;
 pub mod image;
 
 /// Allows for the creation and management of windows.
-#[cfg(any(feature = "windowing", doc, doctest))]
+#[cfg(any(doc, doctest, feature = "windowing"))]
 pub mod window;
+
+#[cfg(any(doc, doctest, all(feature = "windowing", not(target_arch = "wasm32"))))]
+mod window_internal_glutin;
+
+#[cfg(any(doc, doctest, all(feature = "windowing", target_arch = "wasm32")))]
+mod window_internal_web;
+
+#[cfg(any(doc, doctest, target_arch = "wasm32"))]
+mod web;
 
 mod font_cache;
 mod glbackend;
@@ -350,6 +361,16 @@ impl GLRendererCreationError
             },
             cause
         )
+    }
+
+    #[allow(dead_code)]
+    fn msg<S>(description: S) -> BacktraceError<Self>
+    where
+        S: AsRef<str>
+    {
+        BacktraceError::new(Self {
+            description: description.as_ref().to_string()
+        })
     }
 }
 
@@ -399,7 +420,11 @@ impl GLRenderer
         viewport_size_pixels: V
     ) -> Result<Self, BacktraceError<GLRendererCreationError>>
     {
-        Self::new_with_gl_backend(viewport_size_pixels, Rc::new(GLBackendGLRS {}))
+        Self::new_with_gl_backend(
+            viewport_size_pixels,
+            Rc::new(GLBackendGLRS {}),
+            GLVersion::OpenGL2_0
+        )
     }
 
     /// Creates a `GLRenderer` with the specified OpenGL loader function. The
@@ -430,23 +455,53 @@ impl GLRenderer
         let backend =
             GLBackendGlow::new(glow::Context::from_loader_function(loader_function));
 
-        Self::new_with_gl_backend(viewport_size_pixels, Rc::new(backend))
+        Self::new_with_gl_backend(
+            viewport_size_pixels,
+            Rc::new(backend),
+            GLVersion::OpenGL2_0
+        )
+    }
+
+    /// Creates a `GLRenderer` for the specified HTML canvas. The canvas
+    /// will be found based on the specified ID.
+    ///
+    /// The parameter `viewport_size_pixels` should be set to
+    /// the initial canvas size, however this can be changed later using
+    /// [GLRenderer:: set_viewport_size_pixels()].
+    #[cfg(any(doc, doctest, target_arch = "wasm32"))]
+    pub fn new_for_web_canvas_by_id<V, S>(
+        viewport_size_pixels: V,
+        element_id: S
+    ) -> Result<Self, BacktraceError<GLRendererCreationError>>
+    where
+        V: Into<Vector2<u32>>,
+        S: AsRef<str>
+    {
+        // TODO handle context lost
+        // TODO support webgl 1.0 as well
+        //   -- or maybe only 1.0
+
+        WebCanvasElement::new_by_id(element_id.as_ref())
+            .map_err(|err| {
+                GLRendererCreationError::msg_with_cause("Failed to get canvas", err)
+            })?
+            .get_webgl2_context(viewport_size_pixels)
     }
 
     fn new_with_gl_backend<V: Into<Vector2<u32>>>(
         viewport_size_pixels: V,
-        gl_backend: Rc<dyn GLBackend>
+        gl_backend: Rc<dyn GLBackend>,
+        gl_version: GLVersion
     ) -> Result<Self, BacktraceError<GLRendererCreationError>>
     {
         let viewport_size_pixels = viewport_size_pixels.into();
 
-        let context = GLContextManager::create(gl_backend, viewport_size_pixels)
-            .map_err(|err| {
-                GLRendererCreationError::msg_with_cause(
-                    "GL context manager creation failed",
-                    err
-                )
-            })?;
+        let context = GLContextManager::create(gl_backend, gl_version, viewport_size_pixels).map_err(|err| {
+            GLRendererCreationError::msg_with_cause(
+                "GL context manager creation failed",
+                err
+            )
+        })?;
 
         let renderer = Graphics2D {
             renderer: Renderer2D::new(&context, viewport_size_pixels).map_err(|err| {
@@ -1094,16 +1149,16 @@ impl Graphics2D
 }
 
 /// Struct representing a window.
-#[cfg(any(feature = "windowing", doc, doctest))]
+#[cfg(any(doc, doctest, all(feature = "windowing", not(target_arch = "wasm32"))))]
 pub struct Window<UserEventType = ()>
 where
     UserEventType: 'static
 {
-    window_impl: WindowImpl<UserEventType>,
+    window_impl: WindowGlutin<UserEventType>,
     renderer: GLRenderer
 }
 
-#[cfg(any(feature = "windowing", doc, doctest))]
+#[cfg(any(doc, doctest, all(feature = "windowing", not(target_arch = "wasm32"))))]
 impl Window<()>
 {
     /// Create a new window, centered in the middle of the primary monitor.
@@ -1150,7 +1205,7 @@ impl Window<()>
     }
 }
 
-#[cfg(any(feature = "windowing", doc, doctest))]
+#[cfg(any(doc, doctest, all(feature = "windowing", not(target_arch = "wasm32"))))]
 impl<UserEventType: 'static> Window<UserEventType>
 {
     /// Create a new window with the specified options, with support for user
@@ -1160,11 +1215,12 @@ impl<UserEventType: 'static> Window<UserEventType>
         options: WindowCreationOptions
     ) -> Result<Self, BacktraceError<WindowCreationError>>
     {
-        let window_impl = WindowImpl::new(title, options)?;
+        let window_impl = WindowGlutin::new(title, options)?;
 
         let renderer = GLRenderer::new_with_gl_backend(
             window_impl.get_inner_size_pixels(),
-            window_impl.gl_backend().clone()
+            window_impl.gl_backend().clone(),
+            GLVersion::OpenGL2_0
         )
         .map_err(|err| {
             BacktraceError::new_with_cause(
@@ -1200,12 +1256,71 @@ impl<UserEventType: 'static> Window<UserEventType>
     where
         H: WindowHandler<UserEventType> + 'static
     {
-        let handler = DrawingWindowHandler::new(
-            handler,
-            self.renderer,
-            WindowHelper::new(self.window_impl.helper().clone())
-        );
+        self.window_impl.run_loop(handler, self.renderer);
+    }
+}
 
-        self.window_impl.run_loop(handler);
+#[cfg(any(doc, doctest, all(target_arch = "wasm32", feature = "windowing")))]
+pub struct WebCanvas<UserEventType = ()>
+where
+    UserEventType: 'static
+{
+    inner: Option<WebCanvasImpl<UserEventType>>,
+    should_cleanup: bool
+}
+
+#[cfg(any(doc, doctest, all(target_arch = "wasm32", feature = "windowing")))]
+impl WebCanvas<()>
+{
+    pub fn new_for_id<S, H>(
+        element_id: S,
+        handler: H
+    ) -> Result<WebCanvas<()>, BacktraceError<ErrorMessage>>
+    where
+        S: AsRef<str>,
+        H: WindowHandler<()> + 'static
+    {
+        WebCanvas::<()>::new_for_id_with_user_events(element_id, handler)
+    }
+}
+
+#[cfg(any(doc, doctest, all(target_arch = "wasm32", feature = "windowing")))]
+impl<UserEventType: 'static> WebCanvas<UserEventType>
+{
+    // TODO document behaviour on drop (i.e. leak)
+    pub fn new_for_id_with_user_events<S, H>(
+        element_id: S,
+        handler: H
+    ) -> Result<Self, BacktraceError<ErrorMessage>>
+    where
+        S: AsRef<str>,
+        H: WindowHandler<UserEventType> + 'static
+    {
+        Ok(WebCanvas {
+            inner: Some(WebCanvasImpl::new(element_id, handler)?),
+            should_cleanup: false
+        })
+    }
+
+    pub fn unregister_when_dropped(&mut self)
+    {
+        self.should_cleanup = true;
+    }
+}
+
+#[cfg(any(doc, doctest, all(target_arch = "wasm32", feature = "windowing")))]
+impl<UserEventType: 'static> Drop for WebCanvas<UserEventType>
+{
+    fn drop(&mut self)
+    {
+        if !self.should_cleanup {
+            std::mem::forget(self.inner.take());
+            log::warn!(
+                "Deliberately leaking speedy2d::WebCanvas object. This is normally \
+                 fine, but if you want to clean up before the page closes, call \
+                 WebCanvas::unregister_when_dropped(), and retain ownership of the \
+                 WebCanvas until you want to delete it."
+            )
+        }
     }
 }
