@@ -14,18 +14,32 @@
  *  limitations under the License.
  */
 
+use std::cell::RefCell;
+use std::fmt::Debug;
 use std::rc::Rc;
 
 use wasm_bindgen::closure::{Closure, WasmClosure};
 use wasm_bindgen::JsCast;
-use web_sys::{Document, HtmlCanvasElement, HtmlElement, MouseEvent, Window};
+use web_sys::{
+    Document,
+    Element,
+    EventTarget,
+    HtmlCanvasElement,
+    HtmlElement,
+    MouseEvent,
+    Performance,
+    Window
+};
 
 use crate::dimen::Vector2;
 use crate::error::{BacktraceError, ErrorMessage};
 use crate::glbackend::GLBackendGlow;
 use crate::glwrapper::GLVersion;
+use crate::web::WebPendingStatus::{Active, AlreadyTriggered};
 use crate::{GLRenderer, GLRendererCreationError};
 
+#[allow(dead_code)]
+#[derive(Copy, Clone, Hash, Eq, PartialEq, Debug)]
 pub enum WebCursorType
 {
     Auto,
@@ -89,6 +103,7 @@ impl WebCursorType
     }
 }
 
+#[derive(Clone)]
 pub struct WebWindow
 {
     window: Window
@@ -110,11 +125,74 @@ impl WebWindow
             document: self
                 .window
                 .document()
-                .ok_or_else(|| ErrorMessage::msg("Failed to get document"))?
+                .ok_or_else(|| ErrorMessage::msg("Failed to get document object"))?
         })
+    }
+
+    pub fn performance(&self) -> Result<WebPerformance, BacktraceError<ErrorMessage>>
+    {
+        Ok(WebPerformance {
+            performance: self
+                .window
+                .performance()
+                .ok_or_else(|| ErrorMessage::msg("Failed to get performance object"))?
+        })
+    }
+
+    pub fn match_media(
+        &self,
+        query: &str
+    ) -> Result<WebEventTarget, BacktraceError<ErrorMessage>>
+    {
+        Ok(WebEventTarget::dyn_from(
+            self.window
+                .match_media(query)
+                .map_err(|original| {
+                    ErrorMessage::msg(format!("matchMedia() failed: {:?}", original))
+                })?
+                .ok_or_else(|| ErrorMessage::msg("matchMedia() returned null"))?
+        )?)
+    }
+
+    pub fn request_animation_frame<T: ?Sized + 'static>(
+        &self,
+        callback: &RefCell<Closure<T>>
+    ) -> Result<WebPending, BacktraceError<ErrorMessage>>
+    {
+        let frame_id: i32 = self
+            .window
+            .request_animation_frame(callback.borrow_mut().as_ref().unchecked_ref())
+            .map_err(|err| {
+                ErrorMessage::msg(format!("Failed to request animation frame: {:?}", err))
+            })?;
+
+        let window = self.window.clone();
+
+        Ok(WebPending::new(move |status| {
+            if status == Active {
+                if let Err(err) = window.cancel_animation_frame(frame_id) {
+                    log::error!("Failed to cancel animation frame: {:?}", err)
+                } else {
+                    log::info!("Cancelled animation frame {}", frame_id)
+                }
+            }
+        }))
+    }
+
+    pub fn device_pixel_ratio(&self) -> f64
+    {
+        self.window.device_pixel_ratio()
+    }
+
+    pub fn dyn_into_event_target(
+        self
+    ) -> Result<WebEventTarget, BacktraceError<ErrorMessage>>
+    {
+        WebEventTarget::dyn_from(self.window)
     }
 }
 
+#[derive(Clone)]
 pub struct WebDocument
 {
     document: Document
@@ -122,12 +200,13 @@ pub struct WebDocument
 
 impl WebDocument
 {
-    pub fn get_html_element_by_id<S: AsRef<str>>(
+    pub fn get_element_by_id<S: AsRef<str>>(
         &self,
         element_id: S
-    ) -> Result<WebHtmlElement, BacktraceError<ErrorMessage>>
+    ) -> Result<WebElement, BacktraceError<ErrorMessage>>
     {
-        Ok(WebHtmlElement {
+        Ok(WebElement {
+            document: self.clone(),
             element: self
                 .document
                 .get_element_by_id(element_id.as_ref())
@@ -137,101 +216,158 @@ impl WebDocument
                         element_id.as_ref()
                     ))
                 })?
-                .dyn_into::<HtmlElement>()
-                .map_err(|err| {
-                    ErrorMessage::msg(format!(
-                        "Failed to convert Element to HtmlElement: '{:?}'",
-                        err
-                    ))
-                })?
         })
+    }
+
+    pub fn pointer_lock_element(&self) -> Option<WebElement>
+    {
+        self.document
+            .pointer_lock_element()
+            .map(|element| WebElement {
+                document: self.clone(),
+                element
+            })
+    }
+
+    pub fn dyn_into_event_target(
+        self
+    ) -> Result<WebEventTarget, BacktraceError<ErrorMessage>>
+    {
+        WebEventTarget::dyn_from(self.document)
+    }
+
+    pub fn set_title(&self, title: &str)
+    {
+        self.document.set_title(title);
+    }
+
+    pub fn exit_pointer_lock(&self)
+    {
+        self.document.exit_pointer_lock()
     }
 }
 
 #[derive(Clone)]
+pub struct WebPerformance
+{
+    performance: Performance
+}
+
+impl WebPerformance
+{
+    #[inline]
+    pub fn now(&self) -> f64
+    {
+        self.performance.now()
+    }
+}
+
+#[derive(Clone)]
+pub struct WebElement
+{
+    document: WebDocument,
+    element: Element
+}
+
+impl WebElement
+{
+    pub fn dyn_into_html_element(
+        self
+    ) -> Result<WebHtmlElement, BacktraceError<ErrorMessage>>
+    {
+        let element = self.clone();
+
+        Ok(WebHtmlElement {
+            element,
+            html_element: self.element.dyn_into::<HtmlElement>().map_err(|err| {
+                ErrorMessage::msg(format!(
+                    "Failed to convert Element to HtmlElement: '{:?}'",
+                    err
+                ))
+            })?
+        })
+    }
+
+    pub fn dyn_into_event_target(
+        self
+    ) -> Result<WebEventTarget, BacktraceError<ErrorMessage>>
+    {
+        WebEventTarget::dyn_from(self.element)
+    }
+
+    pub fn dimensions(&self) -> Vector2<f64>
+    {
+        let bounding_rect = self.element.get_bounding_client_rect();
+
+        Vector2::new(
+            bounding_rect.right() - bounding_rect.left(),
+            bounding_rect.bottom() - bounding_rect.top()
+        )
+    }
+
+    #[inline]
+    pub fn document(&self) -> &WebDocument
+    {
+        &self.document
+    }
+}
+
+impl PartialEq for WebElement
+{
+    fn eq(&self, other: &Self) -> bool
+    {
+        self.element == other.element
+    }
+}
+
+impl Eq for WebElement {}
+
+#[derive(Clone)]
 pub struct WebHtmlElement
 {
-    element: HtmlElement
+    element: WebElement,
+    html_element: HtmlElement
 }
 
 impl WebHtmlElement
 {
+    #[inline]
+    pub fn element(&self) -> &WebElement
+    {
+        &self.element
+    }
+
     pub fn dyn_into_canvas(self)
         -> Result<WebCanvasElement, BacktraceError<ErrorMessage>>
     {
-        let canvas_element = self.element.clone();
-
-        Ok(WebCanvasElement {
-            element: self,
-            canvas: canvas_element
-                .dyn_into::<HtmlCanvasElement>()
-                .map_err(|err| {
-                    ErrorMessage::msg(format!(
-                        "Failed to convert element to canvas: '{:?}'",
-                        err
-                    ))
-                })?
-        })
-    }
-
-    pub fn register_event_listener_mouse<F: FnMut(MouseEvent) + 'static>(
-        &self,
-        listener_type: &str,
-        callback: F
-    ) -> Result<EventListener, BacktraceError<ErrorMessage>>
-    {
-        self.register_event_listener(
-            listener_type,
-            Box::new(callback) as Box<dyn FnMut(_)>
-        )
-    }
-
-    fn register_event_listener<F: ?Sized + WasmClosure + 'static>(
-        &self,
-        listener_type: &str,
-        callback: Box<F>
-    ) -> Result<EventListener, BacktraceError<ErrorMessage>>
-    {
-        let closure = Closure::wrap(callback);
-
-        self.element
-            .add_event_listener_with_callback(
-                listener_type,
-                closure.as_ref().unchecked_ref()
-            )
+        let canvas = self
+            .html_element
+            .clone()
+            .dyn_into::<HtmlCanvasElement>()
             .map_err(|err| {
                 ErrorMessage::msg(format!(
-                    "Failed to register {} callback: '{:?}'",
-                    listener_type, err
+                    "Failed to convert element to canvas: '{:?}'",
+                    err
                 ))
             })?;
 
-        let element = self.element.clone();
-        let listener_type = listener_type.to_string();
-
-        Ok(EventListener {
-            unregister_action: Some(Box::new(move || {
-                element
-                    .remove_event_listener_with_callback(
-                        listener_type.as_ref(),
-                        closure.as_ref().unchecked_ref()
-                    )
-                    .unwrap_or_else(|err| {
-                        log::error!(
-                            "Failed to remove '{}' event handler: {:?}",
-                            listener_type,
-                            err
-                        )
-                    })
-            }))
+        Ok(WebCanvasElement {
+            html_element: self,
+            canvas
         })
+    }
+
+    #[inline]
+    pub fn document(&self) -> &WebDocument
+    {
+        self.element.document()
     }
 }
 
 #[derive(Clone)]
 pub struct WebCanvasElement
 {
-    element: WebHtmlElement,
+    html_element: WebHtmlElement,
     canvas: HtmlCanvasElement
 }
 
@@ -243,13 +379,14 @@ impl WebCanvasElement
     {
         Ok(WebWindow::new()?
             .document()?
-            .get_html_element_by_id(canvas_id)?
+            .get_element_by_id(canvas_id)?
+            .dyn_into_html_element()?
             .dyn_into_canvas()?)
     }
 
-    pub fn element(&self) -> &WebHtmlElement
+    pub fn html_element(&self) -> &WebHtmlElement
     {
-        &self.element
+        &self.html_element
     }
 
     pub fn get_webgl2_context<V>(
@@ -259,6 +396,13 @@ impl WebCanvasElement
     where
         V: Into<Vector2<u32>>
     {
+        let viewport_size_pixels = viewport_size_pixels.into();
+
+        log::info!(
+            "Getting WebGL2 context for viewport size {:?}",
+            viewport_size_pixels
+        );
+
         let context = self
             .canvas
             .get_context("webgl2")
@@ -285,18 +429,160 @@ impl WebCanvasElement
             GLVersion::WebGL2_0
         )
     }
+
+    pub fn set_buffer_dimensions(&self, size: &Vector2<u32>)
+    {
+        self.canvas.set_width(size.x);
+        self.canvas.set_height(size.y);
+    }
+
+    pub fn set_cursor(&self, cursor: WebCursorType)
+    {
+        if let Err(err) = self
+            .canvas
+            .style()
+            .set_property("cursor", cursor.css_text())
+        {
+            log::info!("Failed to set cursor: {:?}", err);
+        }
+    }
+
+    pub fn request_pointer_lock(&self)
+    {
+        self.canvas.request_pointer_lock();
+    }
+
+    pub fn is_pointer_lock_active(&self) -> bool
+    {
+        match self.html_element.document().pointer_lock_element() {
+            None => false,
+            Some(lock_elem) => lock_elem == *self.html_element().element()
+        }
+    }
 }
 
 #[must_use]
-pub struct EventListener
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+enum WebPendingStatus
 {
-    unregister_action: Option<Box<dyn FnOnce()>>
+    Active,
+    AlreadyTriggered
 }
 
-impl Drop for EventListener
+#[must_use]
+pub struct WebPending
+{
+    unregister_action: Option<Box<dyn FnOnce(WebPendingStatus)>>,
+    status: WebPendingStatus
+}
+
+impl WebPending
+{
+    fn new<F: FnOnce(WebPendingStatus) + 'static>(unregister_action: F) -> Self
+    {
+        Self {
+            unregister_action: Some(Box::new(unregister_action)),
+            status: Active
+        }
+    }
+
+    pub fn mark_as_triggered(&mut self)
+    {
+        self.status = AlreadyTriggered
+    }
+}
+
+impl Drop for WebPending
 {
     fn drop(&mut self)
     {
-        self.unregister_action.take().unwrap()()
+        self.unregister_action.take().unwrap()(self.status)
+    }
+}
+
+#[derive(Clone)]
+pub struct WebEventTarget
+{
+    target: EventTarget
+}
+
+impl WebEventTarget
+{
+    #[must_use]
+    fn dyn_from<E: Debug + JsCast>(
+        element: E
+    ) -> Result<Self, BacktraceError<ErrorMessage>>
+    {
+        Ok(WebEventTarget {
+            target: element.dyn_into().map_err(|original| {
+                ErrorMessage::msg(format!(
+                    "Failed to cast to EventTarget: {:?}",
+                    original
+                ))
+            })?
+        })
+    }
+
+    pub fn register_event_listener_void<F: FnMut() + 'static>(
+        &self,
+        listener_type: &str,
+        callback: F
+    ) -> Result<WebPending, BacktraceError<ErrorMessage>>
+    {
+        self.register_event_listener(
+            listener_type,
+            Box::new(callback) as Box<dyn FnMut()>
+        )
+    }
+
+    pub fn register_event_listener_mouse<F: FnMut(MouseEvent) + 'static>(
+        &self,
+        listener_type: &str,
+        callback: F
+    ) -> Result<WebPending, BacktraceError<ErrorMessage>>
+    {
+        self.register_event_listener(
+            listener_type,
+            Box::new(callback) as Box<dyn FnMut(_)>
+        )
+    }
+
+    fn register_event_listener<F: ?Sized + WasmClosure + 'static>(
+        &self,
+        listener_type: &str,
+        callback: Box<F>
+    ) -> Result<WebPending, BacktraceError<ErrorMessage>>
+    {
+        let closure = Closure::wrap(callback);
+
+        self.target
+            .add_event_listener_with_callback(
+                listener_type,
+                closure.as_ref().unchecked_ref()
+            )
+            .map_err(|err| {
+                ErrorMessage::msg(format!(
+                    "Failed to register {} callback: '{:?}'",
+                    listener_type, err
+                ))
+            })?;
+
+        let element = self.target.clone();
+        let listener_type = listener_type.to_string();
+
+        Ok(WebPending::new(move |_status| {
+            element
+                .remove_event_listener_with_callback(
+                    listener_type.as_ref(),
+                    closure.as_ref().unchecked_ref()
+                )
+                .unwrap_or_else(|err| {
+                    log::error!(
+                        "Failed to remove '{}' event handler: {:?}",
+                        listener_type,
+                        err
+                    )
+                })
+        }))
     }
 }

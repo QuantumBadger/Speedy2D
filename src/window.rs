@@ -150,6 +150,22 @@ pub trait WindowHandler<UserEventType = ()>
     {
     }
 
+    // TODO invoke with glutin too
+    /// Invoked if the mouse cursor becomes grabbed or un-grabbed. See
+    /// [WindowHelper::set_cursor_grab].
+    ///
+    /// Note: mouse movement events will behave differently depending on the
+    /// current cursor grabbing status.
+    #[allow(unused_variables)]
+    #[inline]
+    fn on_mouse_grab_status_changed(
+        &mut self,
+        helper: &mut WindowHelper<UserEventType>,
+        mouse_grabbed: bool
+    )
+    {
+    }
+
     /// Invoked when the window scale factor changes.
     #[allow(unused_variables)]
     #[inline]
@@ -176,6 +192,13 @@ pub trait WindowHandler<UserEventType = ()>
     }
 
     /// Invoked when the mouse changes position.
+    ///
+    /// Normally, this provides the absolute  position of the mouse in the
+    /// window/canvas. However, if the mouse cursor is grabbed, this will
+    /// instead provide the amount of relative movement since the last move
+    /// event.
+    ///
+    /// See [WindowHandler::on_mouse_grab_status_changed].
     #[allow(unused_variables)]
     #[inline]
     fn on_mouse_move(
@@ -314,6 +337,17 @@ where
     {
         self.renderer.set_viewport_size_pixels(size_pixels);
         self.window_handler.on_resize(helper, size_pixels)
+    }
+
+    #[inline]
+    pub fn on_mouse_grab_status_changed(
+        &mut self,
+        helper: &mut WindowHelper<UserEventType>,
+        mouse_grabbed: bool
+    )
+    {
+        self.window_handler
+            .on_mouse_grab_status_changed(helper, mouse_grabbed)
     }
 
     #[inline]
@@ -504,9 +538,9 @@ impl<UserEventType> WindowHelper<UserEventType>
     }
 
     /// Sets the window title.
-    pub fn set_title(&self, title: &str)
+    pub fn set_title<S: AsRef<str>>(&self, title: S)
     {
-        self.inner.set_title(title)
+        self.inner.set_title(title.as_ref())
     }
 
     /// Sets the window fullscreen mode.
@@ -571,6 +605,7 @@ impl<UserEventType> WindowHelper<UserEventType>
     }
 }
 
+#[cfg(any(doc, doctest, not(target_arch = "wasm32")))]
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
 #[must_use]
 pub(crate) enum WindowEventLoopAction

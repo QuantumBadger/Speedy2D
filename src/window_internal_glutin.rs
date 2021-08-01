@@ -18,7 +18,6 @@
 // TODO add overview docs for WebGL
 
 use std::cell::Cell;
-use std::convert::TryInto;
 use std::rc::Rc;
 
 use glutin::dpi::{LogicalSize, PhysicalPosition, PhysicalSize};
@@ -63,9 +62,11 @@ use crate::GLRenderer;
 pub(crate) struct WindowHelperGlutin<UserEventType: 'static>
 {
     window_context: Rc<glutin::ContextWrapper<glutin::PossiblyCurrent, GlutinWindow>>,
-    event_proxy: EventLoopProxy<UserEventType>,
+    event_proxy: EventLoopProxy<UserEventGlutin<UserEventType>>,
     redraw_requested: Cell<bool>,
-    terminate_requested: bool
+    terminate_requested: bool,
+    physical_size: Vector2<u32>,
+    is_mouse_grabbed: Cell<bool>
 }
 
 impl<UserEventType> WindowHelperGlutin<UserEventType>
@@ -73,14 +74,17 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
     #[inline]
     pub fn new(
         context: &Rc<glutin::ContextWrapper<glutin::PossiblyCurrent, GlutinWindow>>,
-        event_proxy: EventLoopProxy<UserEventType>
+        event_proxy: EventLoopProxy<UserEventGlutin<UserEventType>>,
+        initial_physical_size: Vector2<u32>
     ) -> Self
     {
         WindowHelperGlutin {
             window_context: context.clone(),
             event_proxy,
             redraw_requested: Cell::new(false),
-            terminate_requested: false
+            terminate_requested: false,
+            physical_size: initial_physical_size,
+            is_mouse_grabbed: Cell::new(false)
         }
     }
 
@@ -136,10 +140,33 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
         grabbed: bool
     ) -> Result<(), BacktraceError<ErrorMessage>>
     {
+        let central_position = self.physical_size / 2;
         self.window_context
             .window()
-            .set_cursor_grab(grabbed)
-            .map_err(|err| ErrorMessage::msg_with_cause("Could not grab cursor", err))
+            .set_cursor_position(PhysicalPosition::new(
+                central_position.x as i32,
+                central_position.y as i32
+            ))
+            .map_err(|err| {
+                ErrorMessage::msg_with_cause(
+                    "Failed to move cursor to center of window",
+                    err
+                )
+            })?;
+
+        match self.window_context.window().set_cursor_grab(grabbed) {
+            Ok(_) => {
+                self.is_mouse_grabbed.set(grabbed);
+                if let Err(_) = self
+                    .event_proxy
+                    .send_event(UserEventGlutin::MouseGrabStatusChanged(grabbed))
+                {
+                    log::error!("Failed to notify app of cursor grab: event loop closed");
+                }
+                Ok(())
+            }
+            Err(err) => Err(ErrorMessage::msg_with_cause("Could not grab cursor", err))
+        }
     }
 
     pub fn set_resizable(&self, resizable: bool)
@@ -221,7 +248,7 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
 
 pub(crate) struct WindowGlutin<UserEventType: 'static>
 {
-    event_loop: EventLoop<UserEventType>,
+    event_loop: EventLoop<UserEventGlutin<UserEventType>>,
     window_context: Rc<glutin::ContextWrapper<glutin::PossiblyCurrent, GlutinWindow>>,
     gl_backend: Rc<dyn GLBackend>
 }
@@ -233,7 +260,8 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
         options: WindowCreationOptions
     ) -> Result<WindowGlutin<UserEventType>, BacktraceError<WindowCreationError>>
     {
-        let event_loop: EventLoop<UserEventType> = EventLoop::with_user_event();
+        let event_loop: EventLoop<UserEventGlutin<UserEventType>> =
+            EventLoop::with_user_event();
 
         let primary_monitor = event_loop.primary_monitor().ok_or_else(|| {
             BacktraceError::new(WindowCreationError::PrimaryMonitorNotFound)
@@ -347,9 +375,8 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
     fn loop_handle_event<Handler>(
         window_context: &glutin::ContextWrapper<glutin::PossiblyCurrent, GlutinWindow>,
         handler: &mut DrawingWindowHandler<UserEventType, Handler>,
-        event: GlutinEvent<UserEventType>,
-        helper: &mut WindowHelper<UserEventType>,
-        gl_backend: &Rc<dyn GLBackend>
+        event: GlutinEvent<UserEventGlutin<UserEventType>>,
+        helper: &mut WindowHelper<UserEventType>
     ) -> WindowEventLoopAction
     where
         Handler: WindowHandler<UserEventType> + 'static
@@ -357,7 +384,12 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
         match event {
             GlutinEvent::LoopDestroyed => return WindowEventLoopAction::Exit,
 
-            GlutinEvent::UserEvent(event) => handler.on_user_event(helper, event),
+            GlutinEvent::UserEvent(event) => match event {
+                UserEventGlutin::MouseGrabStatusChanged(grabbed) => {
+                    handler.on_mouse_grab_status_changed(helper, grabbed);
+                }
+                UserEventGlutin::UserEvent(event) => handler.on_user_event(helper, event)
+            },
 
             GlutinEvent::WindowEvent { event, .. } => match event {
                 GlutinWindowEvent::ScaleFactorChanged { scale_factor, .. } => {
@@ -368,23 +400,36 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
                 GlutinWindowEvent::Resized(physical_size) => {
                     log::info!("Resized: {:?}", physical_size);
                     window_context.resize(physical_size);
-                    unsafe {
-                        gl_backend.gl_viewport(
-                            0,
-                            0,
-                            physical_size.width.try_into().unwrap(),
-                            physical_size.height.try_into().unwrap()
-                        )
-                    }
+                    helper.inner().physical_size = physical_size.into();
                     handler.on_resize(helper, physical_size.into())
                 }
 
                 GlutinWindowEvent::CloseRequested => return WindowEventLoopAction::Exit,
 
-                GlutinWindowEvent::CursorMoved { position, .. } => handler.on_mouse_move(
-                    helper,
-                    Vector2::new(position.x as f32, position.y as f32)
-                ),
+                GlutinWindowEvent::CursorMoved { position, .. } => {
+                    let position = Vector2::new(position.x, position.y).into_f32();
+
+                    if helper.inner().is_mouse_grabbed.get() {
+                        let central_position = helper.inner().physical_size / 2;
+                        // TODO handle unwrap better
+                        window_context
+                            .window()
+                            .set_cursor_position(PhysicalPosition::new(
+                                central_position.x as i32,
+                                central_position.y as i32
+                            ))
+                            .unwrap();
+
+                        let position = position - central_position.into_f32();
+
+                        if position.magnitude_squared() > 0.0001 {
+                            handler.on_mouse_move(helper, position);
+                        }
+
+                    } else {
+                        handler.on_mouse_move(helper, position);
+                    };
+                }
 
                 GlutinWindowEvent::MouseInput { state, button, .. } => match state {
                     GlutinElementState::Pressed => {
@@ -444,19 +489,21 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
     {
         let window_context = self.window_context.clone();
         let event_loop = self.event_loop;
-        let gl_backend = self.gl_backend;
+
+        let initial_viewport_size_pixels = window_context.window().inner_size().into();
 
         let mut handler = DrawingWindowHandler::new(handler, renderer);
 
         let mut helper = WindowHelper::new(WindowHelperGlutin::new(
             &window_context,
-            event_loop.create_proxy()
+            event_loop.create_proxy(),
+            initial_viewport_size_pixels
         ));
 
         handler.on_start(
             &mut helper,
             WindowStartupInfo::new(
-                window_context.window().inner_size().into(),
+                initial_viewport_size_pixels,
                 window_context.window().scale_factor()
             )
         );
@@ -475,7 +522,7 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
         let mut handler = Option::Some(handler);
 
         event_loop.run(
-            move |event: GlutinEvent<UserEventType>,
+            move |event: GlutinEvent<UserEventGlutin<UserEventType>>,
                   _,
                   control_flow: &mut ControlFlow| {
                 *control_flow = {
@@ -486,8 +533,7 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
                             &window_context,
                             handler.as_mut().unwrap(),
                             event,
-                            &mut helper,
-                            &gl_backend
+                            &mut helper
                         );
 
                         match action {
@@ -832,23 +878,31 @@ impl From<PhysicalSize<u32>> for Vector2<u32>
     }
 }
 
+pub(crate) enum UserEventGlutin<UserEventType: 'static>
+{
+    MouseGrabStatusChanged(bool),
+    UserEvent(UserEventType)
+}
+
 #[derive(Clone)]
 pub struct UserEventSenderGlutin<UserEventType: 'static>
 {
-    event_proxy: EventLoopProxy<UserEventType>
+    event_proxy: EventLoopProxy<UserEventGlutin<UserEventType>>
 }
 
 impl<UserEventType> UserEventSenderGlutin<UserEventType>
 {
-    fn new(event_proxy: EventLoopProxy<UserEventType>) -> Self
+    fn new(event_proxy: EventLoopProxy<UserEventGlutin<UserEventType>>) -> Self
     {
         Self { event_proxy }
     }
 
     pub fn send_event(&self, event: UserEventType) -> Result<(), EventLoopSendError>
     {
-        self.event_proxy.send_event(event).map_err(|err| match err {
-            EventLoopClosed(_) => EventLoopSendError::EventLoopNoLongerExists
-        })
+        self.event_proxy
+            .send_event(UserEventGlutin::UserEvent(event))
+            .map_err(|err| match err {
+                EventLoopClosed(_) => EventLoopSendError::EventLoopNoLongerExists
+            })
     }
 }

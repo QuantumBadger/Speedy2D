@@ -921,6 +921,20 @@ impl GLContextManager
         GLTexture::new(self)
     }
 
+    pub fn set_viewport_size(&self, size: &Vector2<u32>)
+    {
+        if !self.is_valid() {
+            log::warn!("Ignoring set_viewport_size: invalid GL context");
+            return;
+        }
+
+        log::info!("Setting viewport size to {}x{}", size.x, size.y);
+
+        self.with_gl_backend(|backend| unsafe {
+            backend.gl_viewport(0, 0, size.x as i32, size.y as i32);
+        });
+    }
+
     pub fn bind_texture(&self, texture: &GLTexture)
     {
         if !self.is_valid() {

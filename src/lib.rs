@@ -284,6 +284,7 @@ use crate::glwrapper::{GLContextManager, GLVersion};
 use crate::image::{ImageDataType, ImageHandle, ImageSmoothingMode};
 use crate::renderer2d::Renderer2D;
 use crate::shape::Rectangle;
+#[cfg(target_arch = "wasm32")]
 use crate::web::WebCanvasElement;
 #[cfg(any(doc, doctest, all(feature = "windowing")))]
 use crate::window::WindowHandler;
@@ -320,6 +321,8 @@ pub mod error;
 
 /// Types relating to images.
 pub mod image;
+
+pub mod time;
 
 /// Allows for the creation and management of windows.
 #[cfg(any(doc, doctest, feature = "windowing"))]
@@ -1274,13 +1277,14 @@ impl WebCanvas<()>
 {
     pub fn new_for_id<S, H>(
         element_id: S,
-        handler: H
+        handler: H,
+        options: Option<WebCanvasAttachOptions>
     ) -> Result<WebCanvas<()>, BacktraceError<ErrorMessage>>
     where
         S: AsRef<str>,
         H: WindowHandler<()> + 'static
     {
-        WebCanvas::<()>::new_for_id_with_user_events(element_id, handler)
+        WebCanvas::<()>::new_for_id_with_user_events(element_id, handler, options)
     }
 }
 
@@ -1290,14 +1294,15 @@ impl<UserEventType: 'static> WebCanvas<UserEventType>
     // TODO document behaviour on drop (i.e. leak)
     pub fn new_for_id_with_user_events<S, H>(
         element_id: S,
-        handler: H
+        handler: H,
+        options: Option<WebCanvasAttachOptions>
     ) -> Result<Self, BacktraceError<ErrorMessage>>
     where
         S: AsRef<str>,
         H: WindowHandler<UserEventType> + 'static
     {
         Ok(WebCanvas {
-            inner: Some(WebCanvasImpl::new(element_id, handler)?),
+            inner: Some(WebCanvasImpl::new(element_id, handler, options)?),
             should_cleanup: false
         })
     }
@@ -1315,12 +1320,33 @@ impl<UserEventType: 'static> Drop for WebCanvas<UserEventType>
     {
         if !self.should_cleanup {
             std::mem::forget(self.inner.take());
-            log::warn!(
+            log::info!(
                 "Deliberately leaking speedy2d::WebCanvas object. This is normally \
                  fine, but if you want to clean up before the page closes, call \
                  WebCanvas::unregister_when_dropped(), and retain ownership of the \
                  WebCanvas until you want to delete it."
             )
         }
+    }
+}
+
+#[cfg(any(doc, doctest, all(target_arch = "wasm32", feature = "windowing")))]
+pub struct WebCanvasAttachOptions {}
+
+#[cfg(any(doc, doctest, all(target_arch = "wasm32", feature = "windowing")))]
+impl WebCanvasAttachOptions
+{
+    pub fn new() -> Self
+    {
+        Self {}
+    }
+}
+
+#[cfg(any(doc, doctest, all(target_arch = "wasm32", feature = "windowing")))]
+impl Default for WebCanvasAttachOptions
+{
+    fn default() -> Self
+    {
+        WebCanvasAttachOptions::new()
     }
 }
