@@ -429,7 +429,7 @@ impl GlyphCache
     ) -> Result<usize, BacktraceError<ErrorMessage>>
     {
         for (i, texture) in current_textures.iter_mut().enumerate() {
-            if texture.try_append_glyph(&key, glyph_bitmap).is_ok() {
+            if texture.try_append_glyph(key, glyph_bitmap).is_ok() {
                 return Ok(i);
             }
         }
@@ -440,7 +440,7 @@ impl GlyphCache
             if current_textures
                 .last_mut()
                 .unwrap()
-                .try_append_glyph(&key, glyph_bitmap)
+                .try_append_glyph(key, glyph_bitmap)
                 .is_ok()
             {
                 return Ok(current_textures.len() - 1);
@@ -465,7 +465,7 @@ impl GlyphCache
         match current_textures
             .last_mut()
             .unwrap()
-            .try_append_glyph(&key, glyph_bitmap)
+            .try_append_glyph(key, glyph_bitmap)
         {
             Ok(_) => Ok(current_textures.len() - 1),
             Err(err) => Err(ErrorMessage::msg_with_cause(

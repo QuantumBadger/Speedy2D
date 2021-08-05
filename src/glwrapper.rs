@@ -420,7 +420,7 @@ impl GLProgram
             backend.gl_get_uniform_location(self.get_handle(), name)
         });
 
-        gl_check_error_always(&context)?;
+        gl_check_error_always(context)?;
 
         match handle {
             None => Err(ErrorMessage::msg(format!(
