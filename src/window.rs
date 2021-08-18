@@ -294,9 +294,17 @@ impl<UserEventType> WindowImpl<UserEventType>
     {
         let event_loop: EventLoop<UserEventType> = EventLoop::with_user_event();
 
-        let primary_monitor = event_loop.primary_monitor().ok_or_else(|| {
-            BacktraceError::new(WindowCreationError::PrimaryMonitorNotFound)
-        })?;
+        let primary_monitor = event_loop
+            .primary_monitor()
+            .or_else(|| {
+                log::error!(
+                    "Couldn't find primary monitor. Using first available monitor."
+                );
+                event_loop.available_monitors().next()
+            })
+            .ok_or_else(|| {
+                BacktraceError::new(WindowCreationError::PrimaryMonitorNotFound)
+            })?;
 
         for (num, monitor) in event_loop.available_monitors().enumerate() {
             log::debug!(
