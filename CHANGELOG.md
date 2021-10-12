@@ -54,3 +54,7 @@
 
 * Now works correctly in Wayland
 * Fixed error when primary monitor is not found
+
+## 1.1.2
+
+* Fixed issue with lines under text when a dark background and antialiasing are used
