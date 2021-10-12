@@ -166,6 +166,8 @@ fn run_test_with_new_context<S: AsRef<str>, F: FnOnce(&mut GLRenderer)>(
         actual_image
     });
 
+    assert!(expected_image.is_some(), "Expected image does not exist");
+
     let expected_image = expected_image.unwrap();
 
     assert_eq!(
@@ -305,8 +307,8 @@ fn main()
 
     tests.push(GLTest {
         width: 1400,
-        height: 100,
-        name: "basic_text".to_string(),
+        height: 500,
+        name: "basic_text_white_background".to_string(),
         action: Box::new(|renderer| {
             let typeface = Font::new(NOTO_SANS_REGULAR_BYTES).unwrap();
 
@@ -339,6 +341,43 @@ fn main()
                 );
 
                 graphics.draw_text(Vector2::new(0.0, 0.0), Color::BLACK, &text);
+
+                graphics.draw_text(Vector2::new(0.0, 100.0), Color::RED, &text);
+
+                graphics.draw_text(Vector2::new(0.0, 200.0), Color::GREEN, &text);
+
+                graphics.draw_text(Vector2::new(0.0, 300.0), Color::BLUE, &text);
+
+                graphics.draw_text(Vector2::new(0.0, 400.0), Color::WHITE, &text);
+            });
+        })
+    });
+
+    tests.push(GLTest {
+        width: 1400,
+        height: 500,
+        name: "basic_text_black_background".to_string(),
+        action: Box::new(|renderer| {
+            let typeface = Font::new(NOTO_SANS_REGULAR_BYTES).unwrap();
+
+            let text = typeface.layout_text(
+                "The quick brown föx jumped over the lazy dog!",
+                64.0,
+                TextOptions::new()
+            );
+
+            renderer.draw_frame(|graphics| {
+                graphics.clear_screen(Color::BLACK);
+
+                graphics.draw_text(Vector2::new(0.0, 0.0), Color::BLACK, &text);
+
+                graphics.draw_text(Vector2::new(0.0, 100.0), Color::RED, &text);
+
+                graphics.draw_text(Vector2::new(0.0, 200.0), Color::GREEN, &text);
+
+                graphics.draw_text(Vector2::new(0.0, 300.0), Color::BLUE, &text);
+
+                graphics.draw_text(Vector2::new(0.0, 400.0), Color::WHITE, &text);
             });
         })
     });

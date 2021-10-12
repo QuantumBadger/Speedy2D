@@ -487,8 +487,13 @@ impl BitmapRGBA
     #[inline]
     fn new(size: Vector2<u32>) -> Self
     {
-        let data = vec![255; (size.x * size.y * 4).try_into().unwrap()];
+        let data = vec![0; (size.x * size.y * 4).try_into().unwrap()];
         BitmapRGBA { data, size }
+    }
+
+    fn clear(&mut self)
+    {
+        self.data.fill(0);
     }
 
     #[inline]
@@ -496,6 +501,9 @@ impl BitmapRGBA
     {
         glyph.draw(|x, y, alpha| {
             let start = (4 * (self.size.x * y + x)) as usize;
+            self.data[start] = 255;
+            self.data[start + 1] = 255;
+            self.data[start + 2] = 255;
             self.data[start + 3] = (alpha * 255.0).round() as u8;
         })
     }
@@ -639,6 +647,8 @@ impl GlyphCacheTexture
             TexturePacker::new(GlyphCacheTexture::SIZE, GlyphCacheTexture::SIZE);
 
         self.entries.clear();
+
+        self.bitmap.clear();
     }
 
     fn try_append_glyph(

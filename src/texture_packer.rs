@@ -72,6 +72,9 @@ impl TexturePacker
             return Ok(Rectangle::new(Vector2::ZERO, size));
         }
 
+        let size = size + Vector2::new(2, 2);
+
+        // Add a one-pixel border around each texture
         let width = size.x;
         let height = size.y;
 
@@ -99,16 +102,22 @@ impl TexturePacker
 
         let best_area = best_area.ok_or(NotEnoughSpace)?;
 
-        let result =
+        let alloc_area_with_border =
             Rectangle::new(*best_area.rect.top_left(), best_area.rect.top_left() + size);
 
         let space_underneath = Rectangle::new(
-            Vector2::new(best_area.rect.top_left().x, result.bottom_right().y),
+            Vector2::new(
+                best_area.rect.top_left().x,
+                alloc_area_with_border.bottom_right().y
+            ),
             *best_area.rect.bottom_right()
         );
 
         let space_right = Rectangle::new(
-            Vector2::new(result.bottom_right().x, best_area.rect.top_left().y),
+            Vector2::new(
+                alloc_area_with_border.bottom_right().x,
+                best_area.rect.top_left().y
+            ),
             space_underneath.top_right()
         );
 
@@ -123,7 +132,10 @@ impl TexturePacker
             }
         }
 
-        Ok(result)
+        Ok(Rectangle::new(
+            alloc_area_with_border.top_left() + Vector2::new(1, 1),
+            alloc_area_with_border.bottom_right() - Vector2::new(1, 1)
+        ))
     }
 }
 
@@ -139,28 +151,28 @@ mod test
         let mut packer = TexturePacker::new(64, 64);
 
         assert_eq!(
-            Ok(Rectangle::from_tuples((0, 0), (32, 32))),
-            packer.try_allocate(Vector2::new(32, 32))
+            Ok(Rectangle::from_tuples((1, 1), (31, 31))),
+            packer.try_allocate(Vector2::new(30, 30))
         );
 
         assert_eq!(
-            Ok(Rectangle::from_tuples((32, 0), (64, 32))),
-            packer.try_allocate(Vector2::new(32, 32))
+            Ok(Rectangle::from_tuples((33, 1), (63, 31))),
+            packer.try_allocate(Vector2::new(30, 30))
         );
 
         assert_eq!(
-            Ok(Rectangle::from_tuples((0, 32), (32, 64))),
-            packer.try_allocate(Vector2::new(32, 32))
+            Ok(Rectangle::from_tuples((1, 33), (31, 63))),
+            packer.try_allocate(Vector2::new(30, 30))
         );
 
         assert_eq!(
-            Ok(Rectangle::from_tuples((32, 32), (64, 64))),
-            packer.try_allocate(Vector2::new(32, 32))
+            Ok(Rectangle::from_tuples((33, 33), (63, 63))),
+            packer.try_allocate(Vector2::new(30, 30))
         );
 
         assert_eq!(
             Err(NotEnoughSpace),
-            packer.try_allocate(Vector2::new(32, 32))
+            packer.try_allocate(Vector2::new(30, 30))
         );
     }
 
@@ -170,23 +182,23 @@ mod test
         let mut packer = TexturePacker::new(64, 64);
 
         assert_eq!(
-            Ok(Rectangle::from_tuples((0, 0), (30, 30))),
-            packer.try_allocate(Vector2::new(30, 30))
+            Ok(Rectangle::from_tuples((1, 1), (29, 29))),
+            packer.try_allocate(Vector2::new(28, 28))
         );
 
         assert_eq!(
-            Ok(Rectangle::from_tuples((30, 0), (60, 30))),
-            packer.try_allocate(Vector2::new(30, 30))
+            Ok(Rectangle::from_tuples((31, 1), (59, 29))),
+            packer.try_allocate(Vector2::new(28, 28))
         );
 
         assert_eq!(
-            Ok(Rectangle::from_tuples((0, 30), (30, 60))),
-            packer.try_allocate(Vector2::new(30, 30))
+            Ok(Rectangle::from_tuples((1, 31), (29, 59))),
+            packer.try_allocate(Vector2::new(28, 28))
         );
 
         assert_eq!(
-            Ok(Rectangle::from_tuples((30, 30), (60, 60))),
-            packer.try_allocate(Vector2::new(30, 30))
+            Ok(Rectangle::from_tuples((31, 31), (59, 59))),
+            packer.try_allocate(Vector2::new(28, 28))
         );
 
         assert_eq!(
@@ -201,23 +213,23 @@ mod test
         let mut packer = TexturePacker::new(64, 64);
 
         assert_eq!(
-            Ok(Rectangle::from_tuples((0, 0), (16, 16))),
-            packer.try_allocate(Vector2::new(16, 16))
+            Ok(Rectangle::from_tuples((1, 1), (15, 15))),
+            packer.try_allocate(Vector2::new(14, 14))
         );
 
         assert_eq!(
-            Ok(Rectangle::from_tuples((0, 16), (16, 48))),
-            packer.try_allocate(Vector2::new(16, 32))
+            Ok(Rectangle::from_tuples((1, 17), (15, 47))),
+            packer.try_allocate(Vector2::new(14, 30))
         );
 
         assert_eq!(
-            Ok(Rectangle::from_tuples((16, 16), (48, 48))),
-            packer.try_allocate(Vector2::new(32, 32))
+            Ok(Rectangle::from_tuples((17, 17), (47, 47))),
+            packer.try_allocate(Vector2::new(30, 30))
         );
 
         assert_eq!(
-            Ok(Rectangle::from_tuples((16, 0), (32, 16))),
-            packer.try_allocate(Vector2::new(16, 16))
+            Ok(Rectangle::from_tuples((17, 1), (31, 15))),
+            packer.try_allocate(Vector2::new(14, 14))
         );
     }
 }
