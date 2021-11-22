@@ -1614,6 +1614,19 @@ impl ModifiersState
     }
 }
 
+impl Default for ModifiersState
+{
+    fn default() -> Self
+    {
+        ModifiersState {
+            ctrl: false,
+            alt: false,
+            shift: false,
+            logo: false
+        }
+    }
+}
+
 impl From<glutin::event::ModifiersState> for ModifiersState
 {
     fn from(state: glutin::event::ModifiersState) -> Self
