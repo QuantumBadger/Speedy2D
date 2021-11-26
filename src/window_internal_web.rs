@@ -811,7 +811,7 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
                 .on_draw(RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut());
         }
 
-        // TODO https://stackoverflow.com/questions/4470417/how-do-i-consume-a-key-event-in-javascript-so-that-it-doesnt-propagate
+        // TODO Allow access to JS stopPropagation()
 
         // TODO what happens when web-sys APIs don't exist?
 

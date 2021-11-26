@@ -95,11 +95,11 @@
 //! fn on_keyboard_modifiers_changed()
 //! ```
 //!
-//! Each callback gives you a [WindowHelper] instance, which
+//! Each callback gives you a [window::WindowHelper] instance, which
 //! lets you perform window-related actions, like requesting that a new frame is
-//! drawn using [WindowHelper::request_redraw()].
+//! drawn using [window::WindowHelper::request_redraw()].
 //!
-//! Note: Unless you call [WindowHelper::request_redraw()], frames will
+//! Note: Unless you call [window::WindowHelper::request_redraw()], frames will
 //! only be drawn when necessary, for example when resizing the window.
 //!
 //! ## Render some graphics
@@ -296,9 +296,15 @@ use crate::window::{
     WindowPosition,
     WindowSize
 };
-#[cfg(any(doc, doctest, all(feature = "windowing", not(target_arch = "wasm32"))))]
+#[cfg(any(doc, doctest))]
+use crate::window_internal_doctest::{WebCanvasImpl, WindowGlutin};
+#[cfg(all(
+    feature = "windowing",
+    not(target_arch = "wasm32"),
+    not(any(doc, doctest))
+))]
 use crate::window_internal_glutin::WindowGlutin;
-#[cfg(any(doc, doctest, all(feature = "windowing", target_arch = "wasm32")))]
+#[cfg(all(feature = "windowing", target_arch = "wasm32", not(any(doc, doctest))))]
 use crate::window_internal_web::WebCanvasImpl;
 
 /// Types representing colors.
@@ -328,13 +334,20 @@ pub mod time;
 #[cfg(any(doc, doctest, feature = "windowing"))]
 pub mod window;
 
-#[cfg(any(doc, doctest, all(feature = "windowing", not(target_arch = "wasm32"))))]
+#[cfg(all(
+    feature = "windowing",
+    not(target_arch = "wasm32"),
+    not(any(doc, doctest))
+))]
 mod window_internal_glutin;
 
-#[cfg(any(doc, doctest, all(feature = "windowing", target_arch = "wasm32")))]
+#[cfg(all(feature = "windowing", target_arch = "wasm32", not(any(doc, doctest))))]
 mod window_internal_web;
 
-#[cfg(any(doc, doctest, target_arch = "wasm32"))]
+#[cfg(any(doc, doctest))]
+mod window_internal_doctest;
+
+#[cfg(any(target_arch = "wasm32"))]
 mod web;
 
 mod font_cache;
@@ -1254,7 +1267,7 @@ impl<UserEventType: 'static> Window<UserEventType>
     ///
     /// Once the event loop finishes running, the entire app will terminate,
     /// even if other threads are still running. See
-    /// [WindowHelper::terminate_loop()].
+    /// [window::WindowHelper::terminate_loop()].
     pub fn run_loop<H>(self, handler: H) -> !
     where
         H: WindowHandler<UserEventType> + 'static

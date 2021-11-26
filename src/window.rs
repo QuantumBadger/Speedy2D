@@ -21,21 +21,27 @@ use crate::dimen::Vector2;
 use crate::error::{BacktraceError, ErrorMessage};
 use crate::{GLRenderer, Graphics2D};
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), not(any(doc, doctest))))]
 type WindowHelperInnerType<UserEventType> =
     crate::window_internal_glutin::WindowHelperGlutin<UserEventType>;
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), not(any(doc, doctest))))]
 type UserEventSenderInnerType<UserEventType> =
     crate::window_internal_glutin::UserEventSenderGlutin<UserEventType>;
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(all(target_arch = "wasm32", not(any(doc, doctest))))]
 type WindowHelperInnerType<UserEventType> =
     crate::window_internal_web::WindowHelperWeb<UserEventType>;
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(all(target_arch = "wasm32", not(any(doc, doctest))))]
 type UserEventSenderInnerType<UserEventType> =
     crate::window_internal_web::UserEventSenderWeb<UserEventType>;
+
+#[cfg(any(doc, doctest))]
+type WindowHelperInnerType<UserEventType> = PhantomData<UserEventType>;
+
+#[cfg(any(doc, doctest))]
+type UserEventSenderInnerType<UserEventType> = PhantomData<UserEventType>;
 
 /// Error occurring when sending a user event.
 #[derive(Clone, Debug, Hash, Eq, PartialEq, Copy)]
