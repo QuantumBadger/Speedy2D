@@ -58,3 +58,7 @@
 ## 1.1.2
 
 * Fixed issue with lines under text when a dark background and antialiasing are used
+
+## 1.2
+
+* Added `default()` implementation for `ModifiersState` (thanks to [Revertron](https://github.com/Revertron))
