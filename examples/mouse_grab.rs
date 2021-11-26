@@ -63,7 +63,8 @@ impl WindowHandler for MyWindowHandler
         self.window_size = info.viewport_size_pixels().clone();
     }
 
-    fn on_resize(&mut self, _helper: &mut WindowHelper<()>, size_pixels: Vector2<u32>) {
+    fn on_resize(&mut self, _helper: &mut WindowHelper<()>, size_pixels: Vector2<u32>)
+    {
         self.window_size = size_pixels;
     }
 
@@ -88,7 +89,7 @@ impl WindowHandler for MyWindowHandler
         let color = if self.grabbed {
             Color::RED
         } else {
-            Color::from_rgb(0.6, 0.8, 1.0);
+            Color::from_rgb(0.6, 0.8, 1.0)
         };
 
         // Draw a circle at the mouse pointer location

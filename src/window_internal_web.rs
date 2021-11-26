@@ -17,7 +17,6 @@
 use std::borrow::Borrow;
 use std::cell::{Cell, RefCell};
 use std::convert::TryInto;
-use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
@@ -27,12 +26,13 @@ use web_sys::MouseEvent;
 use crate::dimen::Vector2;
 use crate::error::{BacktraceError, ErrorMessage};
 use crate::numeric::RoundFloat;
-use crate::web::{WebCanvasElement, WebCursorType, WebPending, WebWindow};
+use crate::web::{WebCanvasElement, WebCursorType, WebDocument, WebPending, WebWindow};
 use crate::window::{
     DrawingWindowHandler,
     EventLoopSendError,
     MouseButton,
     UserEventSender,
+    VirtualKeyCode,
     WindowFullscreenMode,
     WindowHandler,
     WindowHelper,
@@ -40,28 +40,187 @@ use crate::window::{
 };
 use crate::{GLRenderer, WebCanvasAttachOptions};
 
+fn key_code_from_web(code: &str) -> Option<VirtualKeyCode>
+{
+    match code {
+        "Escape" => Some(VirtualKeyCode::Escape),
+        "Digit1" => Some(VirtualKeyCode::Key1),
+        "Digit2" => Some(VirtualKeyCode::Key2),
+        "Digit3" => Some(VirtualKeyCode::Key3),
+        "Digit4" => Some(VirtualKeyCode::Key4),
+        "Digit5" => Some(VirtualKeyCode::Key5),
+        "Digit6" => Some(VirtualKeyCode::Key6),
+        "Digit7" => Some(VirtualKeyCode::Key7),
+        "Digit8" => Some(VirtualKeyCode::Key8),
+        "Digit9" => Some(VirtualKeyCode::Key9),
+        "Digit0" => Some(VirtualKeyCode::Key0),
+        "Minus" => Some(VirtualKeyCode::Minus),
+        "Equal" => Some(VirtualKeyCode::Equals),
+        "Backspace" => Some(VirtualKeyCode::Backspace),
+        "Tab" => Some(VirtualKeyCode::Tab),
+        "KeyQ" => Some(VirtualKeyCode::Q),
+        "KeyW" => Some(VirtualKeyCode::W),
+        "KeyE" => Some(VirtualKeyCode::E),
+        "KeyR" => Some(VirtualKeyCode::R),
+        "KeyT" => Some(VirtualKeyCode::T),
+        "KeyY" => Some(VirtualKeyCode::Y),
+        "KeyU" => Some(VirtualKeyCode::U),
+        "KeyI" => Some(VirtualKeyCode::I),
+        "KeyO" => Some(VirtualKeyCode::O),
+        "KeyP" => Some(VirtualKeyCode::P),
+        "BracketLeft" => Some(VirtualKeyCode::LBracket),
+        "BracketRight" => Some(VirtualKeyCode::RBracket),
+        "Enter" => Some(VirtualKeyCode::Return),
+        "ControlLeft" => Some(VirtualKeyCode::LControl),
+        "KeyA" => Some(VirtualKeyCode::A),
+        "KeyS" => Some(VirtualKeyCode::S),
+        "KeyD" => Some(VirtualKeyCode::D),
+        "KeyF" => Some(VirtualKeyCode::F),
+        "KeyG" => Some(VirtualKeyCode::G),
+        "KeyH" => Some(VirtualKeyCode::H),
+        "KeyJ" => Some(VirtualKeyCode::J),
+        "KeyK" => Some(VirtualKeyCode::K),
+        "KeyL" => Some(VirtualKeyCode::L),
+        "Semicolon" => Some(VirtualKeyCode::Semicolon),
+        "Quote" => Some(VirtualKeyCode::Apostrophe),
+        "Backquote" => Some(VirtualKeyCode::Grave),
+        "ShiftLeft" => Some(VirtualKeyCode::LShift),
+        "Backslash" => Some(VirtualKeyCode::Backslash),
+        "KeyZ" => Some(VirtualKeyCode::Z),
+        "KeyX" => Some(VirtualKeyCode::X),
+        "KeyC" => Some(VirtualKeyCode::C),
+        "KeyV" => Some(VirtualKeyCode::V),
+        "KeyB" => Some(VirtualKeyCode::B),
+        "KeyN" => Some(VirtualKeyCode::N),
+        "KeyM" => Some(VirtualKeyCode::M),
+        "Comma" => Some(VirtualKeyCode::Comma),
+        "Period" => Some(VirtualKeyCode::Period),
+        "Slash" => Some(VirtualKeyCode::Slash),
+        "ShiftRight" => Some(VirtualKeyCode::RShift),
+        "NumpadMultiply" => Some(VirtualKeyCode::NumpadMultiply),
+        "AltLeft" => Some(VirtualKeyCode::LAlt),
+        "Space" => Some(VirtualKeyCode::Space),
+        "CapsLock" => Some(VirtualKeyCode::Capital),
+        "F1" => Some(VirtualKeyCode::F1),
+        "F2" => Some(VirtualKeyCode::F2),
+        "F3" => Some(VirtualKeyCode::F3),
+        "F4" => Some(VirtualKeyCode::F4),
+        "F5" => Some(VirtualKeyCode::F5),
+        "F6" => Some(VirtualKeyCode::F6),
+        "F7" => Some(VirtualKeyCode::F7),
+        "F8" => Some(VirtualKeyCode::F8),
+        "F9" => Some(VirtualKeyCode::F9),
+        "F10" => Some(VirtualKeyCode::F10),
+        "Pause" => Some(VirtualKeyCode::PauseBreak),
+        "ScrollLock" => Some(VirtualKeyCode::ScrollLock),
+        "Numpad7" => Some(VirtualKeyCode::Numpad7),
+        "Numpad8" => Some(VirtualKeyCode::Numpad8),
+        "Numpad9" => Some(VirtualKeyCode::Numpad9),
+        "NumpadSubtract" => Some(VirtualKeyCode::NumpadSubtract),
+        "Numpad4" => Some(VirtualKeyCode::Numpad4),
+        "Numpad5" => Some(VirtualKeyCode::Numpad5),
+        "Numpad6" => Some(VirtualKeyCode::Numpad6),
+        "NumpadAdd" => Some(VirtualKeyCode::NumpadAdd),
+        "Numpad1" => Some(VirtualKeyCode::Numpad1),
+        "Numpad2" => Some(VirtualKeyCode::Numpad2),
+        "Numpad3" => Some(VirtualKeyCode::Numpad3),
+        "Numpad0" => Some(VirtualKeyCode::Numpad0),
+        "NumpadDecimal" => Some(VirtualKeyCode::NumpadDecimal),
+        "PrintScreen" => Some(VirtualKeyCode::PrintScreen),
+        "IntlBackslash" => Some(VirtualKeyCode::Backslash),
+        "F11" => Some(VirtualKeyCode::F11),
+        "F12" => Some(VirtualKeyCode::F12),
+        "NumpadEqual" => Some(VirtualKeyCode::NumpadEquals),
+        "F13" => Some(VirtualKeyCode::F13),
+        "F14" => Some(VirtualKeyCode::F14),
+        "F15" => Some(VirtualKeyCode::F15),
+        "F16" => Some(VirtualKeyCode::F16),
+        "F17" => Some(VirtualKeyCode::F17),
+        "F18" => Some(VirtualKeyCode::F18),
+        "F19" => Some(VirtualKeyCode::F19),
+        "F20" => Some(VirtualKeyCode::F20),
+        "F21" => Some(VirtualKeyCode::F21),
+        "F22" => Some(VirtualKeyCode::F22),
+        "F23" => Some(VirtualKeyCode::F23),
+        "KanaMode" => Some(VirtualKeyCode::Kana),
+        "Lang2" => None,
+        "Lang1" => None,
+        "IntlRo" => None,
+        "F24" => Some(VirtualKeyCode::F24),
+        "Convert" => Some(VirtualKeyCode::Convert),
+        "NonConvert" => Some(VirtualKeyCode::NoConvert),
+        "IntlYen" => Some(VirtualKeyCode::Yen),
+        "NumpadComma" => Some(VirtualKeyCode::NumpadComma),
+        "Paste" => Some(VirtualKeyCode::Paste),
+        "MediaTrackPrevious" => Some(VirtualKeyCode::PrevTrack),
+        "Cut" => Some(VirtualKeyCode::Cut),
+        "Copy" => Some(VirtualKeyCode::Copy),
+        "MediaTrackNext" => Some(VirtualKeyCode::NextTrack),
+        "NumpadEnter" => Some(VirtualKeyCode::NumpadEnter),
+        "ControlRight" => Some(VirtualKeyCode::RControl),
+        "AudioVolumeMute" => Some(VirtualKeyCode::Mute),
+        "MediaPlayPause" => Some(VirtualKeyCode::PlayPause),
+        "MediaStop" => Some(VirtualKeyCode::MediaStop),
+        "VolumeDown" => Some(VirtualKeyCode::VolumeDown),
+        "AudioVolumeDown" => Some(VirtualKeyCode::VolumeDown),
+        "VolumeUp" => Some(VirtualKeyCode::VolumeUp),
+        "AudioVolumeUp" => Some(VirtualKeyCode::VolumeUp),
+        "BrowserHome" => Some(VirtualKeyCode::WebHome),
+        "NumpadDivide" => Some(VirtualKeyCode::NumpadDivide),
+        "AltRight" => Some(VirtualKeyCode::RAlt),
+        "NumLock" => Some(VirtualKeyCode::Numlock),
+        "Home" => Some(VirtualKeyCode::Home),
+        "ArrowUp" => Some(VirtualKeyCode::Up),
+        "PageUp" => Some(VirtualKeyCode::PageUp),
+        "ArrowLeft" => Some(VirtualKeyCode::Left),
+        "ArrowRight" => Some(VirtualKeyCode::Right),
+        "End" => Some(VirtualKeyCode::End),
+        "ArrowDown" => Some(VirtualKeyCode::Down),
+        "PageDown" => Some(VirtualKeyCode::PageDown),
+        "Insert" => Some(VirtualKeyCode::Insert),
+        "Delete" => Some(VirtualKeyCode::Delete),
+        "OSLeft" => Some(VirtualKeyCode::LWin),
+        "MetaLeft" => Some(VirtualKeyCode::LWin),
+        "OSRight" => Some(VirtualKeyCode::RWin),
+        "MetaRight" => Some(VirtualKeyCode::RWin),
+        "ContextMenu" => None,
+        "Power" => Some(VirtualKeyCode::Power),
+        "BrowserSearch" => Some(VirtualKeyCode::WebSearch),
+        "BrowserFavorites" => Some(VirtualKeyCode::WebFavorites),
+        "BrowserRefresh" => Some(VirtualKeyCode::WebRefresh),
+        "BrowserStop" => Some(VirtualKeyCode::Stop),
+        "BrowserForward" => Some(VirtualKeyCode::WebForward),
+        "BrowserBack" => Some(VirtualKeyCode::WebBack),
+        "LaunchMail" => Some(VirtualKeyCode::Mail),
+        "MediaSelect" => Some(VirtualKeyCode::MediaSelect),
+        _ => None
+    }
+}
+
 pub struct WindowHelperWeb<UserEventType>
 where
     UserEventType: 'static
 {
-    phantom: PhantomData<UserEventType>,
     redraw_pending: RefCell<Option<WebPending>>,
     redraw_request_action: Option<Box<RefCell<dyn FnMut() -> WebPending>>>,
+    post_user_event_action: Option<Rc<RefCell<UserEventSenderActionType<UserEventType>>>>,
     terminate_loop_action: Option<Box<dyn FnOnce()>>,
     canvas: WebCanvasElement,
+    document: WebDocument,
     window: WebWindow
 }
 
 impl<UserEventType: 'static> WindowHelperWeb<UserEventType>
 {
-    fn new(canvas: WebCanvasElement, window: WebWindow) -> Self
+    fn new(canvas: WebCanvasElement, document: WebDocument, window: WebWindow) -> Self
     {
         Self {
-            phantom: PhantomData::default(),
             redraw_pending: RefCell::new(None),
             redraw_request_action: None,
+            post_user_event_action: None,
             terminate_loop_action: None,
             canvas,
+            document,
             window
         }
     }
@@ -71,6 +230,13 @@ impl<UserEventType: 'static> WindowHelperWeb<UserEventType>
         F: FnMut() -> WebPending + 'static
     {
         self.redraw_request_action = Some(Box::new(RefCell::new(redraw_request_action)));
+    }
+
+    pub fn set_post_user_event_action<F>(&mut self, post_user_event_action: F)
+    where
+        F: FnMut(UserEventType) -> Result<(), BacktraceError<ErrorMessage>> + 'static
+    {
+        self.post_user_event_action = Some(Rc::new(RefCell::new(post_user_event_action)));
     }
 
     pub fn set_terminate_loop_action<F>(&mut self, terminate_loop_action: F)
@@ -160,9 +326,16 @@ impl<UserEventType: 'static> WindowHelperWeb<UserEventType>
         self.window.document().unwrap().set_title(title);
     }
 
-    pub fn set_fullscreen_mode(&self, _mode: WindowFullscreenMode)
+    pub fn set_fullscreen_mode(&self, mode: WindowFullscreenMode)
     {
-        // TODO
+        match mode {
+            WindowFullscreenMode::Windowed => {
+                self.document.exit_fullscreen();
+            }
+            WindowFullscreenMode::FullscreenBorderless => {
+                self.canvas.request_fullscreen();
+            }
+        }
     }
 
     pub fn set_size_pixels<S: Into<Vector2<u32>>>(&self, _size: S)
@@ -194,32 +367,34 @@ impl<UserEventType: 'static> WindowHelperWeb<UserEventType>
 
     pub fn create_user_event_sender(&self) -> UserEventSender<UserEventType>
     {
-        UserEventSender::new(UserEventSenderWeb::new())
+        UserEventSender::new(UserEventSenderWeb::new(
+            self.post_user_event_action.as_ref().unwrap().clone()
+        ))
     }
 }
+
+type UserEventSenderActionType<UserEventType> =
+    dyn FnMut(UserEventType) -> Result<(), BacktraceError<ErrorMessage>>;
 
 #[derive(Clone)]
 pub struct UserEventSenderWeb<UserEventType>
 where
     UserEventType: 'static
 {
-    phantom: PhantomData<UserEventType>
+    action: Rc<RefCell<UserEventSenderActionType<UserEventType>>>
 }
 
 impl<UserEventType: 'static> UserEventSenderWeb<UserEventType>
 {
-    // TODO
-    fn new() -> Self
+    fn new(action: Rc<RefCell<UserEventSenderActionType<UserEventType>>>) -> Self
     {
-        Self {
-            phantom: PhantomData::default()
-        }
+        Self { action }
     }
 
     #[inline]
-    pub fn send_event(&self, _event: UserEventType) -> Result<(), EventLoopSendError>
+    pub fn send_event(&self, event: UserEventType) -> Result<(), EventLoopSendError>
     {
-        // TODO
+        self.action.borrow_mut()(event).unwrap();
         Ok(())
     }
 }
@@ -256,20 +431,24 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
 
         canvas.set_buffer_dimensions(&initial_size_unscaled);
 
+        // Needed to ensure we can get keyboard focus
+        canvas.set_tab_index(0);
+
         let mut event_listeners_to_clean_up = Vec::new();
         let is_pointer_locked = Rc::new(Cell::new(false));
 
-        let renderer = GLRenderer::new_for_web_canvas_by_id(
-            initial_size_unscaled.clone(),
-            &element_id
-        )
-        .map_err(|err| ErrorMessage::msg_with_cause("Failed to create renderer", err))?;
+        let renderer =
+            GLRenderer::new_for_web_canvas_by_id(initial_size_unscaled, &element_id)
+                .map_err(|err| {
+                    ErrorMessage::msg_with_cause("Failed to create renderer", err)
+                })?;
 
         let handler = Rc::new(RefCell::new(DrawingWindowHandler::new(handler, renderer)));
 
         let helper = {
             Rc::new(RefCell::new(WindowHelper::new(WindowHelperWeb::new(
                 canvas.clone(),
+                document.clone(),
                 window.clone()
             ))))
         };
@@ -297,6 +476,50 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
                 .borrow_mut()
                 .inner()
                 .set_redraw_request_action(redraw_request_action);
+        }
+
+        {
+            let user_event_queue = Rc::new(RefCell::new(Vec::new()));
+            let user_event_callback_pending = Rc::new(RefCell::new(None));
+            let window = window.clone();
+
+            let callback = {
+                let handler = handler.clone();
+                let helper = helper.clone();
+                let user_event_queue = user_event_queue.clone();
+                let user_event_callback_pending = user_event_callback_pending.clone();
+
+                RefCell::new(Closure::wrap(Box::new(move || {
+                    let user_event_callback_pending: Option<WebPending> =
+                        user_event_callback_pending.take();
+                    user_event_callback_pending.unwrap().mark_as_triggered();
+
+                    let mut pending_events = Vec::new();
+                    std::mem::swap(
+                        &mut pending_events,
+                        user_event_queue.borrow_mut().deref_mut()
+                    );
+                    pending_events.drain(..).for_each(|event| {
+                        handler
+                            .borrow_mut()
+                            .on_user_event(helper.borrow_mut().deref_mut(), event)
+                    });
+                }) as Box<dyn FnMut()>))
+            };
+
+            helper
+                .borrow_mut()
+                .inner()
+                .set_post_user_event_action(move |event| {
+                    user_event_queue.borrow_mut().push(event);
+
+                    if user_event_callback_pending.deref().borrow().is_none() {
+                        user_event_callback_pending
+                            .replace(Some(window.set_timeout_immediate(&callback)?));
+                    }
+
+                    Ok(())
+                })
         }
 
         let canvas_event_target = canvas
@@ -351,6 +574,7 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
 
             event_listeners_to_clean_up.push(
                 document
+                    .clone()
                     .dyn_into_event_target()?
                     .register_event_listener_void("pointerlockchange", move || {
                         let mouse_grabbed = canvas.is_pointer_lock_active();
@@ -360,6 +584,24 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
                         handler.borrow_mut().on_mouse_grab_status_changed(
                             helper.borrow_mut().deref_mut(),
                             mouse_grabbed
+                        );
+                    })?
+            );
+        }
+
+        {
+            let handler = handler.clone();
+            let helper = helper.clone();
+
+            event_listeners_to_clean_up.push(
+                document
+                    .dyn_into_event_target()?
+                    .register_event_listener_void("fullscreenchange", move || {
+                        let fullscreen = canvas.is_fullscreen_active();
+
+                        handler.borrow_mut().on_fullscreen_status_changed(
+                            helper.borrow_mut().deref_mut(),
+                            fullscreen
                         );
                     })?
             );
@@ -432,6 +674,50 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
             );
         }
 
+        {
+            let handler = handler.clone();
+            let helper = helper.clone();
+
+            event_listeners_to_clean_up.push(
+                canvas_event_target.register_event_listener_keyboard(
+                    "keydown",
+                    move |event| {
+                        let code : String = event.code();
+                        let virtual_key_code = key_code_from_web(code.as_str());
+
+                        if let Some(virtual_key_code) = virtual_key_code {
+                            let scancode = virtual_key_code.get_scan_code();
+
+                            if let Some(scancode) = scancode {
+                                handler.borrow_mut().on_key_down(
+                                    helper.borrow_mut().deref_mut(),
+                                    Some(virtual_key_code),
+                                    scancode
+                                );
+                            } else {
+                                log::warn!(
+                                    "Ignoring key {:?} due to unknown scancode",
+                                    virtual_key_code
+                                );
+                            }
+                        } else {
+                            log::warn!("Ignoring unknown key code {}", code);
+                        }
+
+                        // TODO invoke char typed API (regardless of repeat)
+
+                        log::info!(
+                            "RRDEBUG key='{}' code='{}'",
+                            event.key(),
+                            event.code()
+                        );
+
+                        return true;
+                    }
+                )?
+            );
+        }
+
         let terminated = Rc::new(Cell::new(false));
         let event_listeners_to_clean_up =
             Rc::new(RefCell::new(event_listeners_to_clean_up));
@@ -468,8 +754,11 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
                 .on_draw(helper.borrow_mut().deref_mut());
         }
 
-        // TODO key events
-        // TODO user events
+        // TODO https://stackoverflow.com/questions/4470417/how-do-i-consume-a-key-event-in-javascript-so-that-it-doesnt-propagate
+
+        // TODO what happens when web-sys APIs don't exist?
+
+        // TODO MODIFIER key events
         // TODO all remaining events
 
         Ok(WebCanvasImpl {

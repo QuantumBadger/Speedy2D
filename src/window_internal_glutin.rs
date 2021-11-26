@@ -19,6 +19,7 @@
 
 use std::cell::Cell;
 use std::rc::Rc;
+use std::sync::Arc;
 
 use glutin::dpi::{LogicalSize, PhysicalPosition, PhysicalSize};
 use glutin::event::{
@@ -157,9 +158,10 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
         match self.window_context.window().set_cursor_grab(grabbed) {
             Ok(_) => {
                 self.is_mouse_grabbed.set(grabbed);
-                if let Err(_) = self
+                if self
                     .event_proxy
                     .send_event(UserEventGlutin::MouseGrabStatusChanged(grabbed))
+                    .is_err()
                 {
                     log::error!("Failed to notify app of cursor grab: event loop closed");
                 }
@@ -195,6 +197,21 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
                 Some(glutin::window::Fullscreen::Borderless(None))
             }
         });
+
+        let is_fullscreen = match mode {
+            WindowFullscreenMode::Windowed => false,
+            WindowFullscreenMode::FullscreenBorderless => true
+        };
+
+        if self
+            .event_proxy
+            .send_event(UserEventGlutin::FullscreenStatusChanged(is_fullscreen))
+            .is_err()
+        {
+            log::error!(
+                "Failed to notify app of fullscreen status change: event loop closed"
+            );
+        }
     }
 
     pub fn set_size_pixels<S: Into<Vector2<u32>>>(&self, size: S)
@@ -386,7 +403,10 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
 
             GlutinEvent::UserEvent(event) => match event {
                 UserEventGlutin::MouseGrabStatusChanged(grabbed) => {
-                    handler.on_mouse_grab_status_changed(helper, grabbed);
+                    handler.on_mouse_grab_status_changed(helper, grabbed)
+                }
+                UserEventGlutin::FullscreenStatusChanged(fullscreen) => {
+                    handler.on_fullscreen_status_changed(helper, fullscreen)
                 }
                 UserEventGlutin::UserEvent(event) => handler.on_user_event(helper, event)
             },
@@ -411,7 +431,6 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
 
                     if helper.inner().is_mouse_grabbed.get() {
                         let central_position = helper.inner().physical_size / 2;
-                        // TODO handle unwrap better
                         window_context
                             .window()
                             .set_cursor_position(PhysicalPosition::new(
@@ -425,7 +444,6 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
                         if position.magnitude_squared() > 0.0001 {
                             handler.on_mouse_move(helper, position);
                         }
-
                     } else {
                         handler.on_mouse_move(helper, position);
                     };
@@ -433,10 +451,10 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
 
                 GlutinWindowEvent::MouseInput { state, button, .. } => match state {
                     GlutinElementState::Pressed => {
-                        handler.on_mouse_button_down(helper, MouseButton::from(button))
+                        handler.on_mouse_button_down(helper, button.into())
                     }
                     GlutinElementState::Released => {
-                        handler.on_mouse_button_up(helper, MouseButton::from(button))
+                        handler.on_mouse_button_up(helper, button.into())
                     }
                 },
 
@@ -458,8 +476,9 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
                     handler.on_keyboard_char(helper, character)
                 }
 
-                GlutinWindowEvent::ModifiersChanged(state) => handler
-                    .on_keyboard_modifiers_changed(helper, ModifiersState::from(state)),
+                GlutinWindowEvent::ModifiersChanged(state) => {
+                    handler.on_keyboard_modifiers_changed(helper, state.into())
+                }
 
                 _ => {}
             },
@@ -881,20 +900,23 @@ impl From<PhysicalSize<u32>> for Vector2<u32>
 pub(crate) enum UserEventGlutin<UserEventType: 'static>
 {
     MouseGrabStatusChanged(bool),
+    FullscreenStatusChanged(bool),
     UserEvent(UserEventType)
 }
 
 #[derive(Clone)]
 pub struct UserEventSenderGlutin<UserEventType: 'static>
 {
-    event_proxy: EventLoopProxy<UserEventGlutin<UserEventType>>
+    event_proxy: Arc<EventLoopProxy<UserEventGlutin<UserEventType>>>
 }
 
 impl<UserEventType> UserEventSenderGlutin<UserEventType>
 {
     fn new(event_proxy: EventLoopProxy<UserEventGlutin<UserEventType>>) -> Self
     {
-        Self { event_proxy }
+        Self {
+            event_proxy: Arc::new(event_proxy)
+        }
     }
 
     pub fn send_event(&self, event: UserEventType) -> Result<(), EventLoopSendError>

@@ -961,16 +961,18 @@ impl GLContextManager
 
     pub fn unbind_texture(&self)
     {
-        if !self.is_valid() {
-            log::warn!("Ignoring unbind_texture: invalid GL context");
-            return;
-        }
-
         #[cfg(not(target_arch = "wasm32"))]
-        self.with_gl_backend(|backend| unsafe {
-            backend.gl_active_texture(GL_TEXTURE0);
-            backend.gl_bind_texture(GL_TEXTURE_2D, 0);
-        });
+        {
+            if !self.is_valid() {
+                log::warn!("Ignoring unbind_texture: invalid GL context");
+                return;
+            }
+
+            self.with_gl_backend(|backend| unsafe {
+                backend.gl_active_texture(GL_TEXTURE0);
+                backend.gl_bind_texture(GL_TEXTURE_2D, 0);
+            });
+        }
     }
 
     pub fn use_program(&self, program: &Rc<GLProgram>)

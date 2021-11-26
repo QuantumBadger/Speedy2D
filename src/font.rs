@@ -911,6 +911,14 @@ impl FormattedTextBlock
     {
         self.height
     }
+
+    /// The size (in pixels) of this text block.
+    #[inline]
+    #[must_use]
+    pub fn size(&self) -> Vector2<f32>
+    {
+        Vector2::new(self.width, self.height)
+    }
 }
 
 /// Represents a line of text which has been laid out as part of a block.

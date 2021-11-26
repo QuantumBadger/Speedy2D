@@ -26,6 +26,7 @@ use web_sys::{
     EventTarget,
     HtmlCanvasElement,
     HtmlElement,
+    KeyboardEvent,
     MouseEvent,
     Performance,
     Window
@@ -144,14 +145,14 @@ impl WebWindow
         query: &str
     ) -> Result<WebEventTarget, BacktraceError<ErrorMessage>>
     {
-        Ok(WebEventTarget::dyn_from(
+        WebEventTarget::dyn_from(
             self.window
                 .match_media(query)
                 .map_err(|original| {
                     ErrorMessage::msg(format!("matchMedia() failed: {:?}", original))
                 })?
                 .ok_or_else(|| ErrorMessage::msg("matchMedia() returned null"))?
-        )?)
+        )
     }
 
     pub fn request_animation_frame<T: ?Sized + 'static>(
@@ -175,6 +176,28 @@ impl WebWindow
                 } else {
                     log::info!("Cancelled animation frame {}", frame_id)
                 }
+            }
+        }))
+    }
+
+    pub fn set_timeout_immediate<T: ?Sized + 'static>(
+        &self,
+        callback: &RefCell<Closure<T>>
+    ) -> Result<WebPending, BacktraceError<ErrorMessage>>
+    {
+        let timeout_id: i32 = self
+            .window
+            .set_timeout_with_callback(callback.borrow_mut().as_ref().unchecked_ref())
+            .map_err(|err| {
+                ErrorMessage::msg(format!("Failed to request animation frame: {:?}", err))
+            })?;
+
+        let window = self.window.clone();
+
+        Ok(WebPending::new(move |status| {
+            if status == Active {
+                window.clear_timeout_with_handle(timeout_id);
+                log::info!("Cancelled timeout {}", timeout_id);
             }
         }))
     }
@@ -229,6 +252,16 @@ impl WebDocument
             })
     }
 
+    pub fn fullscreen_element(&self) -> Option<WebElement>
+    {
+        self.document
+            .fullscreen_element()
+            .map(|element| WebElement {
+                document: self.clone(),
+                element
+            })
+    }
+
     pub fn dyn_into_event_target(
         self
     ) -> Result<WebEventTarget, BacktraceError<ErrorMessage>>
@@ -244,6 +277,11 @@ impl WebDocument
     pub fn exit_pointer_lock(&self)
     {
         self.document.exit_pointer_lock()
+    }
+
+    pub fn exit_fullscreen(&self)
+    {
+        self.document.exit_fullscreen();
     }
 }
 
@@ -377,11 +415,11 @@ impl WebCanvasElement
         canvas_id: S
     ) -> Result<WebCanvasElement, BacktraceError<ErrorMessage>>
     {
-        Ok(WebWindow::new()?
+        WebWindow::new()?
             .document()?
             .get_element_by_id(canvas_id)?
             .dyn_into_html_element()?
-            .dyn_into_canvas()?)
+            .dyn_into_canvas()
     }
 
     pub fn html_element(&self) -> &WebHtmlElement
@@ -436,6 +474,11 @@ impl WebCanvasElement
         self.canvas.set_height(size.y);
     }
 
+    pub fn set_tab_index(&self, index: i32)
+    {
+        self.canvas.set_tab_index(index);
+    }
+
     pub fn set_cursor(&self, cursor: WebCursorType)
     {
         if let Err(err) = self
@@ -457,6 +500,21 @@ impl WebCanvasElement
         match self.html_element.document().pointer_lock_element() {
             None => false,
             Some(lock_elem) => lock_elem == *self.html_element().element()
+        }
+    }
+
+    pub fn is_fullscreen_active(&self) -> bool
+    {
+        match self.html_element.document().fullscreen_element() {
+            None => false,
+            Some(lock_elem) => lock_elem == *self.html_element().element()
+        }
+    }
+
+    pub fn request_fullscreen(&self)
+    {
+        if let Err(err) = self.canvas.request_fullscreen() {
+            log::error!("Failed to request fullscreen mode: {:?}", err);
         }
     }
 }
@@ -508,7 +566,6 @@ pub struct WebEventTarget
 
 impl WebEventTarget
 {
-    #[must_use]
     fn dyn_from<E: Debug + JsCast>(
         element: E
     ) -> Result<Self, BacktraceError<ErrorMessage>>
@@ -544,6 +601,18 @@ impl WebEventTarget
         self.register_event_listener(
             listener_type,
             Box::new(callback) as Box<dyn FnMut(_)>
+        )
+    }
+
+    pub fn register_event_listener_keyboard<F: FnMut(KeyboardEvent) -> bool + 'static>(
+        &self,
+        listener_type: &str,
+        callback: F
+    ) -> Result<WebPending, BacktraceError<ErrorMessage>>
+    {
+        self.register_event_listener(
+            listener_type,
+            Box::new(callback) as Box<dyn FnMut(_) -> bool>
         )
     }
 

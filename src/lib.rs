@@ -286,7 +286,7 @@ use crate::renderer2d::Renderer2D;
 use crate::shape::Rectangle;
 #[cfg(target_arch = "wasm32")]
 use crate::web::WebCanvasElement;
-#[cfg(any(doc, doctest, all(feature = "windowing")))]
+#[cfg(any(doc, doctest, feature = "windowing"))]
 use crate::window::WindowHandler;
 #[cfg(any(doc, doctest, all(feature = "windowing", not(target_arch = "wasm32"))))]
 use crate::window::{
@@ -483,6 +483,8 @@ impl GLRenderer
         // TODO handle context lost
         // TODO support webgl 1.0 as well
         //   -- or maybe only 1.0
+
+        // TODO fix buttons in sample
 
         WebCanvasElement::new_by_id(element_id.as_ref())
             .map_err(|err| {
