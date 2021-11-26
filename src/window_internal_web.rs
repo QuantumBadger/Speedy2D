@@ -713,8 +713,9 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
 
                         // TODO invoke char typed API (regardless of repeat)
 
+                        // TODO remove
                         log::info!(
-                            "RRDEBUG key='{}' code='{}'",
+                            "key='{}' code='{}'",
                             event.key(),
                             event.code()
                         );
@@ -726,7 +727,6 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
         let device_pixel_ratio_event_listener = Rc::new(Cell::new(None));
 
         {
-            let window = window.clone();
             let handler = handler.clone();
             let helper = helper.clone();
             let device_pixel_ratio_event_listener =
@@ -740,7 +740,7 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
             let callback_inner = callback.clone();
 
             std::mem::drop(RefCell::replace(
-                &Rc::borrow(&callback),
+                Rc::borrow(&callback),
                 Box::new(move || {
                     let new_dpr = window.device_pixel_ratio();
                     log::info!("DPI changed to {}", new_dpr);
@@ -753,7 +753,7 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
                     let callback_inner = callback_inner.clone();
 
                     Cell::replace(
-                        &Rc::borrow(&device_pixel_ratio_event_listener),
+                        Rc::borrow(&device_pixel_ratio_event_listener),
                         Some(
                             window
                                 .clone()
@@ -811,7 +811,7 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
                 .on_draw(RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut());
         }
 
-        // TODO Allow access to JS stopPropagation()
+        // TODO Allow access to JS stopPropagation() and/or preventDefault()
 
         // TODO what happens when web-sys APIs don't exist?
 
