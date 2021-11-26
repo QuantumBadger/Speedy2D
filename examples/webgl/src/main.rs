@@ -269,8 +269,7 @@ struct MyHandler
     font: Font,
     timer: Timer,
     buttons: ButtonGroup,
-    scale: f32,
-    intro_text: Rc<FormattedTextBlock>
+    scale: f32
 }
 
 impl WindowHandler<UserEvent> for MyHandler
@@ -340,6 +339,7 @@ impl WindowHandler<UserEvent> for MyHandler
         scale_factor: f64
     )
     {
+        log::info!("Scale factor is now {}", scale_factor);
         self.scale = scale_factor as f32;
     }
 
@@ -350,13 +350,6 @@ impl WindowHandler<UserEvent> for MyHandler
         self.buttons
             .draw(graphics, Vector2::new(20.0, 20.0), self.scale);
 
-        graphics.draw_rectangle(
-            Rectangle::from_tuples((100.0, 200.0), (200.0, 300.0)),
-            Color::WHITE
-        );
-
-        graphics.draw_text((100.0, 100.0), Color::BLACK, &self.intro_text);
-
         let elapsed_secs = self.timer.secs_elapsed();
 
         let center = Vector2::new(400.0, 400.0);
@@ -366,7 +359,11 @@ impl WindowHandler<UserEvent> for MyHandler
             + Vector2::new(elapsed_secs.cos() * offset, elapsed_secs.sin() * offset)
                 .into_f32();
 
-        graphics.draw_circle(position, 75.0, Color::from_rgb(0.6, 0.8, 1.0));
+        graphics.draw_circle(
+            position * self.scale,
+            75.0 * self.scale,
+            Color::from_rgb(0.6, 0.8, 1.0)
+        );
 
         // Request that we draw another frame once this one has finished
         helper.request_redraw();
@@ -374,12 +371,11 @@ impl WindowHandler<UserEvent> for MyHandler
 
     fn on_mouse_move(
         &mut self,
-        helper: &mut WindowHelper<UserEvent>,
+        _helper: &mut WindowHelper<UserEvent>,
         position: Vector2<f32>
     )
     {
-        helper.set_title(format!("Mouse position: ({}, {})", position.x, position.y));
-        self.buttons.on_mouse_move(position);
+        self.buttons.on_mouse_move(position * self.scale);
     }
 
     fn on_mouse_button_down(
@@ -429,16 +425,13 @@ fn main()
     let font =
         Font::new(include_bytes!("../../../assets/fonts/NotoSans-Regular.ttf")).unwrap();
 
-    let intro_text = font.layout_text("WebGL Hello World", 24.0, TextOptions::new());
-
     WebCanvas::new_for_id_with_user_events(
         "my_canvas",
         MyHandler {
             font,
             timer: Timer::new().unwrap(),
             buttons: ButtonGroup::new(),
-            scale: 1.0,
-            intro_text
+            scale: 1.0
         },
         None
     )

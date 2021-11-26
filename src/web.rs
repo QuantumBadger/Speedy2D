@@ -21,12 +21,14 @@ use std::rc::Rc;
 use wasm_bindgen::closure::{Closure, WasmClosure};
 use wasm_bindgen::JsCast;
 use web_sys::{
+    AddEventListenerOptions,
     Document,
     Element,
     EventTarget,
     HtmlCanvasElement,
     HtmlElement,
     KeyboardEvent,
+    MediaQueryListEvent,
     MouseEvent,
     Performance,
     Window
@@ -588,7 +590,8 @@ impl WebEventTarget
     {
         self.register_event_listener(
             listener_type,
-            Box::new(callback) as Box<dyn FnMut()>
+            Box::new(callback) as Box<dyn FnMut()>,
+            false
         )
     }
 
@@ -600,11 +603,12 @@ impl WebEventTarget
     {
         self.register_event_listener(
             listener_type,
-            Box::new(callback) as Box<dyn FnMut(_)>
+            Box::new(callback) as Box<dyn FnMut(_)>,
+            false
         )
     }
 
-    pub fn register_event_listener_keyboard<F: FnMut(KeyboardEvent) -> bool + 'static>(
+    pub fn register_event_listener_keyboard<F: FnMut(KeyboardEvent) + 'static>(
         &self,
         listener_type: &str,
         callback: F
@@ -612,22 +616,40 @@ impl WebEventTarget
     {
         self.register_event_listener(
             listener_type,
-            Box::new(callback) as Box<dyn FnMut(_) -> bool>
+            Box::new(callback) as Box<dyn FnMut(_)>,
+            false
+        )
+    }
+
+    pub fn register_event_listener_media_event_list_once<
+        F: FnMut(MediaQueryListEvent) + 'static
+    >(
+        &self,
+        listener_type: &str,
+        callback: F
+    ) -> Result<WebPending, BacktraceError<ErrorMessage>>
+    {
+        self.register_event_listener(
+            listener_type,
+            Box::new(callback) as Box<dyn FnMut(_)>,
+            true
         )
     }
 
     fn register_event_listener<F: ?Sized + WasmClosure + 'static>(
         &self,
         listener_type: &str,
-        callback: Box<F>
+        callback: Box<F>,
+        once: bool
     ) -> Result<WebPending, BacktraceError<ErrorMessage>>
     {
         let closure = Closure::wrap(callback);
 
         self.target
-            .add_event_listener_with_callback(
+            .add_event_listener_with_callback_and_add_event_listener_options(
                 listener_type,
-                closure.as_ref().unchecked_ref()
+                closure.as_ref().unchecked_ref(),
+                AddEventListenerOptions::new().once(once)
             )
             .map_err(|err| {
                 ErrorMessage::msg(format!(

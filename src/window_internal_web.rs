@@ -394,7 +394,7 @@ impl<UserEventType: 'static> UserEventSenderWeb<UserEventType>
     #[inline]
     pub fn send_event(&self, event: UserEventType) -> Result<(), EventLoopSendError>
     {
-        self.action.borrow_mut()(event).unwrap();
+        RefCell::borrow_mut(Rc::borrow(&self.action))(event).unwrap();
         Ok(())
     }
 }
@@ -404,7 +404,8 @@ where
     UserEventType: 'static
 {
     user_event_queue: Vec<UserEventType>,
-    event_listeners_to_clean_up: Rc<RefCell<Vec<WebPending>>>
+    event_listeners_to_clean_up: Rc<RefCell<Vec<WebPending>>>,
+    device_pixel_ratio_event_listener: Rc<Cell<Option<WebPending>>>
 }
 
 impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
@@ -459,21 +460,18 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
             let handler = handler.clone();
 
             let frame_callback = RefCell::new(Closure::wrap(Box::new(move || {
-                helper_inner
-                    .borrow_mut()
+                RefCell::borrow_mut(Rc::borrow(&helper_inner))
                     .inner()
                     .clear_redraw_pending_flag();
-                handler
-                    .borrow_mut()
-                    .on_draw(helper_inner.borrow_mut().deref_mut());
+                RefCell::borrow_mut(Rc::borrow(&handler))
+                    .on_draw(RefCell::borrow_mut(Rc::borrow(&helper_inner)).deref_mut());
             })
                 as Box<dyn FnMut()>));
 
             let redraw_request_action =
                 move || window.request_animation_frame(&frame_callback).unwrap();
 
-            helper
-                .borrow_mut()
+            RefCell::borrow_mut(Rc::borrow(&helper))
                 .inner()
                 .set_redraw_request_action(redraw_request_action);
         }
@@ -497,21 +495,21 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
                     let mut pending_events = Vec::new();
                     std::mem::swap(
                         &mut pending_events,
-                        user_event_queue.borrow_mut().deref_mut()
+                        RefCell::borrow_mut(Rc::borrow(&user_event_queue)).deref_mut()
                     );
                     pending_events.drain(..).for_each(|event| {
-                        handler
-                            .borrow_mut()
-                            .on_user_event(helper.borrow_mut().deref_mut(), event)
+                        RefCell::borrow_mut(Rc::borrow(&handler)).on_user_event(
+                            RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut(),
+                            event
+                        )
                     });
                 }) as Box<dyn FnMut()>))
             };
 
-            helper
-                .borrow_mut()
+            RefCell::borrow_mut(Rc::borrow(&helper))
                 .inner()
                 .set_post_user_event_action(move |event| {
-                    user_event_queue.borrow_mut().push(event);
+                    RefCell::borrow_mut(Rc::borrow(&user_event_queue)).push(event);
 
                     if user_event_callback_pending.deref().borrow().is_none() {
                         user_event_callback_pending
@@ -546,6 +544,7 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
 
             event_listeners_to_clean_up.push(
                 window
+                    .clone()
                     .dyn_into_event_target()?
                     .register_event_listener_void("resize", move || {
                         let size_scaled = canvas.html_element().element().dimensions();
@@ -555,13 +554,14 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
 
                         canvas.set_buffer_dimensions(&size_unscaled);
 
-                        handler
-                            .borrow_mut()
-                            .on_resize(helper.borrow_mut().deref_mut(), size_unscaled);
+                        RefCell::borrow_mut(Rc::borrow(&handler)).on_resize(
+                            RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut(),
+                            size_unscaled
+                        );
 
-                        handler
-                            .borrow_mut()
-                            .on_draw(helper.borrow_mut().deref_mut());
+                        RefCell::borrow_mut(Rc::borrow(&handler)).on_draw(
+                            RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut()
+                        );
                     })?
             );
         }
@@ -581,10 +581,11 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
 
                         is_pointer_locked.set(mouse_grabbed);
 
-                        handler.borrow_mut().on_mouse_grab_status_changed(
-                            helper.borrow_mut().deref_mut(),
-                            mouse_grabbed
-                        );
+                        RefCell::borrow_mut(Rc::borrow(&handler))
+                            .on_mouse_grab_status_changed(
+                                RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut(),
+                                mouse_grabbed
+                            );
                     })?
             );
         }
@@ -599,10 +600,11 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
                     .register_event_listener_void("fullscreenchange", move || {
                         let fullscreen = canvas.is_fullscreen_active();
 
-                        handler.borrow_mut().on_fullscreen_status_changed(
-                            helper.borrow_mut().deref_mut(),
-                            fullscreen
-                        );
+                        RefCell::borrow_mut(Rc::borrow(&handler))
+                            .on_fullscreen_status_changed(
+                                RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut(),
+                                fullscreen
+                            );
                     })?
             );
         }
@@ -622,9 +624,10 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
                             Vector2::new(event.offset_x(), event.offset_y()).into_f32()
                         };
 
-                        handler
-                            .borrow_mut()
-                            .on_mouse_move(helper.borrow_mut().deref_mut(), position);
+                        RefCell::borrow_mut(Rc::borrow(&handler)).on_mouse_move(
+                            RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut(),
+                            position
+                        );
                     }
                 )?
             );
@@ -644,9 +647,11 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
                                 event.button()
                             )
                         }
-                        Some(button) => handler
-                            .borrow_mut()
-                            .on_mouse_button_down(helper.borrow_mut().deref_mut(), button)
+                        Some(button) => RefCell::borrow_mut(Rc::borrow(&handler))
+                            .on_mouse_button_down(
+                                RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut(),
+                                button
+                            )
                     }
                 )?
             );
@@ -666,9 +671,11 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
                                 event.button()
                             )
                         }
-                        Some(button) => handler
-                            .borrow_mut()
-                            .on_mouse_button_up(helper.borrow_mut().deref_mut(), button)
+                        Some(button) => RefCell::borrow_mut(Rc::borrow(&handler))
+                            .on_mouse_button_up(
+                                RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut(),
+                                button
+                            )
                     }
                 )?
             );
@@ -682,15 +689,15 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
                 canvas_event_target.register_event_listener_keyboard(
                     "keydown",
                     move |event| {
-                        let code : String = event.code();
+                        let code: String = event.code();
                         let virtual_key_code = key_code_from_web(code.as_str());
 
                         if let Some(virtual_key_code) = virtual_key_code {
                             let scancode = virtual_key_code.get_scan_code();
 
                             if let Some(scancode) = scancode {
-                                handler.borrow_mut().on_key_down(
-                                    helper.borrow_mut().deref_mut(),
+                                RefCell::borrow_mut(Rc::borrow(&handler)).on_key_down(
+                                    RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut(),
                                     Some(virtual_key_code),
                                     scancode
                                 );
@@ -711,11 +718,63 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
                             event.key(),
                             event.code()
                         );
-
-                        return true;
                     }
                 )?
             );
+        }
+
+        let device_pixel_ratio_event_listener = Rc::new(Cell::new(None));
+
+        {
+            let window = window.clone();
+            let handler = handler.clone();
+            let helper = helper.clone();
+            let device_pixel_ratio_event_listener =
+                device_pixel_ratio_event_listener.clone();
+
+            let callback: Rc<RefCell<Box<dyn FnMut()>>> =
+                Rc::new(RefCell::new(Box::new(|| {
+                    panic!("Device pixel ratio callback not present")
+                })));
+
+            let callback_inner = callback.clone();
+
+            std::mem::drop(RefCell::replace(
+                &Rc::borrow(&callback),
+                Box::new(move || {
+                    let new_dpr = window.device_pixel_ratio();
+                    log::info!("DPI changed to {}", new_dpr);
+
+                    handler.borrow_mut().on_scale_factor_changed(
+                        RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut(),
+                        new_dpr
+                    );
+
+                    let callback_inner = callback_inner.clone();
+
+                    Cell::replace(
+                        &Rc::borrow(&device_pixel_ratio_event_listener),
+                        Some(
+                            window
+                                .clone()
+                                .match_media(
+                                    format!("(resolution: {}dppx", new_dpr).as_str()
+                                )
+                                .unwrap()
+                                .register_event_listener_media_event_list_once(
+                                    "change",
+                                    move |_event| {
+                                        RefCell::borrow_mut(Rc::borrow(&callback_inner))(
+                                        );
+                                    }
+                                )
+                                .unwrap()
+                        )
+                    );
+                })
+            ));
+
+            RefCell::borrow_mut(Rc::borrow(&callback))();
         }
 
         let terminated = Rc::new(Cell::new(false));
@@ -726,13 +785,12 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
             let terminated = terminated.clone();
             let event_listeners_to_clean_up = event_listeners_to_clean_up.clone();
 
-            helper
-                .borrow_mut()
+            RefCell::borrow_mut(Rc::borrow(&helper))
                 .inner()
                 .set_terminate_loop_action(move || {
                     log::info!("Terminating event loop");
                     terminated.set(true);
-                    event_listeners_to_clean_up.borrow_mut().clear();
+                    RefCell::borrow_mut(Rc::borrow(&event_listeners_to_clean_up)).clear();
                 });
         }
 
@@ -743,15 +801,14 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
             initial_size_unscaled
         );
 
-        handler.borrow_mut().on_start(
-            helper.borrow_mut().deref_mut(),
+        RefCell::borrow_mut(Rc::borrow(&handler)).on_start(
+            RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut(),
             WindowStartupInfo::new(initial_size_unscaled, initial_dpr)
         );
 
         if !terminated.get() {
-            handler
-                .borrow_mut()
-                .on_draw(helper.borrow_mut().deref_mut());
+            RefCell::borrow_mut(Rc::borrow(&handler))
+                .on_draw(RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut());
         }
 
         // TODO https://stackoverflow.com/questions/4470417/how-do-i-consume-a-key-event-in-javascript-so-that-it-doesnt-propagate
@@ -763,7 +820,8 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
 
         Ok(WebCanvasImpl {
             user_event_queue: Vec::new(),
-            event_listeners_to_clean_up
+            event_listeners_to_clean_up,
+            device_pixel_ratio_event_listener
         })
     }
 }

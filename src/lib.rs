@@ -484,8 +484,6 @@ impl GLRenderer
         // TODO support webgl 1.0 as well
         //   -- or maybe only 1.0
 
-        // TODO fix buttons in sample
-
         WebCanvasElement::new_by_id(element_id.as_ref())
             .map_err(|err| {
                 GLRendererCreationError::msg_with_cause("Failed to get canvas", err)
