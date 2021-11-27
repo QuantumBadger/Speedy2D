@@ -32,6 +32,7 @@ use crate::font::FormattedTextBlock;
 use crate::font_cache::{GlyphCache, GlyphCacheInterface};
 use crate::glwrapper::*;
 use crate::image::{ImageDataType, ImageHandle, ImageSmoothingMode};
+use crate::Rectangle;
 
 struct AttributeBuffers
 {
@@ -804,5 +805,25 @@ impl Renderer2D
             vertex_colors_clockwise,
             vertex_normalized_circle_coords_clockwise
         })
+    }
+
+    #[inline]
+    pub(crate) fn set_clip(&mut self, rect: Option<Rectangle<i32>>)
+    {
+        // If we change the clip area, we need to draw everything in a queue
+        // through the current clip before setting new one.
+        self.flush_render_queue();
+        match rect {
+            None => self.context.set_enable_scissor(false),
+            Some(rect) => {
+                self.context.set_enable_scissor(true);
+                self.context.set_clip(
+                    rect.top_left().x,
+                    rect.top_left().y,
+                    rect.width(),
+                    rect.height()
+                )
+            }
+        }
     }
 }

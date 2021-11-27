@@ -440,12 +440,13 @@ impl GLRenderer
     {
         let viewport_size_pixels = viewport_size_pixels.into();
 
-        let context = GLContextManager::create(gl_backend).map_err(|err| {
-            GLRendererCreationError::msg_with_cause(
-                "GL context manager creation failed",
-                err
-            )
-        })?;
+        let context = GLContextManager::create(gl_backend, viewport_size_pixels)
+            .map_err(|err| {
+                GLRendererCreationError::msg_with_cause(
+                    "GL context manager creation failed",
+                    err
+                )
+            })?;
 
         let renderer = Graphics2D {
             renderer: Renderer2D::new(&context, viewport_size_pixels).map_err(|err| {
@@ -460,6 +461,7 @@ impl GLRenderer
     /// change in the window size.
     pub fn set_viewport_size_pixels(&mut self, viewport_size_pixels: Vector2<u32>)
     {
+        self.context.set_viewport_size(viewport_size_pixels);
         self.renderer
             .renderer
             .set_viewport_size_pixels(viewport_size_pixels)
@@ -555,6 +557,7 @@ impl GLRenderer
     #[inline]
     pub fn draw_frame<F: FnOnce(&mut Graphics2D) -> R, R>(&mut self, callback: F) -> R
     {
+        self.renderer.set_clip(None);
         let result = callback(&mut self.renderer);
         self.renderer.renderer.flush_render_queue();
         result
@@ -1079,6 +1082,14 @@ impl Graphics2D
             vertex_colors,
             vertex_circle_coords_normalized
         );
+    }
+
+    /// Sets the current clip to the rectangle specified by the given
+    /// coordinates. Rendering operations have no effect outside of the
+    /// clipping area.
+    pub fn set_clip(&mut self, rect: Option<Rectangle<i32>>)
+    {
+        self.renderer.set_clip(rect);
     }
 }
 

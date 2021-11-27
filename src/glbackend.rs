@@ -50,6 +50,8 @@ pub mod constants
 
     pub const GL_BLEND: GLenum = glow::BLEND;
 
+    pub const GL_SCISSOR_TEST: GLenum = glow::SCISSOR_TEST;
+
     pub const GL_SRC_ALPHA: GLenum = glow::SRC_ALPHA;
     pub const GL_ONE_MINUS_SRC_ALPHA: GLenum = glow::ONE_MINUS_SRC_ALPHA;
 
@@ -179,6 +181,7 @@ pub trait GLBackend
     unsafe fn gl_enable_debug_message_callback(&self);
     unsafe fn gl_get_string(&self, parameter: GLenum) -> String;
     unsafe fn gl_viewport(&self, x: i32, y: i32, width: i32, height: i32);
+    unsafe fn gl_scissor(&self, x: GLint, y: GLint, width: GLsizei, height: GLsizei);
     unsafe fn gl_pixel_store_i(&self, param: GLenum, value: GLint);
 
     unsafe fn gl_vertex_attrib_pointer_f32(
@@ -481,6 +484,11 @@ impl GLBackend for GLBackendGlow
     unsafe fn gl_viewport(&self, x: i32, y: i32, width: i32, height: i32)
     {
         self.context.viewport(x, y, width, height)
+    }
+
+    unsafe fn gl_scissor(&self, x: GLint, y: GLint, width: GLsizei, height: GLsizei)
+    {
+        self.context.scissor(x, y, width, height);
     }
 
     unsafe fn gl_pixel_store_i(&self, param: u32, value: i32)
@@ -846,6 +854,11 @@ impl GLBackend for GLBackendGLRS
     unsafe fn gl_viewport(&self, x: i32, y: i32, width: i32, height: i32)
     {
         gl::Viewport(x, y, width, height)
+    }
+
+    unsafe fn gl_scissor(&self, x: GLint, y: GLint, width: GLsizei, height: GLsizei)
+    {
+        gl::Scissor(x, y, width, height);
     }
 
     unsafe fn gl_pixel_store_i(&self, param: u32, value: i32)
