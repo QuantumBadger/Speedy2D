@@ -729,6 +729,27 @@ fn main()
         })
     });
 
+    tests.push(GLTest {
+        width: 100,
+        height: 100,
+        name: "clip_area".to_string(),
+        action: Box::new(|renderer| {
+            renderer.draw_frame(|graphics| {
+                graphics.clear_screen(Color::LIGHT_GRAY);
+
+                graphics.set_clip(Some(Rectangle::from_tuples((10, 10), (30, 20))));
+                graphics.draw_rectangle(
+                    Rectangle::from_tuples((0.0, 0.0), (20.0, 40.0)),
+                    Color::RED
+                );
+                graphics.draw_rectangle(
+                    Rectangle::from_tuples((20.0, 0.0), (40.0, 40.0)),
+                    Color::BLUE
+                );
+            });
+        })
+    });
+
     for test in tests {
         log::info!("Running test {}", test.name);
 

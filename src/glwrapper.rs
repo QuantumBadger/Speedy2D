@@ -812,6 +812,8 @@ struct GLContextManagerState
     active_texture: Option<GLTexture>,
     active_program: Option<Rc<GLProgram>>,
     active_blend_mode: Option<GLBlendEnabled>,
+    viewport_size: Vector2<u32>,
+    scissor_enabled: bool,
     gl_backend: Rc<dyn GLBackend + 'static>,
     weak_ref_to_self: Weak<RefCell<GLContextManagerState>>
 }
@@ -833,7 +835,8 @@ pub struct GLContextManager
 impl GLContextManager
 {
     pub fn create(
-        gl_backend: Rc<dyn GLBackend>
+        gl_backend: Rc<dyn GLBackend>,
+        viewport_size_pixels: Vector2<u32>
     ) -> Result<Self, BacktraceError<ErrorMessage>>
     {
         let manager = GLContextManager {
@@ -842,6 +845,8 @@ impl GLContextManager
                 active_texture: None,
                 active_program: None,
                 active_blend_mode: None,
+                viewport_size: viewport_size_pixels,
+                scissor_enabled: false,
                 gl_backend,
                 weak_ref_to_self: Weak::new()
             }))
@@ -983,6 +988,32 @@ impl GLContextManager
                 backend.gl_disable(GL_BLEND);
             })
         }
+    }
+
+    pub fn set_viewport_size(&self, viewport_size: Vector2<u32>)
+    {
+        self.state.borrow_mut().viewport_size = viewport_size;
+    }
+
+    pub fn set_enable_scissor(&self, enabled: bool)
+    {
+        if enabled != self.state.borrow().scissor_enabled {
+            self.with_gl_backend(|backend| unsafe {
+                match enabled {
+                    true => backend.gl_enable(GL_SCISSOR_TEST),
+                    false => backend.gl_disable(GL_SCISSOR_TEST)
+                }
+            });
+            self.state.borrow_mut().scissor_enabled = enabled;
+        }
+    }
+
+    pub fn set_clip(&self, x: i32, y: i32, width: i32, height: i32)
+    {
+        let vp_height = self.state.borrow().viewport_size.y as i32;
+        self.with_gl_backend(|backend| unsafe {
+            backend.gl_scissor(x, vp_height - y - height, width, height);
+        });
     }
 
     pub fn draw_triangles(&self, blend_mode: GLBlendEnabled, vertex_count: usize)
