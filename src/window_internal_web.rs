@@ -30,6 +30,7 @@ use crate::web::{WebCanvasElement, WebCursorType, WebDocument, WebPending, WebWi
 use crate::window::{
     DrawingWindowHandler,
     EventLoopSendError,
+    ModifiersState,
     MouseButton,
     UserEventSender,
     VirtualKeyCode,
@@ -423,7 +424,8 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
         event_type: KeyEventType,
         event: KeyboardEvent,
         handler: &Rc<RefCell<DrawingWindowHandler<UserEventType, H>>>,
-        helper: &Rc<RefCell<WindowHelper<UserEventType>>>
+        helper: &Rc<RefCell<WindowHelper<UserEventType>>>,
+        modifiers: &Rc<RefCell<ModifiersState>>
     ) where
         H: WindowHandler<UserEventType> + 'static
     {
@@ -431,6 +433,7 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
 
         let mut handler = RefCell::borrow_mut(Rc::borrow(&handler));
         let mut helper = RefCell::borrow_mut(Rc::borrow(&helper));
+        let mut modifiers = RefCell::borrow_mut(Rc::borrow(modifiers));
 
         if let Some(virtual_key_code) = key_code_from_web(code.as_str()) {
             let scancode = virtual_key_code.get_scan_code();
@@ -464,6 +467,18 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
             if key.chars().count() == 1 {
                 handler.on_keyboard_char(helper.deref_mut(), key.chars().next().unwrap());
             }
+        }
+
+        let new_modifiers = ModifiersState {
+            ctrl: event.get_modifier_state("Control"),
+            alt: event.get_modifier_state("Alt"),
+            shift: event.get_modifier_state("Shift"),
+            logo: event.get_modifier_state("OS")
+        };
+
+        if new_modifiers != *modifiers {
+            *modifiers = new_modifiers.clone();
+            handler.on_keyboard_modifiers_changed(helper.deref_mut(), new_modifiers);
         }
     }
 
@@ -738,9 +753,12 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
             );
         }
 
+        let modifier_state = Rc::new(RefCell::new(ModifiersState::default()));
+
         {
             let handler = handler.clone();
             let helper = helper.clone();
+            let modifier_state = modifier_state.clone();
 
             event_listeners_to_clean_up.push(
                 canvas_event_target.register_event_listener_keyboard(
@@ -750,7 +768,8 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
                             KeyEventType::Down,
                             event,
                             &handler,
-                            &helper
+                            &helper,
+                            &modifier_state
                         );
                     }
                 )?
@@ -760,6 +779,7 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
         {
             let handler = handler.clone();
             let helper = helper.clone();
+            let modifier_state = modifier_state.clone();
 
             event_listeners_to_clean_up.push(
                 canvas_event_target.register_event_listener_keyboard(
@@ -769,7 +789,8 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
                             KeyEventType::Up,
                             event,
                             &handler,
-                            &helper
+                            &helper,
+                            &modifier_state
                         );
                     }
                 )?
@@ -866,8 +887,6 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
         // TODO Allow access to JS stopPropagation() and/or preventDefault()
 
         // TODO what happens when web-sys APIs don't exist?
-
-        // TODO MODIFIER key events
 
         Ok(WebCanvasImpl {
             user_event_queue: Vec::new(),

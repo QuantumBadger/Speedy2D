@@ -26,6 +26,7 @@ use speedy2d::shape::Rectangle;
 use speedy2d::time::Timer;
 use speedy2d::window::{
     KeyScancode,
+    ModifiersState,
     MouseButton,
     UserEventSender,
     VirtualKeyCode,
@@ -435,6 +436,15 @@ impl WindowHandler<UserEvent> for MyHandler
     )
     {
         log::info!("Got on_keyboard_char callback: '{}'", unicode_codepoint);
+    }
+
+    fn on_keyboard_modifiers_changed(
+        &mut self,
+        _helper: &mut WindowHelper<UserEvent>,
+        state: ModifiersState
+    )
+    {
+        log::info!("Keyboard modifiers changed: {:?}", state);
     }
 }
 
