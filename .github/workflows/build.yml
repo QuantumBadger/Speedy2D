@@ -95,9 +95,6 @@ jobs:
       - name: Clippy
         run: cargo clippy --target=wasm32-unknown-unknown
 
-      - name: Formatting
-        run: cargo +nightly fmt -- --check
-
   build_features_disabled:
     name: Build (features disabled)
     runs-on: ${{ matrix.os }}
