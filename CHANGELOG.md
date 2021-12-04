@@ -61,4 +61,9 @@
 
 ## 1.2
 
-* Added `default()` implementation for `ModifiersState` (thanks to [Revertron](https://github.com/Revertron))
+### New APIs
+
+Thanks to [Revertron](https://github.com/Revertron):
+
+* `Graphics2D::set_clip()`
+* `ModifiersState::default()`
