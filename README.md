@@ -45,7 +45,7 @@ change `hello_world` to the name of the example source file).
 
 ```toml
 [dependencies]
-speedy2d = "1.1.2"
+speedy2d = "1.2"
 ```
 
 **Step 2:** Create a window:
