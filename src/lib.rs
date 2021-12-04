@@ -272,7 +272,7 @@
 //! * [WebCanvas::new_for_id_with_user_events()]
 //!
 //! After initialization, the usual [WindowHandler] callbacks and
-//! [WindowHelper]/[Graphics2D] APIs should operate as on other platforms.
+//! [window::WindowHelper]/[Graphics2D] APIs should operate as on other platforms.
 //!
 //! For an example, see the `examples/webgl` directory. To build this, first install the prerequisites:
 //!
