@@ -30,17 +30,17 @@ use Speedy2D only for rendering, you can disable the `windowing` feature.
 
 ## Features
 
-|                          |Windows| Mac |Linux| Web       |
-|--------------------------|------|-----|-----|:----------|
-| Draw 2D shapes           |✅| ✅   |✅| ✅         |
-| Load fonts and draw text |✅| ✅   |✅| ✅         |
-| Load and draw images     |✅| ✅   |✅| ✅         |
-| Mouse events             |✅| ✅   |✅| ✅         |
-| Keyboard events          |✅| ✅   |✅| ✅         |
-| Fullscreen               |✅| ✅   |✅| ✅         |
-| Window control           |✅| ✅   |✅| :information_source: Partial |
-| DPI/scale change events  |✅| ✅   |✅| ✅         |
-| System clock/timer       |✅| ✅   |✅| ✅         |
+|                          | Windows            | Mac                | Linux              | Web                          |
+|--------------------------|--------------------|--------------------|--------------------|:-----------------------------|
+| Draw 2D shapes           | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark:           |
+| Load fonts and draw text | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark:           |
+| Load and draw images     | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark:           |
+| Mouse events             | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark:           |
+| Keyboard events          | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark:           |
+| Fullscreen               | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark:           |
+| Window control           | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :information_source: Partial |
+| DPI/scale change events  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark:           |
+| System clock/timer       | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark:           |
 
 ## Example code
 
