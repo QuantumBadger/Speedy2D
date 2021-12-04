@@ -14,6 +14,6 @@
  *  limitations under the License.
  */
 
-pub struct WebCanvasImpl<UserEventType> {}
+pub struct WebCanvasImpl {}
 
 pub struct WindowGlutin<UserEventType> {}

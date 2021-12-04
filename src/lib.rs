@@ -254,10 +254,9 @@
 //! * [GLRenderer::create_image_from_raw_pixels()]
 
 #![deny(warnings)]
-// TODO re-enable
+#![deny(missing_docs)]
 // TODO add overview docs for WebGL
 // TODO turn off WebGL "windowing" stuff if feature is off?
-//#![deny(missing_docs)]
 
 // Suggested fix for len_zero is unstable, see
 // https://github.com/rust-lang/rust/issues/35428
@@ -331,6 +330,7 @@ pub mod error;
 /// Types relating to images.
 pub mod image;
 
+/// Utilities for accessing the system clock on all platforms.
 pub mod time;
 
 /// Allows for the creation and management of windows.
@@ -1275,6 +1275,7 @@ impl<UserEventType: 'static> Window<UserEventType>
     }
 }
 
+/// Struct representing an HTML canvas.
 #[cfg(any(doc, doctest, all(target_arch = "wasm32", feature = "windowing")))]
 pub struct WebCanvas<UserEventType = ()>
 where
@@ -1288,39 +1289,63 @@ where
 #[cfg(any(doc, doctest, all(target_arch = "wasm32", feature = "windowing")))]
 impl WebCanvas<()>
 {
+    /// Creates (and starts running) a new WebCanvas instance, attached to the
+    /// HTML canvas with the specified ID. Event handlers will be registered for
+    /// keyboard, mouse, and other events.
+    ///
+    /// The event loop/handlers will continue to exist after the WebCanvas is
+    /// dropped. This behaviour can be avoided using
+    /// [WebCanvas::unregister_when_dropped].
+    ///
+    /// The provided [WindowHandler] will start to receive callbacks as soon as
+    /// this function returns. Note that the main thread must not be blocked.
     pub fn new_for_id<S, H>(
         element_id: S,
-        handler: H,
-        options: Option<WebCanvasAttachOptions>
+        handler: H
     ) -> Result<WebCanvas<()>, BacktraceError<ErrorMessage>>
     where
         S: AsRef<str>,
         H: WindowHandler<()> + 'static
     {
-        WebCanvas::<()>::new_for_id_with_user_events(element_id, handler, options)
+        WebCanvas::<()>::new_for_id_with_user_events(element_id, handler)
     }
 }
 
 #[cfg(any(doc, doctest, all(target_arch = "wasm32", feature = "windowing")))]
 impl<UserEventType: 'static> WebCanvas<UserEventType>
 {
-    // TODO document behaviour on drop (i.e. leak)
+    /// Creates (and starts running) a new WebCanvas instance, attached to the
+    /// HTML canvas with the specified ID. Event handlers will be registered for
+    /// keyboard, mouse, and other events.
+    ///
+    /// This variant has support for user-generated events. See
+    /// [window::UserEventSender] for more details.
+    ///
+    /// The event loop/handlers will continue to exist after the WebCanvas is
+    /// dropped. This behaviour can be avoided using
+    /// [WebCanvas::unregister_when_dropped].
+    ///
+    /// The provided [WindowHandler] will start to receive callbacks as soon as
+    /// this function returns. Note that the main thread must not be blocked.
     pub fn new_for_id_with_user_events<S, H>(
         element_id: S,
-        handler: H,
-        options: Option<WebCanvasAttachOptions>
+        handler: H
     ) -> Result<Self, BacktraceError<ErrorMessage>>
     where
         S: AsRef<str>,
         H: WindowHandler<UserEventType> + 'static
     {
         Ok(WebCanvas {
-            inner: Some(WebCanvasImpl::new(element_id, handler, options)?),
+            inner: Some(WebCanvasImpl::new(element_id, handler)?),
             should_cleanup: false,
             user_event_type: PhantomData::default()
         })
     }
 
+    /// Causes the WebCanvas event loop to terminate when the WebCanvas is
+    /// dropped. If this function is not called, then the event loop (and
+    /// associated event handlers) will continue to run after the WebCanvas
+    /// struct is dropped.
     pub fn unregister_when_dropped(&mut self)
     {
         self.should_cleanup = true;
@@ -1341,26 +1366,5 @@ impl<UserEventType: 'static> Drop for WebCanvas<UserEventType>
                  WebCanvas until you want to delete it."
             )
         }
-    }
-}
-
-#[cfg(any(doc, doctest, all(target_arch = "wasm32", feature = "windowing")))]
-pub struct WebCanvasAttachOptions {}
-
-#[cfg(any(doc, doctest, all(target_arch = "wasm32", feature = "windowing")))]
-impl WebCanvasAttachOptions
-{
-    pub fn new() -> Self
-    {
-        Self {}
-    }
-}
-
-#[cfg(any(doc, doctest, all(target_arch = "wasm32", feature = "windowing")))]
-impl Default for WebCanvasAttachOptions
-{
-    fn default() -> Self
-    {
-        WebCanvasAttachOptions::new()
     }
 }

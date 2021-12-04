@@ -21,6 +21,7 @@ use crate::error::{BacktraceError, ErrorMessage};
 #[cfg(target_arch = "wasm32")]
 use crate::web::{WebPerformance, WebWindow};
 
+/// Measures the amount of time elapsed since its creation.
 pub struct Timer
 {
     clock: TimeClock,
@@ -29,6 +30,7 @@ pub struct Timer
 
 impl Timer
 {
+    /// Creates a new Timer, starting at the current time.
     #[inline]
     pub fn new() -> Result<Self, BacktraceError<ErrorMessage>>
     {
@@ -38,6 +40,7 @@ impl Timer
         Ok(Self { clock, start })
     }
 
+    /// Returns the number of seconds since the Timer was created.
     #[inline]
     pub fn secs_elapsed(&self) -> f64
     {
@@ -45,6 +48,7 @@ impl Timer
     }
 }
 
+/// Allows access to the system clock.
 #[derive(Clone)]
 struct TimeClock
 {
@@ -54,6 +58,7 @@ struct TimeClock
 
 impl TimeClock
 {
+    /// Creates a new TimeClock.
     pub fn new() -> Result<Self, BacktraceError<ErrorMessage>>
     {
         #[cfg(target_arch = "wasm32")]
@@ -65,6 +70,7 @@ impl TimeClock
         return Ok(Self {});
     }
 
+    /// Returns a [TimeInstant] representing the current time.
     #[inline]
     pub fn now(&self) -> TimeInstant
     {
@@ -79,6 +85,8 @@ impl TimeClock
         };
     }
 
+    /// Returns the difference in seconds between the current time, and the
+    /// provided [TimeInstant].
     #[inline]
     pub fn secs_elapsed_since(&self, start: &TimeInstant) -> f64
     {
@@ -90,6 +98,7 @@ impl TimeClock
     }
 }
 
+/// Represents an instant in time.
 struct TimeInstant
 {
     #[cfg(target_arch = "wasm32")]
