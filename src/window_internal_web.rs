@@ -30,6 +30,7 @@ use crate::web::{WebCanvasElement, WebCursorType, WebDocument, WebPending, WebWi
 use crate::window::{
     DrawingWindowHandler,
     EventLoopSendError,
+    KeyScancode,
     ModifiersState,
     MouseButton,
     UserEventSender,
@@ -42,6 +43,7 @@ use crate::window::{
 use crate::{GLRenderer, WebCanvasAttachOptions};
 
 // TODO testing on multiple web browsers/devices
+// TODO what happens when web-sys APIs don't exist?
 
 fn key_code_from_web(code: &str) -> Option<VirtualKeyCode>
 {
@@ -198,6 +200,175 @@ fn key_code_from_web(code: &str) -> Option<VirtualKeyCode>
         "MediaSelect" => Some(VirtualKeyCode::MediaSelect),
         _ => None
     }
+}
+
+fn get_scan_code_from_key_code(code: VirtualKeyCode) -> Option<KeyScancode>
+{
+    Some(match code {
+        VirtualKeyCode::Escape => 0x0001,
+        VirtualKeyCode::Key1 => 0x0002,
+        VirtualKeyCode::Key2 => 0x0003,
+        VirtualKeyCode::Key3 => 0x0004,
+        VirtualKeyCode::Key4 => 0x0005,
+        VirtualKeyCode::Key5 => 0x0006,
+        VirtualKeyCode::Key6 => 0x0007,
+        VirtualKeyCode::Key7 => 0x0008,
+        VirtualKeyCode::Key8 => 0x0009,
+        VirtualKeyCode::Key9 => 0x000A,
+        VirtualKeyCode::Key0 => 0x000B,
+        VirtualKeyCode::Minus => 0x000C,
+        VirtualKeyCode::Equals => 0x000D,
+        VirtualKeyCode::Backspace => 0x000E,
+        VirtualKeyCode::Tab => 0x000F,
+        VirtualKeyCode::Q => 0x0010,
+        VirtualKeyCode::W => 0x0011,
+        VirtualKeyCode::E => 0x0012,
+        VirtualKeyCode::R => 0x0013,
+        VirtualKeyCode::T => 0x0014,
+        VirtualKeyCode::Y => 0x0015,
+        VirtualKeyCode::U => 0x0016,
+        VirtualKeyCode::I => 0x0017,
+        VirtualKeyCode::O => 0x0018,
+        VirtualKeyCode::P => 0x0019,
+        VirtualKeyCode::LBracket => 0x001A,
+        VirtualKeyCode::RBracket => 0x001B,
+        VirtualKeyCode::Return => 0x001C,
+        VirtualKeyCode::LControl => 0x001D,
+        VirtualKeyCode::A => 0x001E,
+        VirtualKeyCode::S => 0x001F,
+        VirtualKeyCode::D => 0x0020,
+        VirtualKeyCode::F => 0x0021,
+        VirtualKeyCode::G => 0x0022,
+        VirtualKeyCode::H => 0x0023,
+        VirtualKeyCode::J => 0x0024,
+        VirtualKeyCode::K => 0x0025,
+        VirtualKeyCode::L => 0x0026,
+        VirtualKeyCode::Semicolon => 0x0027,
+        VirtualKeyCode::Apostrophe => 0x0028,
+        VirtualKeyCode::Grave => 0x0029,
+        VirtualKeyCode::LShift => 0x002A,
+        VirtualKeyCode::Backslash => 0x002B,
+        VirtualKeyCode::Z => 0x002C,
+        VirtualKeyCode::X => 0x002D,
+        VirtualKeyCode::C => 0x002E,
+        VirtualKeyCode::V => 0x002F,
+        VirtualKeyCode::B => 0x0030,
+        VirtualKeyCode::N => 0x0031,
+        VirtualKeyCode::M => 0x0032,
+        VirtualKeyCode::Comma => 0x0033,
+        VirtualKeyCode::Period => 0x0034,
+        VirtualKeyCode::Slash => 0x0035,
+        VirtualKeyCode::RShift => 0x0036,
+        VirtualKeyCode::NumpadMultiply => 0x0037,
+        VirtualKeyCode::LAlt => 0x0038,
+        VirtualKeyCode::Space => 0x0039,
+        VirtualKeyCode::F1 => 0x003B,
+        VirtualKeyCode::F2 => 0x003C,
+        VirtualKeyCode::F3 => 0x003D,
+        VirtualKeyCode::F4 => 0x003E,
+        VirtualKeyCode::F5 => 0x003F,
+        VirtualKeyCode::F6 => 0x0040,
+        VirtualKeyCode::F7 => 0x0041,
+        VirtualKeyCode::F8 => 0x0042,
+        VirtualKeyCode::F9 => 0x0043,
+        VirtualKeyCode::F10 => 0x0044,
+        VirtualKeyCode::PauseBreak => 0x0045,
+        VirtualKeyCode::ScrollLock => 0x0046,
+        VirtualKeyCode::Numpad7 => 0x0047,
+        VirtualKeyCode::Numpad8 => 0x0048,
+        VirtualKeyCode::Numpad9 => 0x0049,
+        VirtualKeyCode::NumpadSubtract => 0x004A,
+        VirtualKeyCode::Numpad4 => 0x004B,
+        VirtualKeyCode::Numpad5 => 0x004C,
+        VirtualKeyCode::Numpad6 => 0x004D,
+        VirtualKeyCode::NumpadAdd => 0x004E,
+        VirtualKeyCode::Numpad1 => 0x004F,
+        VirtualKeyCode::Numpad2 => 0x0050,
+        VirtualKeyCode::Numpad3 => 0x0051,
+        VirtualKeyCode::Numpad0 => 0x0052,
+        VirtualKeyCode::NumpadDecimal => 0x0053,
+        VirtualKeyCode::PrintScreen => 0x0054,
+        VirtualKeyCode::F11 => 0x0057,
+        VirtualKeyCode::F12 => 0x0058,
+        VirtualKeyCode::NumpadEquals => 0x0059,
+        VirtualKeyCode::F13 => 0x0064,
+        VirtualKeyCode::F14 => 0x0065,
+        VirtualKeyCode::F15 => 0x0066,
+        VirtualKeyCode::F16 => 0x0067,
+        VirtualKeyCode::F17 => 0x0068,
+        VirtualKeyCode::F18 => 0x0069,
+        VirtualKeyCode::F19 => 0x006A,
+        VirtualKeyCode::F20 => 0x006B,
+        VirtualKeyCode::F21 => 0x006C,
+        VirtualKeyCode::F22 => 0x006D,
+        VirtualKeyCode::F23 => 0x006E,
+        VirtualKeyCode::Kana => 0x0070,
+        VirtualKeyCode::F24 => 0x0076,
+        VirtualKeyCode::Convert => 0x0079,
+        VirtualKeyCode::NoConvert => 0x007B,
+        VirtualKeyCode::Yen => 0x007D,
+        VirtualKeyCode::NumpadComma => 0x007E,
+        VirtualKeyCode::Paste => 0xE00A,
+        VirtualKeyCode::PrevTrack => 0xE010,
+        VirtualKeyCode::Cut => 0xE017,
+        VirtualKeyCode::Copy => 0xE018,
+        VirtualKeyCode::NextTrack => 0xE019,
+        VirtualKeyCode::NumpadEnter => 0xE01C,
+        VirtualKeyCode::RControl => 0xE01D,
+        VirtualKeyCode::Mute => 0xE020,
+        VirtualKeyCode::PlayPause => 0xE022,
+        VirtualKeyCode::MediaStop => 0xE024,
+        VirtualKeyCode::VolumeDown => 0xE02E,
+        VirtualKeyCode::VolumeUp => 0xE030,
+        VirtualKeyCode::WebHome => 0xE032,
+        VirtualKeyCode::NumpadDivide => 0xE035,
+        VirtualKeyCode::RAlt => 0xE038,
+        VirtualKeyCode::Numlock => 0xE045,
+        VirtualKeyCode::Home => 0xE047,
+        VirtualKeyCode::Up => 0xE048,
+        VirtualKeyCode::PageUp => 0xE049,
+        VirtualKeyCode::Left => 0xE04B,
+        VirtualKeyCode::Right => 0xE04D,
+        VirtualKeyCode::End => 0xE04F,
+        VirtualKeyCode::Down => 0xE050,
+        VirtualKeyCode::PageDown => 0xE051,
+        VirtualKeyCode::Insert => 0xE052,
+        VirtualKeyCode::Delete => 0xE053,
+        VirtualKeyCode::LWin => 0xE05B,
+        VirtualKeyCode::RWin => 0xE05C,
+        VirtualKeyCode::Power => 0xE05E,
+        VirtualKeyCode::WebSearch => 0xE065,
+        VirtualKeyCode::WebFavorites => 0xE066,
+        VirtualKeyCode::WebRefresh => 0xE067,
+        VirtualKeyCode::WebStop => 0xE068,
+        VirtualKeyCode::WebForward => 0xE069,
+        VirtualKeyCode::WebBack => 0xE06A,
+        VirtualKeyCode::Mail => 0xE06C,
+        VirtualKeyCode::MediaSelect => 0xE06D,
+        VirtualKeyCode::Compose => return None,
+        VirtualKeyCode::Caret => return None,
+        VirtualKeyCode::AbntC1 => return None,
+        VirtualKeyCode::AbntC2 => return None,
+        VirtualKeyCode::Apps => return None,
+        VirtualKeyCode::Asterisk => return None,
+        VirtualKeyCode::At => return None,
+        VirtualKeyCode::Ax => return None,
+        VirtualKeyCode::Calculator => return None,
+        VirtualKeyCode::Capital => 0x003A,
+        VirtualKeyCode::Colon => return None,
+        VirtualKeyCode::Kanji => return None,
+        VirtualKeyCode::MyComputer => return None,
+        VirtualKeyCode::NavigateForward => return None,
+        VirtualKeyCode::NavigateBackward => return None,
+        VirtualKeyCode::OEM102 => 0xE056,
+        VirtualKeyCode::Plus => 0xE00D,
+        VirtualKeyCode::Sleep => 0xE05F,
+        VirtualKeyCode::Stop => return None,
+        VirtualKeyCode::Sysrq => return None,
+        VirtualKeyCode::Underline => return None,
+        VirtualKeyCode::Unlabeled => return None,
+        VirtualKeyCode::Wake => return None
+    })
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -409,25 +580,22 @@ impl<UserEventType: 'static> UserEventSenderWeb<UserEventType>
     }
 }
 
-pub struct WebCanvasImpl<UserEventType>
-where
-    UserEventType: 'static
+pub struct WebCanvasImpl
 {
-    user_event_queue: Vec<UserEventType>,
-    event_listeners_to_clean_up: Rc<RefCell<Vec<WebPending>>>,
-    device_pixel_ratio_event_listener: Rc<Cell<Option<WebPending>>>
+    event_listeners_to_clean_up: Rc<RefCell<Vec<WebPending>>>
 }
 
-impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
+impl WebCanvasImpl
 {
-    fn handle_key_event<H>(
+    fn handle_key_event<H, UserEventType>(
         event_type: KeyEventType,
         event: KeyboardEvent,
         handler: &Rc<RefCell<DrawingWindowHandler<UserEventType, H>>>,
         helper: &Rc<RefCell<WindowHelper<UserEventType>>>,
         modifiers: &Rc<RefCell<ModifiersState>>
     ) where
-        H: WindowHandler<UserEventType> + 'static
+        H: WindowHandler<UserEventType> + 'static,
+        UserEventType: 'static
     {
         let code: String = event.code();
 
@@ -436,7 +604,7 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
         let mut modifiers = RefCell::borrow_mut(Rc::borrow(modifiers));
 
         if let Some(virtual_key_code) = key_code_from_web(code.as_str()) {
-            let scancode = virtual_key_code.get_scan_code();
+            let scancode = get_scan_code_from_key_code(virtual_key_code);
 
             if let Some(scancode) = scancode {
                 match event_type {
@@ -482,14 +650,15 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
         }
     }
 
-    pub fn new<S, H>(
+    pub fn new<S, H, UserEventType>(
         element_id: S,
         handler: H,
         _options: Option<WebCanvasAttachOptions>
     ) -> Result<Self, BacktraceError<ErrorMessage>>
     where
         S: AsRef<str>,
-        H: WindowHandler<UserEventType> + 'static
+        H: WindowHandler<UserEventType> + 'static,
+        UserEventType: 'static
     {
         let window = WebWindow::new()?;
         let document = window.document()?;
@@ -797,13 +966,20 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
             );
         }
 
-        let device_pixel_ratio_event_listener = Rc::new(Cell::new(None));
-
         {
             let handler = handler.clone();
             let helper = helper.clone();
-            let device_pixel_ratio_event_listener =
-                device_pixel_ratio_event_listener.clone();
+
+            let device_pixel_ratio_event_listener = Rc::new(Cell::new(None));
+
+            {
+                let device_pixel_ratio_event_listener =
+                    device_pixel_ratio_event_listener.clone();
+
+                event_listeners_to_clean_up.push(WebPending::new(move || {
+                    Cell::replace(Rc::borrow(&device_pixel_ratio_event_listener), None);
+                }));
+            }
 
             let callback: Rc<RefCell<Box<dyn FnMut()>>> =
                 Rc::new(RefCell::new(Box::new(|| {
@@ -886,21 +1062,18 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
 
         // TODO Allow access to JS stopPropagation() and/or preventDefault()
 
-        // TODO what happens when web-sys APIs don't exist?
-
         Ok(WebCanvasImpl {
-            user_event_queue: Vec::new(),
-            event_listeners_to_clean_up,
-            device_pixel_ratio_event_listener
+            event_listeners_to_clean_up
         })
     }
 }
 
-impl<UserEventType: 'static> Drop for WebCanvasImpl<UserEventType>
+impl Drop for WebCanvasImpl
 {
     fn drop(&mut self)
     {
-        log::info!("Unregistering WebCanvasImpl")
+        log::info!("Unregistering WebCanvasImpl");
+        RefCell::borrow_mut(Rc::borrow(&self.event_listeners_to_clean_up)).clear();
     }
 }
 

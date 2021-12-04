@@ -171,7 +171,7 @@ impl WebWindow
 
         let window = self.window.clone();
 
-        Ok(WebPending::new(move |status| {
+        Ok(WebPending::new_with_status(move |status| {
             if status == Active {
                 if let Err(err) = window.cancel_animation_frame(frame_id) {
                     log::error!("Failed to cancel animation frame: {:?}", err)
@@ -196,7 +196,7 @@ impl WebWindow
 
         let window = self.window.clone();
 
-        Ok(WebPending::new(move |status| {
+        Ok(WebPending::new_with_status(move |status| {
             if status == Active {
                 window.clear_timeout_with_handle(timeout_id);
                 log::info!("Cancelled timeout {}", timeout_id);
@@ -538,7 +538,14 @@ pub struct WebPending
 
 impl WebPending
 {
-    fn new<F: FnOnce(WebPendingStatus) + 'static>(unregister_action: F) -> Self
+    pub fn new<F: FnOnce() + 'static>(unregister_action: F) -> Self
+    {
+        Self::new_with_status(move |_status| unregister_action())
+    }
+
+    fn new_with_status<F: FnOnce(WebPendingStatus) + 'static>(
+        unregister_action: F
+    ) -> Self
     {
         Self {
             unregister_action: Some(Box::new(unregister_action)),
@@ -661,7 +668,7 @@ impl WebEventTarget
         let element = self.target.clone();
         let listener_type = listener_type.to_string();
 
-        Ok(WebPending::new(move |_status| {
+        Ok(WebPending::new_with_status(move |_status| {
             element
                 .remove_event_listener_with_callback(
                     listener_type.as_ref(),

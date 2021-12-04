@@ -14,9 +14,6 @@
  *  limitations under the License.
  */
 
-// TODO turn off WebGL "windowing" stuff if feature is off?
-// TODO add overview docs for WebGL
-
 use std::cell::Cell;
 use std::rc::Rc;
 use std::sync::Arc;

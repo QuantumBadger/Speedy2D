@@ -255,7 +255,8 @@
 
 #![deny(warnings)]
 // TODO re-enable
-#![allow(dead_code)]
+// TODO add overview docs for WebGL
+// TODO turn off WebGL "windowing" stuff if feature is off?
 //#![deny(missing_docs)]
 
 // Suggested fix for len_zero is unstable, see
@@ -264,6 +265,8 @@
 #![allow(clippy::upper_case_acronyms)]
 
 use std::fmt::{Display, Formatter};
+#[cfg(any(doc, doctest, all(target_arch = "wasm32", feature = "windowing")))]
+use std::marker::PhantomData;
 use std::rc::Rc;
 
 #[cfg(any(feature = "image-loading", doc, doctest))]
@@ -493,10 +496,6 @@ impl GLRenderer
         V: Into<Vector2<u32>>,
         S: AsRef<str>
     {
-        // TODO handle context lost
-        // TODO support webgl 1.0 as well
-        //   -- or maybe only 1.0
-
         WebCanvasElement::new_by_id(element_id.as_ref())
             .map_err(|err| {
                 GLRendererCreationError::msg_with_cause("Failed to get canvas", err)
@@ -1281,8 +1280,9 @@ pub struct WebCanvas<UserEventType = ()>
 where
     UserEventType: 'static
 {
-    inner: Option<WebCanvasImpl<UserEventType>>,
-    should_cleanup: bool
+    inner: Option<WebCanvasImpl>,
+    should_cleanup: bool,
+    user_event_type: PhantomData<UserEventType>
 }
 
 #[cfg(any(doc, doctest, all(target_arch = "wasm32", feature = "windowing")))]
@@ -1316,7 +1316,8 @@ impl<UserEventType: 'static> WebCanvas<UserEventType>
     {
         Ok(WebCanvas {
             inner: Some(WebCanvasImpl::new(element_id, handler, options)?),
-            should_cleanup: false
+            should_cleanup: false,
+            user_event_type: PhantomData::default()
         })
     }
 
