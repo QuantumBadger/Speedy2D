@@ -435,7 +435,7 @@ impl WindowHandler<UserEvent> for MyHandler
         unicode_codepoint: char
     )
     {
-        log::info!("Got on_keyboard_char callback: '{}'", unicode_codepoint);
+        log::info!("on_keyboard_char: '{}'", unicode_codepoint);
     }
 
     fn on_keyboard_modifiers_changed(
@@ -444,7 +444,7 @@ impl WindowHandler<UserEvent> for MyHandler
         state: ModifiersState
     )
     {
-        log::info!("Keyboard modifiers changed: {:?}", state);
+        log::info!("on_keyboard_modifiers_changed: {:?}", state);
     }
 }
 
@@ -465,8 +465,7 @@ fn main()
             timer: Timer::new().unwrap(),
             buttons: ButtonGroup::new(),
             scale: 1.0
-        },
-        None
+        }
     )
     .unwrap();
 }

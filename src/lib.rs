@@ -272,9 +272,11 @@
 //! * [WebCanvas::new_for_id_with_user_events()]
 //!
 //! After initialization, the usual [WindowHandler] callbacks and
-//! [window::WindowHelper]/[Graphics2D] APIs should operate as on other platforms.
+//! [window::WindowHelper]/[Graphics2D] APIs should operate as on other
+//! platforms.
 //!
-//! For an example, see the `examples/webgl` directory. To build this, first install the prerequisites:
+//! For an example, see the `examples/webgl` directory. To build this, first
+//! install the prerequisites:
 //!
 //! ```shell
 //! cargo install wasm-bindgen-cli just
@@ -288,7 +290,6 @@
 
 #![deny(warnings)]
 #![deny(missing_docs)]
-// TODO add overview docs for WebGL
 // TODO turn off WebGL "windowing" stuff if feature is off?
 
 // Suggested fix for len_zero is unstable, see

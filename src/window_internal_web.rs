@@ -40,7 +40,7 @@ use crate::window::{
     WindowHelper,
     WindowStartupInfo
 };
-use crate::{GLRenderer, WebCanvasAttachOptions};
+use crate::GLRenderer;
 
 // TODO testing on multiple web browsers/devices
 // TODO what happens when web-sys APIs don't exist?
@@ -652,8 +652,7 @@ impl WebCanvasImpl
 
     pub fn new<S, H, UserEventType>(
         element_id: S,
-        handler: H,
-        _options: Option<WebCanvasAttachOptions>
+        handler: H
     ) -> Result<Self, BacktraceError<ErrorMessage>>
     where
         S: AsRef<str>,
