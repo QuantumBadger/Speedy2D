@@ -1058,7 +1058,8 @@ impl WebCanvasImpl
                 .on_draw(RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut());
         }
 
-        // TODO Allow access to JS stopPropagation() and/or preventDefault()
+        // TODO Allow access to JS stopPropagation() and/or preventDefault() -- raise
+        // ticket
 
         Ok(WebCanvasImpl {
             event_listeners_to_clean_up

@@ -290,8 +290,6 @@
 
 #![deny(warnings)]
 #![deny(missing_docs)]
-// TODO turn off WebGL "windowing" stuff if feature is off?
-
 // Suggested fix for len_zero is unstable, see
 // https://github.com/rust-lang/rust/issues/35428
 #![allow(clippy::len_zero)]

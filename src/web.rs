@@ -14,30 +14,29 @@
  *  limitations under the License.
  */
 
+#[cfg(feature = "windowing")]
 use std::cell::RefCell;
 use std::fmt::Debug;
 use std::rc::Rc;
 
+#[cfg(feature = "windowing")]
 use wasm_bindgen::closure::{Closure, WasmClosure};
 use wasm_bindgen::JsCast;
+#[cfg(feature = "windowing")]
 use web_sys::{
     AddEventListenerOptions,
-    Document,
-    Element,
     EventTarget,
-    HtmlCanvasElement,
-    HtmlElement,
     KeyboardEvent,
     MediaQueryListEvent,
-    MouseEvent,
-    Performance,
-    Window
+    MouseEvent
 };
+use web_sys::{Document, Element, HtmlCanvasElement, HtmlElement, Performance, Window};
 
 use crate::dimen::Vector2;
 use crate::error::{BacktraceError, ErrorMessage};
 use crate::glbackend::GLBackendGlow;
 use crate::glwrapper::GLVersion;
+#[cfg(feature = "windowing")]
 use crate::web::WebPendingStatus::{Active, AlreadyTriggered};
 use crate::{GLRenderer, GLRendererCreationError};
 
@@ -74,6 +73,7 @@ pub enum WebCursorType
 
 impl WebCursorType
 {
+    #[cfg(feature = "windowing")]
     fn css_text(&self) -> &'static str
     {
         match self {
@@ -142,6 +142,7 @@ impl WebWindow
         })
     }
 
+    #[cfg(feature = "windowing")]
     pub fn match_media(
         &self,
         query: &str
@@ -157,6 +158,7 @@ impl WebWindow
         )
     }
 
+    #[cfg(feature = "windowing")]
     pub fn request_animation_frame<T: ?Sized + 'static>(
         &self,
         callback: &RefCell<Closure<T>>
@@ -182,6 +184,7 @@ impl WebWindow
         }))
     }
 
+    #[cfg(feature = "windowing")]
     pub fn set_timeout_immediate<T: ?Sized + 'static>(
         &self,
         callback: &RefCell<Closure<T>>
@@ -204,11 +207,13 @@ impl WebWindow
         }))
     }
 
+    #[cfg(feature = "windowing")]
     pub fn device_pixel_ratio(&self) -> f64
     {
         self.window.device_pixel_ratio()
     }
 
+    #[cfg(feature = "windowing")]
     pub fn dyn_into_event_target(
         self
     ) -> Result<WebEventTarget, BacktraceError<ErrorMessage>>
@@ -244,6 +249,7 @@ impl WebDocument
         })
     }
 
+    #[cfg(feature = "windowing")]
     pub fn pointer_lock_element(&self) -> Option<WebElement>
     {
         self.document
@@ -254,6 +260,7 @@ impl WebDocument
             })
     }
 
+    #[cfg(feature = "windowing")]
     pub fn fullscreen_element(&self) -> Option<WebElement>
     {
         self.document
@@ -264,6 +271,7 @@ impl WebDocument
             })
     }
 
+    #[cfg(feature = "windowing")]
     pub fn dyn_into_event_target(
         self
     ) -> Result<WebEventTarget, BacktraceError<ErrorMessage>>
@@ -271,16 +279,19 @@ impl WebDocument
         WebEventTarget::dyn_from(self.document)
     }
 
+    #[cfg(feature = "windowing")]
     pub fn set_title(&self, title: &str)
     {
         self.document.set_title(title);
     }
 
+    #[cfg(feature = "windowing")]
     pub fn exit_pointer_lock(&self)
     {
         self.document.exit_pointer_lock()
     }
 
+    #[cfg(feature = "windowing")]
     pub fn exit_fullscreen(&self)
     {
         self.document.exit_fullscreen();
@@ -328,6 +339,7 @@ impl WebElement
         })
     }
 
+    #[cfg(feature = "windowing")]
     pub fn dyn_into_event_target(
         self
     ) -> Result<WebEventTarget, BacktraceError<ErrorMessage>>
@@ -335,6 +347,7 @@ impl WebElement
         WebEventTarget::dyn_from(self.element)
     }
 
+    #[cfg(feature = "windowing")]
     pub fn dimensions(&self) -> Vector2<f64>
     {
         let bounding_rect = self.element.get_bounding_client_rect();
@@ -345,6 +358,7 @@ impl WebElement
         )
     }
 
+    #[cfg(feature = "windowing")]
     #[inline]
     pub fn document(&self) -> &WebDocument
     {
@@ -371,6 +385,7 @@ pub struct WebHtmlElement
 
 impl WebHtmlElement
 {
+    #[cfg(feature = "windowing")]
     #[inline]
     pub fn element(&self) -> &WebElement
     {
@@ -397,6 +412,7 @@ impl WebHtmlElement
         })
     }
 
+    #[cfg(feature = "windowing")]
     #[inline]
     pub fn document(&self) -> &WebDocument
     {
@@ -424,6 +440,7 @@ impl WebCanvasElement
             .dyn_into_canvas()
     }
 
+    #[cfg(feature = "windowing")]
     pub fn html_element(&self) -> &WebHtmlElement
     {
         &self.html_element
@@ -470,17 +487,20 @@ impl WebCanvasElement
         )
     }
 
+    #[cfg(feature = "windowing")]
     pub fn set_buffer_dimensions(&self, size: &Vector2<u32>)
     {
         self.canvas.set_width(size.x);
         self.canvas.set_height(size.y);
     }
 
+    #[cfg(feature = "windowing")]
     pub fn set_tab_index(&self, index: i32)
     {
         self.canvas.set_tab_index(index);
     }
 
+    #[cfg(feature = "windowing")]
     pub fn set_cursor(&self, cursor: WebCursorType)
     {
         if let Err(err) = self
@@ -492,11 +512,13 @@ impl WebCanvasElement
         }
     }
 
+    #[cfg(feature = "windowing")]
     pub fn request_pointer_lock(&self)
     {
         self.canvas.request_pointer_lock();
     }
 
+    #[cfg(feature = "windowing")]
     pub fn is_pointer_lock_active(&self) -> bool
     {
         match self.html_element.document().pointer_lock_element() {
@@ -505,6 +527,7 @@ impl WebCanvasElement
         }
     }
 
+    #[cfg(feature = "windowing")]
     pub fn is_fullscreen_active(&self) -> bool
     {
         match self.html_element.document().fullscreen_element() {
@@ -513,6 +536,7 @@ impl WebCanvasElement
         }
     }
 
+    #[cfg(feature = "windowing")]
     pub fn request_fullscreen(&self)
     {
         if let Err(err) = self.canvas.request_fullscreen() {
@@ -521,6 +545,7 @@ impl WebCanvasElement
     }
 }
 
+#[cfg(feature = "windowing")]
 #[must_use]
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 enum WebPendingStatus
@@ -529,6 +554,7 @@ enum WebPendingStatus
     AlreadyTriggered
 }
 
+#[cfg(feature = "windowing")]
 #[must_use]
 pub struct WebPending
 {
@@ -536,6 +562,7 @@ pub struct WebPending
     status: WebPendingStatus
 }
 
+#[cfg(feature = "windowing")]
 impl WebPending
 {
     pub fn new<F: FnOnce() + 'static>(unregister_action: F) -> Self
@@ -559,6 +586,7 @@ impl WebPending
     }
 }
 
+#[cfg(feature = "windowing")]
 impl Drop for WebPending
 {
     fn drop(&mut self)
@@ -567,12 +595,14 @@ impl Drop for WebPending
     }
 }
 
+#[cfg(feature = "windowing")]
 #[derive(Clone)]
 pub struct WebEventTarget
 {
     target: EventTarget
 }
 
+#[cfg(feature = "windowing")]
 impl WebEventTarget
 {
     fn dyn_from<E: Debug + JsCast>(

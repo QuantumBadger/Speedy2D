@@ -17,4 +17,5 @@ precommit:
 	cargo clippy
 	cargo +nightly fmt -- --check
 	cargo doc
-	just build-example-webgl
+	cargo build --target wasm32-unknown-unknown
+	cargo build --target wasm32-unknown-unknown --no-default-features

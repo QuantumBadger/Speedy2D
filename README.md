@@ -204,7 +204,9 @@ Speedy2D is licensed under the Apache license, version 2.0. See
 ## Contributing
 
 Pull requests for Speedy2D are always welcome. Please ensure the following
-checks pass locally before submitting:
+checks pass locally before submitting.
+
+Note: the automated tests currently only run on Linux.
 
 ```shell
 cargo test
@@ -212,6 +214,8 @@ cargo test --no-default-features --lib --examples --tests
 cargo clippy
 cargo +nightly fmt -- --check
 cargo doc
+cargo build --target wasm32-unknown-unknown
+cargo build --target wasm32-unknown-unknown --no-default-features
 ```
 
 These commands can be run automatically using `just`:
