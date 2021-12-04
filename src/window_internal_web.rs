@@ -40,6 +40,8 @@ use crate::window::{
 };
 use crate::{GLRenderer, WebCanvasAttachOptions};
 
+// TODO testing on multiple web browsers/devices
+
 fn key_code_from_web(code: &str) -> Option<VirtualKeyCode>
 {
     match code {
@@ -690,9 +692,8 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
                     "keydown",
                     move |event| {
                         let code: String = event.code();
-                        let virtual_key_code = key_code_from_web(code.as_str());
 
-                        if let Some(virtual_key_code) = virtual_key_code {
+                        if let Some(virtual_key_code) = key_code_from_web(code.as_str()) {
                             let scancode = virtual_key_code.get_scan_code();
 
                             if let Some(scancode) = scancode {
@@ -711,7 +712,14 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
                             log::warn!("Ignoring unknown key code {}", code);
                         }
 
-                        // TODO invoke char typed API (regardless of repeat)
+                        let key: String = event.key();
+
+                        if key.chars().count() == 1 {
+                            RefCell::borrow_mut(Rc::borrow(&handler)).on_keyboard_char(
+                                RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut(),
+                                key.chars().next().unwrap()
+                            );
+                        }
 
                         // TODO remove
                         log::info!("key='{}' code='{}'", event.key(), event.code());

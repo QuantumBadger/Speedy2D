@@ -413,6 +413,15 @@ impl WindowHandler<UserEvent> for MyHandler
             scancode
         );
     }
+
+    fn on_keyboard_char(
+        &mut self,
+        _helper: &mut WindowHelper<UserEvent>,
+        unicode_codepoint: char
+    )
+    {
+        log::info!("Got on_keyboard_char callback: '{}'", unicode_codepoint);
+    }
 }
 
 fn main()
