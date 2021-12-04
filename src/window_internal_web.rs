@@ -714,11 +714,7 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
                         // TODO invoke char typed API (regardless of repeat)
 
                         // TODO remove
-                        log::info!(
-                            "key='{}' code='{}'",
-                            event.key(),
-                            event.code()
-                        );
+                        log::info!("key='{}' code='{}'", event.key(), event.code());
                     }
                 )?
             );

@@ -520,7 +520,7 @@ impl Renderer2D
 
         uniforms.set_viewport_size_pixels(context, viewport_size_pixels);
 
-        context.set_viewport_size(&viewport_size_pixels);
+        context.set_viewport_size(viewport_size_pixels);
 
         Ok(Renderer2D {
             context: context.clone(),
@@ -539,7 +539,7 @@ impl Renderer2D
         self.uniforms
             .set_viewport_size_pixels(&self.context, viewport_size_pixels);
 
-        self.context.set_viewport_size(&viewport_size_pixels);
+        self.context.set_viewport_size(viewport_size_pixels);
     }
 
     pub fn flush_render_queue(&mut self)

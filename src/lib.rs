@@ -512,12 +512,13 @@ impl GLRenderer
     {
         let viewport_size_pixels = viewport_size_pixels.into();
 
-        let context = GLContextManager::create(gl_backend, gl_version, viewport_size_pixels).map_err(|err| {
-            GLRendererCreationError::msg_with_cause(
-                "GL context manager creation failed",
-                err
-            )
-        })?;
+        let context =
+            GLContextManager::create(gl_backend, gl_version).map_err(|err| {
+                GLRendererCreationError::msg_with_cause(
+                    "GL context manager creation failed",
+                    err
+                )
+            })?;
 
         let renderer = Graphics2D {
             renderer: Renderer2D::new(&context, viewport_size_pixels).map_err(|err| {
@@ -532,7 +533,6 @@ impl GLRenderer
     /// change in the window size.
     pub fn set_viewport_size_pixels(&mut self, viewport_size_pixels: Vector2<u32>)
     {
-        self.context.set_viewport_size(viewport_size_pixels);
         self.renderer
             .renderer
             .set_viewport_size_pixels(viewport_size_pixels)
