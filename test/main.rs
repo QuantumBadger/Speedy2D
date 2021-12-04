@@ -750,6 +750,24 @@ fn main()
         })
     });
 
+    tests.push(GLTest {
+        width: 400,
+        height: 150,
+        name: "clip_area_2".to_string(),
+        action: Box::new(|renderer| {
+            let typeface = Font::new(NOTO_SANS_REGULAR_BYTES).unwrap();
+
+            let text = typeface.layout_text("Hello World", 100.0, TextOptions::new());
+
+            renderer.draw_frame(|graphics| {
+                graphics.clear_screen(Color::WHITE);
+                graphics.set_clip(Some(Rectangle::from_tuples((25, 25), (250, 75))));
+                graphics.clear_screen(Color::GREEN);
+                graphics.draw_text(Vector2::new(0.0, 0.0), Color::BLACK, &text);
+            });
+        })
+    });
+
     for test in tests {
         log::info!("Running test {}", test.name);
 
