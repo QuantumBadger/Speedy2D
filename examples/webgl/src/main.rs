@@ -414,6 +414,20 @@ impl WindowHandler<UserEvent> for MyHandler
         );
     }
 
+    fn on_key_up(
+        &mut self,
+        _helper: &mut WindowHelper<UserEvent>,
+        virtual_key_code: Option<VirtualKeyCode>,
+        scancode: KeyScancode
+    )
+    {
+        log::info!(
+            "on_key_up: key='{:?}' code='{}'",
+            virtual_key_code,
+            scancode
+        );
+    }
+
     fn on_keyboard_char(
         &mut self,
         _helper: &mut WindowHelper<UserEvent>,

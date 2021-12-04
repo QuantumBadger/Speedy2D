@@ -21,7 +21,7 @@ use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
 use wasm_bindgen::closure::Closure;
-use web_sys::MouseEvent;
+use web_sys::{KeyboardEvent, MouseEvent};
 
 use crate::dimen::Vector2;
 use crate::error::{BacktraceError, ErrorMessage};
@@ -197,6 +197,13 @@ fn key_code_from_web(code: &str) -> Option<VirtualKeyCode>
         "MediaSelect" => Some(VirtualKeyCode::MediaSelect),
         _ => None
     }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum KeyEventType
+{
+    Down,
+    Up
 }
 
 pub struct WindowHelperWeb<UserEventType>
@@ -412,6 +419,54 @@ where
 
 impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
 {
+    fn handle_key_event<H>(
+        event_type: KeyEventType,
+        event: KeyboardEvent,
+        handler: &Rc<RefCell<DrawingWindowHandler<UserEventType, H>>>,
+        helper: &Rc<RefCell<WindowHelper<UserEventType>>>
+    ) where
+        H: WindowHandler<UserEventType> + 'static
+    {
+        let code: String = event.code();
+
+        let mut handler = RefCell::borrow_mut(Rc::borrow(&handler));
+        let mut helper = RefCell::borrow_mut(Rc::borrow(&helper));
+
+        if let Some(virtual_key_code) = key_code_from_web(code.as_str()) {
+            let scancode = virtual_key_code.get_scan_code();
+
+            if let Some(scancode) = scancode {
+                match event_type {
+                    KeyEventType::Down => handler.on_key_down(
+                        helper.deref_mut(),
+                        Some(virtual_key_code),
+                        scancode
+                    ),
+                    KeyEventType::Up => handler.on_key_up(
+                        helper.deref_mut(),
+                        Some(virtual_key_code),
+                        scancode
+                    )
+                }
+            } else {
+                log::warn!(
+                    "Ignoring key {:?} due to unknown scancode",
+                    virtual_key_code
+                );
+            }
+        } else {
+            log::warn!("Ignoring unknown key code {}", code);
+        }
+
+        if event_type == KeyEventType::Down {
+            let key: String = event.key();
+
+            if key.chars().count() == 1 {
+                handler.on_keyboard_char(helper.deref_mut(), key.chars().next().unwrap());
+            }
+        }
+    }
+
     pub fn new<S, H>(
         element_id: S,
         handler: H,
@@ -691,38 +746,31 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
                 canvas_event_target.register_event_listener_keyboard(
                     "keydown",
                     move |event| {
-                        let code: String = event.code();
+                        Self::handle_key_event(
+                            KeyEventType::Down,
+                            event,
+                            &handler,
+                            &helper
+                        );
+                    }
+                )?
+            );
+        }
 
-                        if let Some(virtual_key_code) = key_code_from_web(code.as_str()) {
-                            let scancode = virtual_key_code.get_scan_code();
+        {
+            let handler = handler.clone();
+            let helper = helper.clone();
 
-                            if let Some(scancode) = scancode {
-                                RefCell::borrow_mut(Rc::borrow(&handler)).on_key_down(
-                                    RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut(),
-                                    Some(virtual_key_code),
-                                    scancode
-                                );
-                            } else {
-                                log::warn!(
-                                    "Ignoring key {:?} due to unknown scancode",
-                                    virtual_key_code
-                                );
-                            }
-                        } else {
-                            log::warn!("Ignoring unknown key code {}", code);
-                        }
-
-                        let key: String = event.key();
-
-                        if key.chars().count() == 1 {
-                            RefCell::borrow_mut(Rc::borrow(&handler)).on_keyboard_char(
-                                RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut(),
-                                key.chars().next().unwrap()
-                            );
-                        }
-
-                        // TODO remove
-                        log::info!("key='{}' code='{}'", event.key(), event.code());
+            event_listeners_to_clean_up.push(
+                canvas_event_target.register_event_listener_keyboard(
+                    "keyup",
+                    move |event| {
+                        Self::handle_key_event(
+                            KeyEventType::Up,
+                            event,
+                            &handler,
+                            &helper
+                        );
                     }
                 )?
             );
@@ -820,7 +868,6 @@ impl<UserEventType: 'static> WebCanvasImpl<UserEventType>
         // TODO what happens when web-sys APIs don't exist?
 
         // TODO MODIFIER key events
-        // TODO all remaining events
 
         Ok(WebCanvasImpl {
             user_event_queue: Vec::new(),
