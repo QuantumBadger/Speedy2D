@@ -11,21 +11,36 @@ Speedy2D aims to be:
 
  - The simplest Rust API for creating a window, rendering graphics/text, and
    handling input
- - Compatible with any device supporting OpenGL 2.0+, with support for OpenGL
-   ES 2.0+ and WebGL coming soon
+ - Compatible with any device supporting OpenGL 2.0+ or WebGL 2.0. Support for
+   OpenGL ES 2.0+ is planned
  - Very fast
 
-Supports Windows, Mac, and Linux. Support for Android, iOS, and WebGL is in
+Supports Windows, Mac, Linux, and WebGL. Support for Android and iOS is in
 development.
 
 By default, Speedy2D contains support for setting up a window with an OpenGL
 context, and receiving input events. If you'd like to handle this yourself, and
 use Speedy2D only for rendering, you can disable the `windowing` feature.
 
+
 ## Useful Links
 
 * Documentation and getting started guide: https://docs.rs/speedy2d
 * Crate: https://crates.io/crates/speedy2d
+
+## Features
+
+|                          |Windows| Mac |Linux| Web       |
+|--------------------------|------|-----|-----|:----------|
+| Draw 2D shapes           |✅| ✅   |✅| ✅         |
+| Load fonts and draw text |✅| ✅   |✅| ✅         |
+| Load and draw images     |✅| ✅   |✅| ✅         |
+| Mouse events             |✅| ✅   |✅| ✅         |
+| Keyboard events          |✅| ✅   |✅| ✅         |
+| Fullscreen               |✅| ✅   |✅| ✅         |
+| Window control           |✅| ✅   |✅| :information_source: Partial |
+| DPI/scale change events  |✅| ✅   |✅| ✅         |
+| System clock/timer       |✅| ✅   |✅| ✅         |
 
 ## Example code
 
@@ -33,13 +48,14 @@ use Speedy2D only for rendering, you can disable the `windowing` feature.
 * [Animation](examples/animation.rs)
 * [All input callbacks](examples/input_callbacks.rs)
 * [User-generated events](examples/user_events.rs)
+* [WebGL](examples/webgl) (see the [WebGL](#webgl) section below for details)
 
 The example projects can be run using `cargo run --example=hello_world` (just
 change `hello_world` to the name of the example source file).
 
 [![Screenshot](assets/screenshots/hello_world.png)](examples/hello_world.rs)
 
-## Quick Start
+## Quick Start (Windows/Mac/Linux)
 
 **Step 1:** Add Speedy2D to your `Cargo.toml` dependencies:
 
@@ -146,10 +162,29 @@ renderer.draw_frame(|graphics| {
 });
 ```
 
-## WebGL
+## <a name="webgl"></a>WebGL
 
-WebGL support is currently being added. To build the WebGL sample code, first
-install the prerequisites:
+To use Speedy2D with WebGL, your app must be compiled for WebAssembly.
+Speedy2D can attach itself to a `canvas` on the page using an ID you
+specify.
+
+As with Windows/Mac/Linux targets, it's possible to use Speedy2D either in a
+full rendering and event handling configuation, or for rendering only.
+
+For rendering only, use the following API:
+
+* `GLRenderer::new_for_web_canvas_by_id()`
+
+For full keyboard/mouse/etc event handling in addition to rendering, use:
+
+* `WebCanvas::new_for_id()`
+* `WebCanvas::new_for_id_with_user_events()`
+
+After initialization, the usual `WindowHandler` callbacks and
+`WindowHelper`/`Graphics2D` APIs should operate as on other platforms.
+
+For an example, see the `examples/webgl` directory. To build this, first install
+the prerequisites:
 
 ```shell
 cargo install wasm-bindgen-cli just

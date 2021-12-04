@@ -21,11 +21,11 @@
 //!
 //!  - The simplest Rust API for creating a window, rendering graphics/text, and
 //!    handling input
-//!  - Compatible with any device supporting OpenGL 2.0+, with support for
-//!    OpenGL ES 2.0+ and WebGL coming soon
+//!  - Compatible with any device supporting OpenGL 2.0+ or WebGL 2.0. Support
+//!    for OpenGL ES 2.0+ is planned.
 //!  - Very fast
 //!
-//! Supports Windows, Mac, and Linux. Support for Android, iOS, and WebGL is in
+//! Supports Windows, Mac, Linux, and WebGL. Support for Android and iOS is in
 //! development.
 //!
 //! By default, Speedy2D contains support for setting up a window with an OpenGL
@@ -37,7 +37,7 @@
 //! * [Source repository](https://github.com/QuantumBadger/Speedy2D)
 //! * [Crate](https://crates.io/crates/speedy2d)
 //!
-//! # Getting Started
+//! # Getting Started (Windows/Mac OS/Linux)
 //!
 //! ## Create a window
 //!
@@ -252,6 +252,39 @@
 //!
 //! * [Graphics2D::create_image_from_raw_pixels()]
 //! * [GLRenderer::create_image_from_raw_pixels()]
+//!
+//! # Getting Started (WebGL)
+//!
+//! To use Speedy2D with WebGL, your app must be compiled for WebAssembly.
+//! Speedy2D can attach itself to a `canvas` on the page using an ID you
+//! specify.
+//!
+//! As with Windows/Mac/Linux targets, it's possible to use Speedy2D either in a
+//! full rendering and event handling configuation, or for rendering only.
+//!
+//! For rendering only, use the following API:
+//!
+//! * [GLRenderer::new_for_web_canvas_by_id()]
+//!
+//! For full keyboard/mouse/etc event handling in addition to rendering, use:
+//!
+//! * [WebCanvas::new_for_id()]
+//! * [WebCanvas::new_for_id_with_user_events()]
+//!
+//! After initialization, the usual [WindowHandler] callbacks and
+//! [WindowHelper]/[Graphics2D] APIs should operate as on other platforms.
+//!
+//! For an example, see the `examples/webgl` directory. To build this, first install the prerequisites:
+//!
+//! ```shell
+//! cargo install wasm-bindgen-cli just
+//! ```
+//!
+//! Then use the following command to run the build:
+//!
+//! ```shell
+//! just build-example-webgl
+//! ```
 
 #![deny(warnings)]
 #![deny(missing_docs)]
