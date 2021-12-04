@@ -599,8 +599,8 @@ impl WebCanvasImpl
     {
         let code: String = event.code();
 
-        let mut handler = RefCell::borrow_mut(Rc::borrow(&handler));
-        let mut helper = RefCell::borrow_mut(Rc::borrow(&helper));
+        let mut handler = RefCell::borrow_mut(Rc::borrow(handler));
+        let mut helper = RefCell::borrow_mut(Rc::borrow(helper));
         let mut modifiers = RefCell::borrow_mut(Rc::borrow(modifiers));
 
         if let Some(virtual_key_code) = key_code_from_web(code.as_str()) {
@@ -948,7 +948,6 @@ impl WebCanvasImpl
         {
             let handler = handler.clone();
             let helper = helper.clone();
-            let modifier_state = modifier_state.clone();
 
             event_listeners_to_clean_up.push(
                 canvas_event_target.register_event_listener_keyboard(
