@@ -64,8 +64,12 @@ harness = false
 
 [dev-dependencies]
 simple_logger = "1.11"
-glutin = "0.26"
 image = { version = "0.23" }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+glutin = "0.26"
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 wasm-bindgen = { version = "0.2" }
 
 # Examples: must be listed manually as they require the "windowing" feature.
