@@ -910,9 +910,7 @@ impl<UserEventType> UserEventSenderGlutin<UserEventType>
 {
     fn new(event_proxy: EventLoopProxy<UserEventGlutin<UserEventType>>) -> Self
     {
-        Self {
-            event_proxy
-        }
+        Self { event_proxy }
     }
 
     pub fn send_event(&self, event: UserEventType) -> Result<(), EventLoopSendError>

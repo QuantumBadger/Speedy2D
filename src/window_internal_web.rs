@@ -42,9 +42,6 @@ use crate::window::{
 };
 use crate::GLRenderer;
 
-// TODO testing on multiple web browsers/devices
-// TODO what happens when web-sys APIs don't exist?
-
 fn key_code_from_web(code: &str) -> Option<VirtualKeyCode>
 {
     match code {
@@ -1057,9 +1054,6 @@ impl WebCanvasImpl
             RefCell::borrow_mut(Rc::borrow(&handler))
                 .on_draw(RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut());
         }
-
-        // TODO Allow access to JS stopPropagation() and/or preventDefault() -- raise
-        // ticket
 
         Ok(WebCanvasImpl {
             event_listeners_to_clean_up
