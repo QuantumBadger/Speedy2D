@@ -16,7 +16,6 @@
 
 use std::cell::Cell;
 use std::rc::Rc;
-use std::sync::Arc;
 
 use glutin::dpi::{LogicalSize, PhysicalPosition, PhysicalSize};
 use glutin::event::{
@@ -904,7 +903,7 @@ pub(crate) enum UserEventGlutin<UserEventType: 'static>
 #[derive(Clone)]
 pub struct UserEventSenderGlutin<UserEventType: 'static>
 {
-    event_proxy: Arc<EventLoopProxy<UserEventGlutin<UserEventType>>>
+    event_proxy: EventLoopProxy<UserEventGlutin<UserEventType>>
 }
 
 impl<UserEventType> UserEventSenderGlutin<UserEventType>
@@ -912,7 +911,7 @@ impl<UserEventType> UserEventSenderGlutin<UserEventType>
     fn new(event_proxy: EventLoopProxy<UserEventGlutin<UserEventType>>) -> Self
     {
         Self {
-            event_proxy: Arc::new(event_proxy)
+            event_proxy
         }
     }
 
