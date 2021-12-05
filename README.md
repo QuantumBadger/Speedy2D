@@ -11,21 +11,36 @@ Speedy2D aims to be:
 
  - The simplest Rust API for creating a window, rendering graphics/text, and
    handling input
- - Compatible with any device supporting OpenGL 2.0+, with support for OpenGL
-   ES 2.0+ and WebGL coming soon
+ - Compatible with any device supporting OpenGL 2.0+ or WebGL 2.0. Support for
+   OpenGL ES 2.0+ is planned
  - Very fast
 
-Supports Windows, Mac, and Linux. Support for Android, iOS, and WebGL is in
+Supports Windows, Mac, Linux, and WebGL. Support for Android and iOS is in
 development.
 
 By default, Speedy2D contains support for setting up a window with an OpenGL
 context, and receiving input events. If you'd like to handle this yourself, and
 use Speedy2D only for rendering, you can disable the `windowing` feature.
 
+
 ## Useful Links
 
 * Documentation and getting started guide: https://docs.rs/speedy2d
 * Crate: https://crates.io/crates/speedy2d
+
+## Features
+
+|                          | Windows            | Mac                | Linux              | Web                          |
+|--------------------------|--------------------|--------------------|--------------------|:-----------------------------|
+| Draw 2D shapes           | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark:           |
+| Load fonts and draw text | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark:           |
+| Load and draw images     | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark:           |
+| Mouse events             | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark:           |
+| Keyboard events          | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark:           |
+| Fullscreen               | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark:           |
+| Window control           | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :information_source: Partial |
+| DPI/scale change events  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark:           |
+| System clock/timer       | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark:           |
 
 ## Example code
 
@@ -33,13 +48,14 @@ use Speedy2D only for rendering, you can disable the `windowing` feature.
 * [Animation](examples/animation.rs)
 * [All input callbacks](examples/input_callbacks.rs)
 * [User-generated events](examples/user_events.rs)
+* [WebGL](examples/webgl) (see the [WebGL](#webgl) section below for details)
 
 The example projects can be run using `cargo run --example=hello_world` (just
 change `hello_world` to the name of the example source file).
 
 [![Screenshot](assets/screenshots/hello_world.png)](examples/hello_world.rs)
 
-## Quick Start
+## Quick Start (Windows/Mac/Linux)
 
 **Step 1:** Add Speedy2D to your `Cargo.toml` dependencies:
 
@@ -146,6 +162,40 @@ renderer.draw_frame(|graphics| {
 });
 ```
 
+## <a name="webgl"></a>WebGL
+
+To use Speedy2D with WebGL, your app must be compiled for WebAssembly.
+Speedy2D can attach itself to a `canvas` on the page using an ID you
+specify.
+
+As with Windows/Mac/Linux targets, it's possible to use Speedy2D either in a
+full rendering and event handling configuation, or for rendering only.
+
+For rendering only, use the following API:
+
+* `GLRenderer::new_for_web_canvas_by_id()`
+
+For full keyboard/mouse/etc event handling in addition to rendering, use:
+
+* `WebCanvas::new_for_id()`
+* `WebCanvas::new_for_id_with_user_events()`
+
+After initialization, the usual `WindowHandler` callbacks and
+`WindowHelper`/`Graphics2D` APIs should operate as on other platforms.
+
+For an example, see the `examples/webgl` directory. To build this, first install
+the prerequisites:
+
+```shell
+cargo install wasm-bindgen-cli just
+```
+
+Then use the following command to run the build:
+
+```shell
+just build-example-webgl
+```
+
 ## License
 
 Speedy2D is licensed under the Apache license, version 2.0. See
@@ -154,14 +204,24 @@ Speedy2D is licensed under the Apache license, version 2.0. See
 ## Contributing
 
 Pull requests for Speedy2D are always welcome. Please ensure the following
-checks pass locally before submitting:
+checks pass locally before submitting.
 
-```bash
+Note: the automated tests currently only run on Linux.
+
+```shell
 cargo test
 cargo test --no-default-features --lib --examples --tests
 cargo clippy
 cargo +nightly fmt -- --check
 cargo doc
+cargo build --target wasm32-unknown-unknown
+cargo build --target wasm32-unknown-unknown --no-default-features
+```
+
+These commands can be run automatically using `just`:
+
+```shell
+just precommit
 ```
 
 Some tests require the ability to create a headless OpenGL context.

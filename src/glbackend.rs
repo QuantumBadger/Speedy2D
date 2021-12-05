@@ -24,9 +24,11 @@ use crate::glbackend::types::*;
 
 pub mod types
 {
+    #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
     pub type GLenum = u32;
     pub type GLuint = u32;
     pub type GLint = i32;
+    #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
     pub type GLchar = std::os::raw::c_char;
     pub type GLsizei = i32;
 
@@ -63,7 +65,9 @@ pub mod constants
 
     pub const GL_DYNAMIC_DRAW: GLenum = glow::DYNAMIC_DRAW;
 
+    #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
     pub const GL_FALSE: u8 = glow::FALSE;
+    #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
     pub const GL_TRUE: u8 = glow::TRUE;
 
     pub const GL_FLOAT: GLenum = glow::FLOAT;
@@ -100,7 +104,9 @@ pub mod constants
     pub const GL_VERTEX_SHADER: GLenum = glow::VERTEX_SHADER;
     pub const GL_FRAGMENT_SHADER: GLenum = glow::FRAGMENT_SHADER;
 
+    #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
     pub const GL_LINK_STATUS: GLenum = glow::LINK_STATUS;
+    #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
     pub const GL_COMPILE_STATUS: GLenum = glow::COMPILE_STATUS;
     #[allow(dead_code)]
     pub const GL_INFO_LOG_LENGTH: GLenum = glow::INFO_LOG_LENGTH;

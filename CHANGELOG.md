@@ -67,3 +67,13 @@ Thanks to [Revertron](https://github.com/Revertron):
 
 * `Graphics2D::set_clip()`
 * `ModifiersState::default()`
+
+## 1.3
+
+* WebGL support introduced
+
+### New APIs
+
+* `WebCanvas`, providing full rendering and event handling for an HTML canvas
+* `GLRenderer::new_for_web_canvas_by_id()`, for rendering only (no event handling)
+* The `time` module, for access to the system clock in a cross-platform way.

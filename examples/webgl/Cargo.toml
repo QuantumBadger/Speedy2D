@@ -1,0 +1,15 @@
+[package]
+name = "speedy2d-webgl-hello-world"
+version = "1.0.0"
+authors = ["QuantumBadger <speedy2d@redreader.org>"]
+edition = "2018"
+license = "Apache-2.0"
+description = """
+WebGL example for Speedy2D.
+"""
+
+[dependencies]
+speedy2d = { path = "../.." }
+log = "0.4"
+wasm-logger = "0.2"
+console_error_panic_hook = "0.1.6"

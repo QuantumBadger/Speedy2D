@@ -38,6 +38,14 @@ use crate::glbackend::types::{
 };
 use crate::glbackend::GLBackend;
 
+#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
+#[allow(dead_code)]
+pub enum GLVersion
+{
+    OpenGL2_0,
+    WebGL2_0
+}
+
 impl From<TryFromIntError> for BacktraceError<ErrorMessage>
 {
     fn from(_: TryFromIntError) -> Self
@@ -630,6 +638,7 @@ pub enum GLTextureSmoothing
     Linear
 }
 
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub enum GLTextureImageFormatU8
 {
@@ -812,9 +821,10 @@ struct GLContextManagerState
     active_texture: Option<GLTexture>,
     active_program: Option<Rc<GLProgram>>,
     active_blend_mode: Option<GLBlendEnabled>,
-    viewport_size: Vector2<u32>,
+    viewport_size: Option<Vector2<u32>>,
     scissor_enabled: bool,
     gl_backend: Rc<dyn GLBackend + 'static>,
+    gl_version: GLVersion,
     weak_ref_to_self: Weak<RefCell<GLContextManagerState>>
 }
 
@@ -836,7 +846,7 @@ impl GLContextManager
 {
     pub fn create(
         gl_backend: Rc<dyn GLBackend>,
-        viewport_size_pixels: Vector2<u32>
+        gl_version: GLVersion
     ) -> Result<Self, BacktraceError<ErrorMessage>>
     {
         let manager = GLContextManager {
@@ -845,9 +855,10 @@ impl GLContextManager
                 active_texture: None,
                 active_program: None,
                 active_blend_mode: None,
-                viewport_size: viewport_size_pixels,
+                viewport_size: None,
                 scissor_enabled: false,
                 gl_backend,
+                gl_version,
                 weak_ref_to_self: Weak::new()
             }))
         };
@@ -910,6 +921,22 @@ impl GLContextManager
         GLTexture::new(self)
     }
 
+    pub fn set_viewport_size(&self, size: Vector2<u32>)
+    {
+        if !self.is_valid() {
+            log::warn!("Ignoring set_viewport_size: invalid GL context");
+            return;
+        }
+
+        log::info!("Setting viewport size to {}x{}", size.x, size.y);
+
+        self.state.borrow_mut().viewport_size = Some(size);
+
+        self.with_gl_backend(|backend| unsafe {
+            backend.gl_viewport(0, 0, size.x as i32, size.y as i32);
+        });
+    }
+
     pub fn bind_texture(&self, texture: &GLTexture)
     {
         if !self.is_valid() {
@@ -936,16 +963,18 @@ impl GLContextManager
 
     pub fn unbind_texture(&self)
     {
-        if !self.is_valid() {
-            log::warn!("Ignoring unbind_texture: invalid GL context");
-            return;
-        }
-
         #[cfg(not(target_arch = "wasm32"))]
-        self.with_gl_backend(|backend| unsafe {
-            backend.gl_active_texture(GL_TEXTURE0);
-            backend.gl_bind_texture(GL_TEXTURE_2D, 0);
-        });
+        {
+            if !self.is_valid() {
+                log::warn!("Ignoring unbind_texture: invalid GL context");
+                return;
+            }
+
+            self.with_gl_backend(|backend| unsafe {
+                backend.gl_active_texture(GL_TEXTURE0);
+                backend.gl_bind_texture(GL_TEXTURE_2D, 0);
+            });
+        }
     }
 
     pub fn use_program(&self, program: &Rc<GLProgram>)
@@ -990,11 +1019,6 @@ impl GLContextManager
         }
     }
 
-    pub fn set_viewport_size(&self, viewport_size: Vector2<u32>)
-    {
-        self.state.borrow_mut().viewport_size = viewport_size;
-    }
-
     pub fn set_enable_scissor(&self, enabled: bool)
     {
         if enabled != self.state.borrow().scissor_enabled {
@@ -1010,7 +1034,10 @@ impl GLContextManager
 
     pub fn set_clip(&self, x: i32, y: i32, width: i32, height: i32)
     {
-        let vp_height = self.state.borrow().viewport_size.y as i32;
+        let vp_height = match self.state.borrow().viewport_size {
+            None => panic!("Call to set_clip before viewport size set"),
+            Some(viewport_size) => viewport_size.y as i32
+        };
         self.with_gl_backend(|backend| unsafe {
             backend.gl_scissor(x, vp_height - y - height, width, height);
         });
@@ -1047,8 +1074,8 @@ impl GLContextManager
     where
         F: FnOnce(&Rc<dyn GLBackend>) -> Return
     {
-        let state_ref = RefCell::borrow(&self.state);
-        callback(&state_ref.gl_backend)
+        let backend = RefCell::borrow(&self.state).gl_backend.clone();
+        callback(&backend)
     }
 
     fn is_valid(&self) -> bool
@@ -1063,6 +1090,11 @@ impl GLContextManager
         } else {
             Ok(())
         }
+    }
+
+    pub fn version(&self) -> GLVersion
+    {
+        self.state.borrow().gl_version
     }
 }
 

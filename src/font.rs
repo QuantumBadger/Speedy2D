@@ -189,7 +189,7 @@ impl WordsIterator
     #[must_use]
     fn has_next(&self) -> bool
     {
-        self.words.len() > 0 || self.pending.len() > 0
+        self.words.len() > 0 || !self.pending.is_empty()
     }
 
     #[inline]
@@ -910,6 +910,14 @@ impl FormattedTextBlock
     pub fn height(&self) -> f32
     {
         self.height
+    }
+
+    /// The size (in pixels) of this text block.
+    #[inline]
+    #[must_use]
+    pub fn size(&self) -> Vector2<f32>
+    {
+        Vector2::new(self.width, self.height)
     }
 }
 

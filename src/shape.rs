@@ -108,6 +108,22 @@ impl<T: std::ops::Sub<Output = T> + Copy> Rectangle<T>
     }
 }
 
+impl<T: PartialOrd<T> + Copy> Rectangle<T>
+{
+    /// Returns true if the specified point is inside this rectangle. This is
+    /// inclusive of the top and left coordinates, and exclusive of the bottom
+    /// and right coordinates.
+    #[inline]
+    #[must_use]
+    pub fn contains(&self, point: Vector2<T>) -> bool
+    {
+        point.x >= self.top_left.x
+            && point.y >= self.top_left.y
+            && point.x < self.bottom_right.x
+            && point.y < self.bottom_right.y
+    }
+}
+
 impl<T: PartialEq> Rectangle<T>
 {
     /// Returns `true` if the rectangle has zero area.

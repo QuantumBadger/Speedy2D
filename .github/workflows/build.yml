@@ -83,11 +83,17 @@ jobs:
       - name: Setup wasm32 toolchain
         run: rustup target add wasm32-unknown-unknown
 
+      - name: Build
+        run: cargo build --target=wasm32-unknown-unknown
+
       - name: Build (no features)
         run: cargo build --target=wasm32-unknown-unknown --no-default-features
 
       - name: Build (no features, release)
         run: cargo build --target=wasm32-unknown-unknown --no-default-features --release
+
+      - name: Clippy
+        run: cargo clippy --target=wasm32-unknown-unknown
 
   build_features_disabled:
     name: Build (features disabled)

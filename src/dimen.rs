@@ -129,6 +129,18 @@ impl<T: num_traits::AsPrimitive<i32>> Vector2<T>
     }
 }
 
+impl<T: num_traits::AsPrimitive<u32>> Vector2<T>
+{
+    /// Returns a new vector with each element cast to `u32`, using the `as`
+    /// operator.
+    #[inline]
+    #[must_use]
+    pub fn into_u32(self) -> Vector2<u32>
+    {
+        Vector2::new(self.x.as_(), self.y.as_())
+    }
+}
+
 impl<T: TryInto<i32>> Vector2<T>
 {
     /// Attempts to convert each element of this vector to an `i32`, returning
