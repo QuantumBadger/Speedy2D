@@ -77,3 +77,8 @@ Thanks to [Revertron](https://github.com/Revertron):
 * `WebCanvas`, providing full rendering and event handling for an HTML canvas
 * `GLRenderer::new_for_web_canvas_by_id()`, for rendering only (no event handling)
 * The `time` module, for access to the system clock in a cross-platform way.
+
+### New callbacks
+
+* `WindowHandler::on_mouse_grab_status_changed()`
+* `WindowHandler::on_fullscreen_status_changed()`
