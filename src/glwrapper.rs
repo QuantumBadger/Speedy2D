@@ -638,6 +638,7 @@ pub enum GLTextureSmoothing
     Linear
 }
 
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub enum GLTextureImageFormatU8
 {

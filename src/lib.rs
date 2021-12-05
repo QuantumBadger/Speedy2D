@@ -290,10 +290,6 @@
 
 #![deny(warnings)]
 #![deny(missing_docs)]
-// Suggested fix for len_zero is unstable, see
-// https://github.com/rust-lang/rust/issues/35428
-#![allow(clippy::len_zero)]
-#![allow(clippy::upper_case_acronyms)]
 
 use std::fmt::{Display, Formatter};
 #[cfg(any(doc, doctest, all(target_arch = "wasm32", feature = "windowing")))]

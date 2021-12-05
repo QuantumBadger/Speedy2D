@@ -189,7 +189,7 @@ impl WordsIterator
     #[must_use]
     fn has_next(&self) -> bool
     {
-        self.words.len() > 0 || self.pending.len() > 0
+        self.words.len() > 0 || !self.pending.is_empty()
     }
 
     #[inline]
