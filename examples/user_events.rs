@@ -23,7 +23,8 @@ use speedy2d::window::{
     WindowCreationOptions,
     WindowHandler,
     WindowHelper,
-    WindowSize
+    WindowSize,
+    WindowStartupInfo
 };
 use speedy2d::{Graphics2D, Window};
 
@@ -58,6 +59,17 @@ struct MyWindowHandler
 
 impl WindowHandler<String> for MyWindowHandler
 {
+    fn on_start(&mut self, _helper: &mut WindowHelper<String>, _info: WindowStartupInfo)
+    {
+        let user_event_sender = self.user_event_sender.clone();
+
+        std::thread::spawn(move || {
+            user_event_sender
+                .send_event("Message from thread".to_string())
+                .unwrap();
+        });
+    }
+
     fn on_user_event(&mut self, _helper: &mut WindowHelper<String>, user_event: String)
     {
         log::info!("Received user event: '{}'", user_event);
@@ -68,7 +80,7 @@ impl WindowHandler<String> for MyWindowHandler
         graphics.clear_screen(Color::from_rgb(0.8, 0.9, 1.0));
 
         self.user_event_sender
-            .send_event("Hello World".to_string())
+            .send_event("Message from on_draw".to_string())
             .unwrap();
     }
 }
