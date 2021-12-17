@@ -37,7 +37,7 @@
 //! * [Source repository](https://github.com/QuantumBadger/Speedy2D)
 //! * [Crate](https://crates.io/crates/speedy2d)
 //!
-//! # Getting Started (Windows/Mac OS/Linux)
+//! # Getting Started (Windows/Mac/Linux)
 //!
 //! ## Create a window
 //!

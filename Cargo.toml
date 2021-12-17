@@ -63,7 +63,7 @@ path = "test/main.rs"
 harness = false
 
 [dev-dependencies]
-simple_logger = "1.11"
+simple_logger = { version = "1.11", default-features = false, features = ["colors"] }
 image = { version = "0.23" }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
