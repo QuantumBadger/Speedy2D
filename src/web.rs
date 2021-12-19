@@ -316,6 +316,7 @@ impl WebPerformance
 #[derive(Clone)]
 pub struct WebElement
 {
+    #[allow(dead_code)]
     document: WebDocument,
     element: Element
 }
@@ -379,6 +380,7 @@ impl Eq for WebElement {}
 #[derive(Clone)]
 pub struct WebHtmlElement
 {
+    #[allow(dead_code)]
     element: WebElement,
     html_element: HtmlElement
 }
@@ -423,6 +425,7 @@ impl WebHtmlElement
 #[derive(Clone)]
 pub struct WebCanvasElement
 {
+    #[allow(dead_code)]
     html_element: WebHtmlElement,
     canvas: HtmlCanvasElement
 }
