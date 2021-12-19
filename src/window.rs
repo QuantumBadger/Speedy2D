@@ -882,7 +882,7 @@ pub enum VirtualKeyCode
 }
 
 /// The state of the modifier keys.
-#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+#[derive(Debug, Hash, PartialEq, Eq, Clone, Default)]
 pub struct ModifiersState
 {
     pub(crate) ctrl: bool,
@@ -923,19 +923,6 @@ impl ModifiersState
     pub fn logo(&self) -> bool
     {
         self.logo
-    }
-}
-
-impl Default for ModifiersState
-{
-    fn default() -> Self
-    {
-        ModifiersState {
-            ctrl: false,
-            alt: false,
-            shift: false,
-            logo: false
-        }
     }
 }
 
