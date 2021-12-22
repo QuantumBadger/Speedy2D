@@ -22,15 +22,15 @@ use crate::error::{BacktraceError, ErrorMessage};
 use crate::web::{WebPerformance, WebWindow};
 
 /// Measures the amount of time elapsed since its creation.
-pub struct Timer
+pub struct Stopwatch
 {
     clock: TimeClock,
     start: TimeInstant
 }
 
-impl Timer
+impl Stopwatch
 {
-    /// Creates a new Timer, starting at the current time.
+    /// Creates a new Stopwatch, starting at the current time.
     #[inline]
     pub fn new() -> Result<Self, BacktraceError<ErrorMessage>>
     {
@@ -40,7 +40,7 @@ impl Timer
         Ok(Self { clock, start })
     }
 
-    /// Returns the number of seconds since the Timer was created.
+    /// Returns the number of seconds since the Stopwatch was created.
     #[inline]
     pub fn secs_elapsed(&self) -> f64
     {

@@ -20,7 +20,7 @@ use buttons::*;
 use speedy2d::color::Color;
 use speedy2d::dimen::Vector2;
 use speedy2d::font::Font;
-use speedy2d::time::Timer;
+use speedy2d::time::Stopwatch;
 use speedy2d::window::{
     KeyScancode,
     ModifiersState,
@@ -49,7 +49,7 @@ enum UserEvent
 struct MyHandler
 {
     font: Font,
-    timer: Timer,
+    timer: Stopwatch,
     buttons: ButtonGroup<UserEvent>,
     scale: f32
 }
@@ -245,7 +245,7 @@ fn main()
         "my_canvas",
         MyHandler {
             font,
-            timer: Timer::new().unwrap(),
+            timer: Stopwatch::new().unwrap(),
             buttons: ButtonGroup::new(),
             scale: 1.0
         }
