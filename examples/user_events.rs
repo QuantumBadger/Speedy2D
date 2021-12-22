@@ -16,6 +16,7 @@
 
 #![deny(warnings)]
 
+use std::time::Duration;
 use speedy2d::color::Color;
 use speedy2d::dimen::Vector2;
 use speedy2d::window::{
@@ -64,9 +65,13 @@ impl WindowHandler<String> for MyWindowHandler
         let user_event_sender = self.user_event_sender.clone();
 
         std::thread::spawn(move || {
-            user_event_sender
-                .send_event("Message from thread".to_string())
-                .unwrap();
+            loop {
+                // Send a message every 300ms
+                user_event_sender
+                    .send_event("Message from thread".to_string())
+                    .unwrap();
+                std::thread::sleep(Duration::from_millis(300));
+            }
         });
     }
 
