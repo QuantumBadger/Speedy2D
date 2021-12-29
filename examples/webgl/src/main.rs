@@ -159,7 +159,7 @@ impl WindowHandler<UserEvent> for MyHandler
         position: Vector2<f32>
     )
     {
-        self.buttons.on_mouse_move(position * self.scale);
+        self.buttons.on_mouse_move(position);
     }
 
     fn on_mouse_button_down(

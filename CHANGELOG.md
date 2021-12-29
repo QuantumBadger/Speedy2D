@@ -82,3 +82,7 @@ Thanks to [Revertron](https://github.com/Revertron):
 
 * `WindowHandler::on_mouse_grab_status_changed()`
 * `WindowHandler::on_fullscreen_status_changed()`
+
+## 1.3.1
+
+* Ensure that mouse position is scaled using device pixel ratio

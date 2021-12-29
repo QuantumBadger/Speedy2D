@@ -17,7 +17,7 @@
 use std::borrow::Borrow;
 use std::cell::{Cell, RefCell};
 use std::convert::TryInto;
-use std::ops::{Deref, DerefMut};
+use std::ops::{Deref, DerefMut, Mul};
 use std::rc::Rc;
 
 use wasm_bindgen::closure::Closure;
@@ -664,6 +664,8 @@ impl WebCanvasImpl
         let initial_size_scaled = canvas.html_element().element().dimensions();
         let initial_dpr = window.device_pixel_ratio();
 
+        let current_dpr = Rc::new(Cell::new(initial_dpr));
+
         let initial_size_unscaled =
             (initial_size_scaled * initial_dpr).round().into_u32();
 
@@ -778,6 +780,7 @@ impl WebCanvasImpl
             let helper = helper.clone();
             let window_inner = window.clone();
             let canvas = canvas.clone();
+            let current_dpr = current_dpr.clone();
 
             event_listeners_to_clean_up.push(
                 window
@@ -786,6 +789,8 @@ impl WebCanvasImpl
                     .register_event_listener_void("resize", move || {
                         let size_scaled = canvas.html_element().element().dimensions();
                         let dpr = window_inner.device_pixel_ratio();
+
+                        Cell::replace(Rc::borrow(&current_dpr), dpr);
 
                         let size_unscaled = (size_scaled * dpr).round().into_u32();
 
@@ -849,16 +854,22 @@ impl WebCanvasImpl
         {
             let handler = handler.clone();
             let helper = helper.clone();
+            let current_dpr = current_dpr.clone();
 
             event_listeners_to_clean_up.push(
                 canvas_event_target.register_event_listener_mouse(
                     "mousemove",
                     move |event| {
+                        let current_dpr = Cell::get(Rc::borrow(&current_dpr)) as f32;
+
                         let position = if is_pointer_locked.get() {
                             Vector2::new(event.movement_x(), event.movement_y())
                                 .into_f32()
+                                .mul(current_dpr)
                         } else {
-                            Vector2::new(event.offset_x(), event.offset_y()).into_f32()
+                            Vector2::new(event.offset_x(), event.offset_y())
+                                .into_f32()
+                                .mul(current_dpr)
                         };
 
                         RefCell::borrow_mut(Rc::borrow(&handler)).on_mouse_move(
@@ -988,6 +999,8 @@ impl WebCanvasImpl
                 Box::new(move || {
                     let new_dpr = window.device_pixel_ratio();
                     log::info!("DPI changed to {}", new_dpr);
+
+                    Cell::replace(Rc::borrow(&current_dpr), new_dpr);
 
                     handler.borrow_mut().on_scale_factor_changed(
                         RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut(),
