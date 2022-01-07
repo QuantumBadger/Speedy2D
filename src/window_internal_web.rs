@@ -21,7 +21,8 @@ use std::ops::{Deref, DerefMut, Mul};
 use std::rc::Rc;
 
 use wasm_bindgen::closure::Closure;
-use web_sys::{KeyboardEvent, MouseEvent};
+use wasm_bindgen::JsCast;
+use web_sys::{KeyboardEvent, MouseEvent, WheelEvent};
 
 use crate::dimen::Vector2;
 use crate::error::{BacktraceError, ErrorMessage};
@@ -33,6 +34,7 @@ use crate::window::{
     KeyScancode,
     ModifiersState,
     MouseButton,
+    MouseScrollDelta,
     UserEventSender,
     VirtualKeyCode,
     WindowFullscreenMode,
@@ -924,6 +926,49 @@ impl WebCanvasImpl
                                 RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut(),
                                 button
                             )
+                    }
+                )?
+            );
+        }
+
+        {
+            let handler = handler.clone();
+            let helper = helper.clone();
+
+            event_listeners_to_clean_up.push(
+                canvas_event_target.register_event_listener_mouse(
+                    "wheel",
+                    move |event| {
+                        let event: WheelEvent = event.dyn_into().unwrap();
+
+                        let delta = match event.delta_mode() {
+                            0x00 => MouseScrollDelta::PixelDelta(
+                                event.delta_x(),
+                                event.delta_y(),
+                                event.delta_z()
+                            ),
+
+                            0x01 => MouseScrollDelta::LineDelta(
+                                event.delta_x(),
+                                event.delta_y(),
+                                event.delta_z()
+                            ),
+
+                            0x02 => MouseScrollDelta::PageDelta(
+                                event.delta_x(),
+                                event.delta_y(),
+                                event.delta_z()
+                            ),
+
+                            mode => {
+                                log::error!("Mouse wheel: Unknown delta mode {}", mode);
+                                return;
+                            }
+                        };
+
+                        handler
+                            .borrow_mut()
+                            .on_mouse_wheel_move(helper.borrow_mut().deref_mut(), delta);
                     }
                 )?
             );

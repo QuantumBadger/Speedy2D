@@ -21,10 +21,10 @@ use glutin::dpi::{LogicalSize, PhysicalPosition, PhysicalSize};
 use glutin::event::{
     ElementState as GlutinElementState,
     Event as GlutinEvent,
-    VirtualKeyCode as GlutinVirtualKeyCode,
-    WindowEvent as GlutinWindowEvent, 
-    TouchPhase,
     MouseScrollDelta as GlutinMouseScrollDelta,
+    TouchPhase,
+    VirtualKeyCode as GlutinVirtualKeyCode,
+    WindowEvent as GlutinWindowEvent
 };
 use glutin::event_loop::{ControlFlow, EventLoop, EventLoopClosed, EventLoopProxy};
 use glutin::monitor::MonitorHandle;
@@ -43,6 +43,7 @@ use crate::window::{
     EventLoopSendError,
     ModifiersState,
     MouseButton,
+    MouseScrollDelta,
     UserEventSender,
     VirtualKeyCode,
     WindowCreationError,
@@ -54,7 +55,7 @@ use crate::window::{
     WindowHelper,
     WindowPosition,
     WindowSize,
-    WindowStartupInfo, MouseScrollDelta
+    WindowStartupInfo
 };
 use crate::GLRenderer;
 
@@ -456,10 +457,18 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
                     }
                 },
 
-                GlutinWindowEvent::MouseWheel { delta, phase: TouchPhase::Moved, ..} => {
+                GlutinWindowEvent::MouseWheel {
+                    delta,
+                    phase: TouchPhase::Moved,
+                    ..
+                } => {
                     let delta = match delta {
-                        GlutinMouseScrollDelta::LineDelta(f1, f2) => MouseScrollDelta::LineDelta(f1, f2),
-                        GlutinMouseScrollDelta::PixelDelta(pos) => MouseScrollDelta::PixelDelta(pos.x, pos.y),
+                        GlutinMouseScrollDelta::LineDelta(f1, f2) => {
+                            MouseScrollDelta::LineDelta(f1 as f64, f2 as f64, 0.0)
+                        }
+                        GlutinMouseScrollDelta::PixelDelta(pos) => {
+                            MouseScrollDelta::PixelDelta(pos.x, pos.y, 0.0)
+                        }
                     };
 
                     handler.on_mouse_wheel_move(helper, delta);

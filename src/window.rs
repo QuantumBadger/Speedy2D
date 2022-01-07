@@ -254,7 +254,7 @@ pub trait WindowHandler<UserEventType = ()>
     fn on_mouse_wheel_move(
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
-        delta: MouseScrollDelta,
+        delta: MouseScrollDelta
     )
     {
     }
@@ -721,16 +721,21 @@ pub enum MouseButton
     Other(u16)
 }
 
-/// Describes a difference in the mouse scroll wheel state.  
+/// Describes a difference in the mouse scroll wheel state.
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub enum MouseScrollDelta {
-    /// Amount in lines or rows to scroll in the horizontal and vertical directions.
-    /// Positive values indicate movement forward (away from the user) or rightwards.
-    /// The second tuple field is the normal mouse wheel scroll.
-    LineDelta(f32, f32),
+pub enum MouseScrollDelta
+{
+    /// Amount in lines or rows to scroll in the horizontal and vertical
+    /// directions. Positive values indicate movement forward (away from the
+    /// user) or rightwards. The second tuple field is the normal mouse
+    /// wheel scroll.
+    LineDelta(f64, f64, f64),
     /// Amount in pixels to scroll in the horizontal and vertical direction.
-    /// Scroll events are expressed as a PixelDelta if supported by the device (eg. a touchpad) and platform.
-    PixelDelta(f64, f64),
+    /// Scroll events are expressed as a PixelDelta if supported by the device
+    /// (eg. a touchpad) and platform.
+    PixelDelta(f64, f64, f64),
+    /// Scroll an entire page, WASM only.
+    PageDelta(f64, f64, f64)
 }
 
 /// A virtual key code.
