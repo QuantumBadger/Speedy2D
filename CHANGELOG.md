@@ -89,6 +89,9 @@ Thanks to [Revertron](https://github.com/Revertron):
 
 ## 1.4.0
 
+* Line breaks (`\n`) now handled when laying out text
+
 ### New APIs
 
 * `WindowHandler::on_mouse_wheel_scroll()` (thanks to GreatGodOfFire)
+* `TextLayout::empty_line_vertical_metrics()`

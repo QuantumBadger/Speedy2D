@@ -567,6 +567,104 @@ fn main()
     });
 
     tests.push(GLTest {
+        width: 500,
+        height: 500,
+        name: "text_line_break_1".to_string(),
+        action: Box::new(|renderer| {
+            let typeface = Font::new(NOTO_SANS_REGULAR_BYTES).unwrap();
+
+            let text = typeface.layout_text(
+                "The quick brown föx\njumped ov\ner the lazy dog!",
+                32.0,
+                TextOptions::new()
+            );
+
+            renderer.draw_frame(|graphics| {
+                graphics.clear_screen(Color::WHITE);
+                graphics.draw_text(Vector2::new(0.0, 0.0), Color::BLACK, &text);
+            });
+        })
+    });
+
+    tests.push(GLTest {
+        width: 500,
+        height: 500,
+        name: "text_line_break_2".to_string(),
+        action: Box::new(|renderer| {
+            let typeface = Font::new(NOTO_SANS_REGULAR_BYTES).unwrap();
+
+            let text = typeface.layout_text(
+                "\nThe quick brown föx\nj\n\numped ov\ner the lazy dog!",
+                32.0,
+                TextOptions::new()
+            );
+
+            renderer.draw_frame(|graphics| {
+                graphics.clear_screen(Color::WHITE);
+                graphics.draw_text(Vector2::new(0.0, 0.0), Color::BLACK, &text);
+            });
+        })
+    });
+
+    tests.push(GLTest {
+        width: 640,
+        height: 640,
+        name: "wrapped_text_line_break".to_string(),
+        action: Box::new(|renderer| {
+            let typeface = Font::new(NOTO_SANS_REGULAR_BYTES).unwrap();
+
+            let first_text = typeface.layout_text(
+                "The quick brown föx jumped\n over the lazy dog!",
+                64.0,
+                TextOptions::new().with_wrap_to_width(400.0, TextAlignment::Left)
+            );
+
+            renderer.draw_frame(|graphics| {
+                graphics.clear_screen(Color::WHITE);
+
+                graphics.draw_rectangle(
+                    Rectangle::from_tuples(
+                        (0.0, 0.0),
+                        (first_text.width().round(), first_text.height().round())
+                    ),
+                    Color::from_rgb(0.9, 0.9, 1.0)
+                );
+
+                graphics.draw_rectangle(
+                    Rectangle::from_tuples(
+                        (0.0, 0.0),
+                        (
+                            first_text.width().round(),
+                            first_text.iter_lines().next().unwrap().ascent().round()
+                        )
+                    ),
+                    Color::from_rgb(0.8, 0.8, 1.0)
+                );
+
+                graphics.draw_text((0.0, 0.0), Color::BLACK, &first_text);
+
+                let small_width = 200.0;
+
+                graphics.draw_rectangle(
+                    Rectangle::from_tuples((100.0, 200.0), (100.0 + small_width, 640.0)),
+                    Color::from_rgb(0.9, 0.9, 1.0)
+                );
+
+                graphics.draw_text(
+                    (100.0, 200.0),
+                    Color::BLACK,
+                    &typeface.layout_text(
+                        "The\n quick brown föx jumped over the lazy dog!",
+                        32.0,
+                        TextOptions::new()
+                            .with_wrap_to_width(small_width, TextAlignment::Left)
+                    )
+                );
+            });
+        })
+    });
+
+    tests.push(GLTest {
         width: 3000,
         height: 2000,
         name: "huge_text".to_string(),

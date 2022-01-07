@@ -19,11 +19,13 @@ use std::convert::TryInto;
 use std::fmt::{Debug, Formatter};
 use std::hash::{Hash, Hasher};
 use std::iter::Peekable;
+use std::ops::Deref;
 use std::rc::Rc;
 use std::slice::Iter;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::vec::IntoIter;
 
+use rusttype::Scale;
 use unicode_normalization::UnicodeNormalization;
 
 use crate::dimen::Vector2;
@@ -86,24 +88,34 @@ impl Codepoint
 }
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
-struct Word
+struct RenderableWord
 {
     codepoints: Vec<Codepoint>,
     is_whitespace: bool
 }
 
-impl Word
+impl RenderableWord
 {
     fn starting_from_codepoint_location(mut self, location: usize) -> Self
     {
         self.codepoints.drain(0..location);
 
-        Word {
+        RenderableWord {
             codepoints: self.codepoints,
             is_whitespace: self.is_whitespace
         }
     }
+}
 
+#[derive(Debug, Eq, PartialEq, Clone, Hash)]
+enum Word
+{
+    Renderable(RenderableWord),
+    Newline
+}
+
+impl Word
+{
     fn split_words(codepoints: &[Codepoint]) -> Vec<Word>
     {
         let mut reader = codepoints.iter().peekable();
@@ -111,35 +123,26 @@ impl Word
         let mut result = Vec::new();
 
         while let Some(first_token) = reader.next() {
-            let mut word_codepoints = Vec::new();
-            word_codepoints.reserve(16);
-            word_codepoints.push(first_token.clone());
-
             match first_token.codepoint {
-                Codepoint::ZERO_WIDTH_SPACE => {
+                Codepoint::ZERO_WIDTH_SPACE | '\r' => {
                     // Do nothing here, just ignore it
                 }
 
-                ' ' | '\t' | '\r' | '\n' => {
-                    // Whitespace
+                '\n' => result.push(Word::Newline),
 
-                    while let Some(next) = reader.peek() {
-                        match next.codepoint {
-                            ' ' | '\t' | '\r' | '\n' => {
-                                word_codepoints.push(reader.next().unwrap().clone())
-                            }
-                            _ => break
-                        }
-                    }
-
-                    result.push(Word {
-                        codepoints: word_codepoints,
+                ' ' | '\t' => {
+                    result.push(Word::Renderable(RenderableWord {
+                        codepoints: vec![first_token.clone()],
                         is_whitespace: true
-                    });
+                    }));
                 }
 
                 _ => {
                     // Non-whitespace word
+
+                    let mut word_codepoints = Vec::new();
+                    word_codepoints.reserve(16);
+                    word_codepoints.push(first_token.clone());
 
                     while let Some(next) = reader.peek() {
                         match next.codepoint {
@@ -150,10 +153,10 @@ impl Word
                         }
                     }
 
-                    result.push(Word {
+                    result.push(Word::Renderable(RenderableWord {
                         codepoints: word_codepoints,
                         is_whitespace: false
-                    });
+                    }));
                 }
             }
         }
@@ -329,7 +332,7 @@ impl WordLayoutResult
 #[allow(clippy::too_many_arguments)]
 fn try_layout_word_internal<T: TextLayout>(
     layout_helper: &T,
-    word: Word,
+    word: RenderableWord,
     remaining_words: &mut WordsIterator,
     scale: &rusttype::Scale,
     options: &TextOptions,
@@ -394,13 +397,14 @@ fn try_layout_word_internal<T: TextLayout>(
 
                         // If there are more codepoints, we need to split the word
                         if word.codepoints.len() > 1 {
-                            remaining_words.add_pending(
+                            remaining_words.add_pending(Word::Renderable(
                                 word.starting_from_codepoint_location(i + 1)
-                            );
+                            ));
                         }
                     } else {
-                        remaining_words
-                            .add_pending(word.starting_from_codepoint_location(i));
+                        remaining_words.add_pending(Word::Renderable(
+                            word.starting_from_codepoint_location(i)
+                        ));
                     }
 
                     glyphs.iter_mut().for_each(|glyph| {
@@ -410,7 +414,7 @@ fn try_layout_word_internal<T: TextLayout>(
                     output.append(&mut glyphs);
                     return WordLayoutResult::PartialWord(new_word_metrics);
                 } else {
-                    remaining_words.add_pending(word);
+                    remaining_words.add_pending(Word::Renderable(word));
                     return WordLayoutResult::NotEnoughSpace;
                 }
             }
@@ -443,7 +447,7 @@ fn layout_line_internal<T: TextLayout>(
     let mut first_word_on_line = true;
 
     // Skip whitespace
-    while let Some(word) = words.peek() {
+    while let Some(Word::Renderable(word)) = words.peek() {
         if word.is_whitespace {
             words.next().unwrap();
         } else {
@@ -451,7 +455,7 @@ fn layout_line_internal<T: TextLayout>(
         }
     }
 
-    while let Some(word) = words.next() {
+    while let Some(Word::Renderable(word)) = words.next() {
         let result = try_layout_word_internal(
             layout_helper,
             word,
@@ -473,6 +477,13 @@ fn layout_line_internal<T: TextLayout>(
         }
 
         first_word_on_line = false;
+    }
+
+    if glyphs.is_empty() {
+        let empty_metrics = layout_helper.empty_line_vertical_metrics(scale.y);
+        line_metrics.max_ascent = empty_metrics.ascent;
+        line_metrics.min_descent = empty_metrics.descent;
+        line_metrics.max_line_gap = empty_metrics.line_gap;
     }
 
     FormattedTextLine {
@@ -532,6 +543,27 @@ fn layout_multiple_lines_internal<T: TextLayout>(
         width,
         height: pos_y
     })
+}
+
+/// The vertical metrics of a line of text.
+#[derive(Debug, Clone, PartialEq)]
+pub struct LineVerticalMetrics
+{
+    /// The ascent of the line in pixels.
+    ascent: f32,
+    /// The descent of the line in pixels.
+    descent: f32,
+    /// The gap between this line and the next line, in pixels.
+    line_gap: f32
+}
+
+impl LineVerticalMetrics
+{
+    /// The height of the line in pixels.
+    pub fn height(&self) -> f32
+    {
+        self.ascent - self.descent
+    }
 }
 
 /// Objects implementing this trait are able to lay out text, ready for
@@ -606,6 +638,10 @@ pub trait TextLayout
     {
         layout_multiple_lines_internal(self, codepoints, scale, options)
     }
+
+    /// The default metrics of a line which contains no characters.
+    #[must_use]
+    fn empty_line_vertical_metrics(&self, scale: f32) -> LineVerticalMetrics;
 }
 
 /// A struct representing a font.
@@ -667,6 +703,25 @@ impl TextLayout for FontFamily
 
         None
     }
+
+    fn empty_line_vertical_metrics(&self, scale: f32) -> LineVerticalMetrics
+    {
+        match Rc::deref(&self.fonts).first() {
+            None => LineVerticalMetrics {
+                ascent: 0.0,
+                descent: 0.0,
+                line_gap: 0.0
+            },
+            Some(font) => {
+                let metrics = font.data.font.v_metrics(Scale::uniform(scale));
+                LineVerticalMetrics {
+                    ascent: metrics.ascent,
+                    descent: metrics.descent,
+                    line_gap: metrics.line_gap
+                }
+            }
+        }
+    }
 }
 
 impl TextLayout for Font
@@ -682,6 +737,16 @@ impl TextLayout for Font
                 glyph,
                 font: self.clone()
             })
+        }
+    }
+
+    fn empty_line_vertical_metrics(&self, scale: f32) -> LineVerticalMetrics
+    {
+        let metrics = self.data.font.v_metrics(Scale::uniform(scale));
+        LineVerticalMetrics {
+            ascent: metrics.ascent,
+            descent: metrics.descent,
+            line_gap: metrics.line_gap
         }
     }
 }
@@ -1033,18 +1098,18 @@ mod test
 
         assert_eq!(
             vec![
-                Word {
+                Word::Renderable(RenderableWord {
                     codepoints: vec![Codepoint::new(0, 'a'), Codepoint::new(1, 'b')],
                     is_whitespace: false
-                },
-                Word {
+                }),
+                Word::Renderable(RenderableWord {
                     codepoints: vec![Codepoint::new(2, ' ')],
                     is_whitespace: true
-                },
-                Word {
+                }),
+                Word::Renderable(RenderableWord {
                     codepoints: vec![Codepoint::new(3, 'c'), Codepoint::new(4, 'd')],
                     is_whitespace: false
-                }
+                })
             ],
             words
         )
@@ -1054,33 +1119,36 @@ mod test
     fn test_word_split_2()
     {
         let codepoints = Codepoint::from_unindexed_codepoints(&[
-            'a', 'b', '\t', ' ', '\n', 'c', 'd', ' '
+            'a', 'b', '\t', ' ', '\n', 'c', 'd', '\n', '\n', ' '
         ]);
 
         let words = Word::split_words(&codepoints);
 
         assert_eq!(
             vec![
-                Word {
+                Word::Renderable(RenderableWord {
                     codepoints: vec![Codepoint::new(0, 'a'), Codepoint::new(1, 'b')],
                     is_whitespace: false
-                },
-                Word {
-                    codepoints: vec![
-                        Codepoint::new(2, '\t'),
-                        Codepoint::new(3, ' '),
-                        Codepoint::new(4, '\n')
-                    ],
+                }),
+                Word::Renderable(RenderableWord {
+                    codepoints: vec![Codepoint::new(2, '\t'),],
                     is_whitespace: true
-                },
-                Word {
+                }),
+                Word::Renderable(RenderableWord {
+                    codepoints: vec![Codepoint::new(3, ' '),],
+                    is_whitespace: true
+                }),
+                Word::Newline,
+                Word::Renderable(RenderableWord {
                     codepoints: vec![Codepoint::new(5, 'c'), Codepoint::new(6, 'd')],
                     is_whitespace: false
-                },
-                Word {
-                    codepoints: vec![Codepoint::new(7, ' ')],
+                }),
+                Word::Newline,
+                Word::Newline,
+                Word::Renderable(RenderableWord {
+                    codepoints: vec![Codepoint::new(9, ' ')],
                     is_whitespace: true
-                }
+                })
             ],
             words
         )
