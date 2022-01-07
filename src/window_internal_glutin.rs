@@ -22,7 +22,9 @@ use glutin::event::{
     ElementState as GlutinElementState,
     Event as GlutinEvent,
     VirtualKeyCode as GlutinVirtualKeyCode,
-    WindowEvent as GlutinWindowEvent
+    WindowEvent as GlutinWindowEvent, 
+    TouchPhase,
+    MouseScrollDelta as GlutinMouseScrollDelta,
 };
 use glutin::event_loop::{ControlFlow, EventLoop, EventLoopClosed, EventLoopProxy};
 use glutin::monitor::MonitorHandle;
@@ -52,7 +54,7 @@ use crate::window::{
     WindowHelper,
     WindowPosition,
     WindowSize,
-    WindowStartupInfo
+    WindowStartupInfo, MouseScrollDelta
 };
 use crate::GLRenderer;
 
@@ -453,6 +455,15 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
                         handler.on_mouse_button_up(helper, button.into())
                     }
                 },
+
+                GlutinWindowEvent::MouseWheel { delta, phase: TouchPhase::Moved, ..} => {
+                    let delta = match delta {
+                        GlutinMouseScrollDelta::LineDelta(f1, f2) => MouseScrollDelta::LineDelta(f1, f2),
+                        GlutinMouseScrollDelta::PixelDelta(pos) => MouseScrollDelta::PixelDelta(pos.x, pos.y),
+                    };
+
+                    handler.on_mouse_wheel_move(helper, delta);
+                }
 
                 GlutinWindowEvent::KeyboardInput { input, .. } => {
                     let virtual_key_code =
