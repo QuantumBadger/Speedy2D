@@ -164,6 +164,8 @@ renderer.draw_frame(|graphics| {
 
 ## <a name="webgl"></a>WebGL
 
+[Full tutorial for using Speedy2D with WebGL](https://quantumbadger.com/2021/12/using-webgl-with-speedy2d.html)
+
 To use Speedy2D with WebGL, your app must be compiled for WebAssembly.
 Speedy2D can attach itself to a `canvas` on the page using an ID you
 specify.
