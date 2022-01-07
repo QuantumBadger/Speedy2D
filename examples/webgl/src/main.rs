@@ -25,6 +25,7 @@ use speedy2d::window::{
     KeyScancode,
     ModifiersState,
     MouseButton,
+    MouseScrollDistance,
     VirtualKeyCode,
     WindowFullscreenMode,
     WindowHandler,
@@ -182,6 +183,15 @@ impl WindowHandler<UserEvent> for MyHandler
         if button == MouseButton::Left {
             self.buttons.on_mouse_left_up();
         }
+    }
+
+    fn on_mouse_wheel_scroll(
+        &mut self,
+        _helper: &mut WindowHelper<UserEvent>,
+        distance: MouseScrollDistance
+    )
+    {
+        log::info!("on_mouse_wheel_scroll: {:?}", distance)
     }
 
     fn on_key_down(

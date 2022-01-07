@@ -22,6 +22,7 @@ use speedy2d::window::{
     KeyScancode,
     ModifiersState,
     MouseButton,
+    MouseScrollDistance,
     VirtualKeyCode,
     WindowHandler,
     WindowHelper,
@@ -115,6 +116,15 @@ impl WindowHandler for MyWindowHandler
         }
 
         helper.request_redraw();
+    }
+
+    fn on_mouse_wheel_scroll(
+        &mut self,
+        _helper: &mut WindowHelper<()>,
+        delta: MouseScrollDistance
+    )
+    {
+        log::info!("Got on_mouse_wheel_scroll callback: {:?}", delta);
     }
 
     fn on_key_down(

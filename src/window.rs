@@ -254,7 +254,7 @@ pub trait WindowHandler<UserEventType = ()>
     fn on_mouse_wheel_scroll(
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
-        delta: MouseScrollDelta
+        distance: MouseScrollDistance
     )
     {
     }
@@ -443,10 +443,10 @@ where
     pub fn on_mouse_wheel_scroll(
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
-        delta: MouseScrollDelta
+        distance: MouseScrollDistance
     )
     {
-        self.window_handler.on_mouse_wheel_scroll(helper, delta)
+        self.window_handler.on_mouse_wheel_scroll(helper, distance)
     }
 
     #[inline]
@@ -723,19 +723,50 @@ pub enum MouseButton
 
 /// Describes a difference in the mouse scroll wheel position.
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub enum MouseScrollDelta
+pub enum MouseScrollDistance
 {
-    /// Number of lines or rows to scroll in the horizontal and vertical
-    /// directions. Positive values indicate movement forward (away from the
-    /// user) or rightwards. The second tuple field is the normal mouse
-    /// wheel scroll.
-    LineDelta(f64, f64, f64),
-    /// Amount in pixels to scroll in the horizontal and vertical direction.
-    /// Scroll events are expressed as a PixelDelta if supported by the device
-    /// (eg. a touchpad) and platform.
-    PixelDelta(f64, f64, f64),
-    /// Scroll an entire page, WASM only.
-    PageDelta(f64, f64, f64)
+    /// Number of lines or rows to scroll in each direction. The `y` field
+    /// represents the vertical scroll direction on a typical mouse wheel.
+    Lines
+    {
+        /// The horizontal scroll distance. Negative values indicate scrolling
+        /// left, and positive values indicate scrolling right.
+        x: f64,
+        /// The vertical scroll distance. Negative values indicate scrolling
+        /// down, and positive values indicate scrolling up.
+        y: f64,
+        /// The forward/backward scroll distance, supported on some 3D mice.
+        z: f64
+    },
+    /// Number of pixels to scroll in each direction. Scroll events are
+    /// expressed in pixels if supported by the device (eg. a touchpad) and
+    /// platform. The `y` field represents the vertical scroll direction on a
+    /// typical mouse wheel.
+    Pixels
+    {
+        /// The horizontal scroll distance. Negative values indicate scrolling
+        /// left, and positive values indicate scrolling right.
+        x: f64,
+        /// The vertical scroll distance. Negative values indicate scrolling
+        /// down, and positive values indicate scrolling up.
+        y: f64,
+        /// The forward/backward scroll distance, supported on some 3D mice.
+        z: f64
+    },
+    /// Number of pages to scroll in each direction (only supported for
+    /// WebCanvas). The `y` field represents the vertical scroll direction on a
+    /// typical mouse wheel.
+    Pages
+    {
+        /// The horizontal scroll distance. Negative values indicate scrolling
+        /// left, and positive values indicate scrolling right.
+        x: f64,
+        /// The vertical scroll distance. Negative values indicate scrolling
+        /// down, and positive values indicate scrolling up.
+        y: f64,
+        /// The forward/backward scroll distance, supported on some 3D mice.
+        z: f64
+    }
 }
 
 /// A virtual key code.

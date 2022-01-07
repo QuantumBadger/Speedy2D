@@ -43,7 +43,7 @@ use crate::window::{
     EventLoopSendError,
     ModifiersState,
     MouseButton,
-    MouseScrollDelta,
+    MouseScrollDistance,
     UserEventSender,
     VirtualKeyCode,
     WindowCreationError,
@@ -462,16 +462,24 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
                     phase: TouchPhase::Moved,
                     ..
                 } => {
-                    let delta = match delta {
-                        GlutinMouseScrollDelta::LineDelta(f1, f2) => {
-                            MouseScrollDelta::LineDelta(f1 as f64, f2 as f64, 0.0)
+                    let distance = match delta {
+                        GlutinMouseScrollDelta::LineDelta(x, y) => {
+                            MouseScrollDistance::Lines {
+                                x: x as f64,
+                                y: y as f64,
+                                z: 0.0
+                            }
                         }
                         GlutinMouseScrollDelta::PixelDelta(pos) => {
-                            MouseScrollDelta::PixelDelta(pos.x, pos.y, 0.0)
+                            MouseScrollDistance::Pixels {
+                                x: pos.x,
+                                y: pos.y,
+                                z: 0.0
+                            }
                         }
                     };
 
-                    handler.on_mouse_wheel_scroll(helper, delta);
+                    handler.on_mouse_wheel_scroll(helper, distance);
                 }
 
                 GlutinWindowEvent::KeyboardInput { input, .. } => {

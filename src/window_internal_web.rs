@@ -34,7 +34,7 @@ use crate::window::{
     KeyScancode,
     ModifiersState,
     MouseButton,
-    MouseScrollDelta,
+    MouseScrollDistance,
     UserEventSender,
     VirtualKeyCode,
     WindowFullscreenMode,
@@ -942,23 +942,23 @@ impl WebCanvasImpl
                         let event: WheelEvent = event.dyn_into().unwrap();
 
                         let delta = match event.delta_mode() {
-                            0x00 => MouseScrollDelta::PixelDelta(
-                                event.delta_x(),
-                                event.delta_y(),
-                                event.delta_z()
-                            ),
+                            0x00 => MouseScrollDistance::Pixels {
+                                x: event.delta_x(),
+                                y: -event.delta_y(),
+                                z: event.delta_z()
+                            },
 
-                            0x01 => MouseScrollDelta::LineDelta(
-                                event.delta_x(),
-                                event.delta_y(),
-                                event.delta_z()
-                            ),
+                            0x01 => MouseScrollDistance::Lines {
+                                x: event.delta_x(),
+                                y: -event.delta_y(),
+                                z: event.delta_z()
+                            },
 
-                            0x02 => MouseScrollDelta::PageDelta(
-                                event.delta_x(),
-                                event.delta_y(),
-                                event.delta_z()
-                            ),
+                            0x02 => MouseScrollDistance::Pages {
+                                x: event.delta_x(),
+                                y: -event.delta_y(),
+                                z: event.delta_z()
+                            },
 
                             mode => {
                                 log::error!("Mouse wheel: Unknown delta mode {}", mode);
@@ -966,9 +966,10 @@ impl WebCanvasImpl
                             }
                         };
 
-                        handler
-                            .borrow_mut()
-                            .on_mouse_wheel_scroll(helper.borrow_mut().deref_mut(), delta);
+                        handler.borrow_mut().on_mouse_wheel_scroll(
+                            helper.borrow_mut().deref_mut(),
+                            delta
+                        );
                     }
                 )?
             );
