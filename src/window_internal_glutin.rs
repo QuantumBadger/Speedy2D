@@ -471,7 +471,7 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
                         }
                     };
 
-                    handler.on_mouse_wheel_move(helper, delta);
+                    handler.on_mouse_wheel_scroll(helper, delta);
                 }
 
                 GlutinWindowEvent::KeyboardInput { input, .. } => {

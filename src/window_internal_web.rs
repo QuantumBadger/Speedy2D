@@ -968,7 +968,7 @@ impl WebCanvasImpl
 
                         handler
                             .borrow_mut()
-                            .on_mouse_wheel_move(helper.borrow_mut().deref_mut(), delta);
+                            .on_mouse_wheel_scroll(helper.borrow_mut().deref_mut(), delta);
                     }
                 )?
             );
