@@ -86,3 +86,9 @@ Thanks to [Revertron](https://github.com/Revertron):
 ## 1.3.1
 
 * Ensure that mouse position is scaled using device pixel ratio
+
+## 1.4.0
+
+### New APIs
+
+* `WindowHandler::on_mouse_wheel_scroll()` (thanks to GreatGodOfFire)
