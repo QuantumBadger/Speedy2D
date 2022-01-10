@@ -32,7 +32,7 @@ use crate::font::FormattedTextBlock;
 use crate::font_cache::{GlyphCache, GlyphCacheInterface};
 use crate::glwrapper::*;
 use crate::image::{ImageDataType, ImageHandle, ImageSmoothingMode};
-use crate::Rectangle;
+use crate::{Rectangle, Polygon};
 
 struct AttributeBuffers {
     position: Vec<f32>,
@@ -732,42 +732,13 @@ impl Renderer2D {
     #[inline]
     pub(crate) fn draw_polygon(
         &mut self,
-        vertex_positions: &[Vector2<f32>],
-        vertex_colors: &[Color],
+        polygon: &Polygon,
+        color: Color
     ) {
-        if vertex_positions.len() != vertex_colors.len() {
-            panic!("vertex_positions and vertex_colors must have the same length")
-        }
+        let color = [color; 3];
 
-        // We have to flatten the vertices in order for [earcutr](https://github.com/frewsxcv/earcutr/) to accept it.
-        // In the future, we can add a triangulation algorithm directly into Speed2D if performance is an issue, but for now, this is simpler and easier
-        let mut flattened = Vec::with_capacity(vertex_positions.len() * 2);
-
-        for vertex in vertex_positions {
-            flattened.push(vertex.x);
-            flattened.push(vertex.y);
-        }
-
-        let mut triangles = earcutr::earcut(&flattened, &Vec::new(), 2);
-
-        let mut vertex_positions_clockwise = [Vector2::<f32>::ZERO; 3];
-        let mut vertex_colors_clockwise = [Color::BLACK; 3];
-
-        loop {
-            if triangles.is_empty() {
-                break;
-            }
-
-            for i in 0..3 {
-                let vertex_index = triangles.pop().unwrap();
-                vertex_positions_clockwise[i] = vertex_positions[vertex_index];
-                vertex_colors_clockwise[i] = vertex_colors[vertex_index];
-            }
-
-            self.add_to_render_queue(RenderQueueItem::TriangleColored {
-                vertex_positions_clockwise,
-                vertex_colors_clockwise,
-            });
+        for triangle in polygon.triangles.iter(){
+            self.draw_triangle_three_color(*triangle, color);
         }
     }
 

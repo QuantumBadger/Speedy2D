@@ -303,6 +303,7 @@ use {
     std::path::Path,
 };
 
+
 use crate::color::Color;
 use crate::dimen::Vector2;
 use crate::error::{BacktraceError, ErrorMessage};
@@ -313,7 +314,7 @@ use crate::glbackend::{GLBackendGLRS, GLBackendGlow};
 use crate::glwrapper::{GLContextManager, GLVersion};
 use crate::image::{ImageDataType, ImageHandle, ImageSmoothingMode};
 use crate::renderer2d::Renderer2D;
-use crate::shape::Rectangle;
+use crate::shape::{Rectangle, Polygon};
 #[cfg(target_arch = "wasm32")]
 use crate::web::WebCanvasElement;
 #[cfg(any(doc, doctest, feature = "windowing"))]
@@ -780,25 +781,13 @@ impl Graphics2D {
         self.renderer.draw_text(position, color, text);
     }
 
-    /// Draws a polygon with specified colors (one color for each vertex).
-    ///
-    /// The vertex positions do not require any specific order.
-    /// `vertex_positions` and `vertex_colors` must have the same length.
-    pub fn draw_polygon_vertex_colors(
-        &mut self,
-        vertex_positions: &[Vector2<f32>],
-        vertex_colors: &[Color],
-    ) {
-        self.renderer.draw_polygon(vertex_positions, vertex_colors);
-    }
-
     /// Draws a polygon with a single color.
     ///
     /// The vertex positions do not require any specific order, but they cannot be self intersecting.
-    pub fn draw_polygon(&mut self, vertex_positions: &[Vector2<f32>], color: Color) {
+    pub fn draw_polygon(&mut self, polygon: &Polygon, color: Color) {
         self.renderer.draw_polygon(
-            vertex_positions,
-            vec![color; vertex_positions.len()].as_slice(),
+            polygon,
+            color,
         )
     }
 

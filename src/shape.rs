@@ -145,3 +145,48 @@ impl<T: num_traits::AsPrimitive<f32>> Rectangle<T> {
         Rectangle::new(self.top_left.into_f32(), self.bottom_right.into_f32())
     }
 }
+
+/// A struct representing a polygon.
+///
+/// It is composed of triangles, whose points are in clockwise order
+#[derive(Debug, Clone)]
+pub struct Polygon {
+    pub(crate) triangles: Vec<[Vector2<f32>; 3]>,
+}
+
+impl Polygon {
+    /// Generate a new polygon given points that describe it's outline.
+    /// 
+    /// The outline does not require a specific order, but this may change, so clockwise is recommended.
+    pub fn new<Point: Into<Vector2<f32>> + Copy>(vertices: &[Point]) -> Self {
+        // We have to flatten the vertices in order for [earcutr](https://github.com/frewsxcv/earcutr/) to accept it.
+        // In the future, we can add a triangulation algorithm directly into Speed2D if performance is an issue, but for now, this is simpler and easier
+        let mut flattened = Vec::with_capacity(vertices.len() * 2);
+
+        for vertex in vertices {
+            let vertex: Vector2<f32> = (*vertex).into();
+
+            flattened.push(vertex.x);
+            flattened.push(vertex.y);
+        }
+
+        let mut triangulation = earcutr::earcut(&flattened, &Vec::new(), 2);
+        let mut triangles = Vec::with_capacity(triangulation.len() / 2);
+
+        loop {
+            if triangulation.is_empty() {
+                break;
+            }
+
+            triangles.push([
+                vertices[triangulation.pop().unwrap()].into(),
+                vertices[triangulation.pop().unwrap()].into(),
+                vertices[triangulation.pop().unwrap()].into()
+            ])
+        }
+
+        Polygon{
+            triangles,
+        }
+    }
+}
