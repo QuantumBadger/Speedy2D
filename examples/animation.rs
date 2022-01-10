@@ -23,26 +23,22 @@ use speedy2d::dimen::Vector2;
 use speedy2d::window::{WindowHandler, WindowHelper};
 use speedy2d::{Graphics2D, Window};
 
-fn main()
-{
+fn main() {
     simple_logger::SimpleLogger::new().init().unwrap();
 
     let window = Window::new_centered("Speedy2D: Animation", (800, 800)).unwrap();
 
     window.run_loop(MyWindowHandler {
-        start_time: Instant::now()
+        start_time: Instant::now(),
     })
 }
 
-struct MyWindowHandler
-{
-    start_time: Instant
+struct MyWindowHandler {
+    start_time: Instant,
 }
 
-impl WindowHandler for MyWindowHandler
-{
-    fn on_draw(&mut self, helper: &mut WindowHelper, graphics: &mut Graphics2D)
-    {
+impl WindowHandler for MyWindowHandler {
+    fn on_draw(&mut self, helper: &mut WindowHelper, graphics: &mut Graphics2D) {
         graphics.clear_screen(Color::WHITE);
 
         let elapsed_secs = self.start_time.elapsed().as_secs_f32();

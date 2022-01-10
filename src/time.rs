@@ -22,18 +22,15 @@ use crate::error::{BacktraceError, ErrorMessage};
 use crate::web::{WebPerformance, WebWindow};
 
 /// Measures the amount of time elapsed since its creation.
-pub struct Stopwatch
-{
+pub struct Stopwatch {
     clock: TimeClock,
-    start: TimeInstant
+    start: TimeInstant,
 }
 
-impl Stopwatch
-{
+impl Stopwatch {
     /// Creates a new Stopwatch, starting at the current time.
     #[inline]
-    pub fn new() -> Result<Self, BacktraceError<ErrorMessage>>
-    {
+    pub fn new() -> Result<Self, BacktraceError<ErrorMessage>> {
         let clock = TimeClock::new()?;
         let start = clock.now();
 
@@ -42,28 +39,24 @@ impl Stopwatch
 
     /// Returns the number of seconds since the Stopwatch was created.
     #[inline]
-    pub fn secs_elapsed(&self) -> f64
-    {
+    pub fn secs_elapsed(&self) -> f64 {
         self.clock.secs_elapsed_since(&self.start)
     }
 }
 
 /// Allows access to the system clock.
 #[derive(Clone)]
-struct TimeClock
-{
+struct TimeClock {
     #[cfg(target_arch = "wasm32")]
-    performance: WebPerformance
+    performance: WebPerformance,
 }
 
-impl TimeClock
-{
+impl TimeClock {
     /// Creates a new TimeClock.
-    pub fn new() -> Result<Self, BacktraceError<ErrorMessage>>
-    {
+    pub fn new() -> Result<Self, BacktraceError<ErrorMessage>> {
         #[cfg(target_arch = "wasm32")]
         return Ok(Self {
-            performance: WebWindow::new()?.performance()?
+            performance: WebWindow::new()?.performance()?,
         });
 
         #[cfg(not(target_arch = "wasm32"))]
@@ -72,24 +65,22 @@ impl TimeClock
 
     /// Returns a [TimeInstant] representing the current time.
     #[inline]
-    pub fn now(&self) -> TimeInstant
-    {
+    pub fn now(&self) -> TimeInstant {
         #[cfg(target_arch = "wasm32")]
         return TimeInstant {
-            value: self.performance.now()
+            value: self.performance.now(),
         };
 
         #[cfg(not(target_arch = "wasm32"))]
         return TimeInstant {
-            value: Instant::now()
+            value: Instant::now(),
         };
     }
 
     /// Returns the difference in seconds between the current time, and the
     /// provided [TimeInstant].
     #[inline]
-    pub fn secs_elapsed_since(&self, start: &TimeInstant) -> f64
-    {
+    pub fn secs_elapsed_since(&self, start: &TimeInstant) -> f64 {
         #[cfg(target_arch = "wasm32")]
         return (self.now().value - start.value) / 1000.0;
 
@@ -99,11 +90,10 @@ impl TimeClock
 }
 
 /// Represents an instant in time.
-struct TimeInstant
-{
+struct TimeInstant {
     #[cfg(target_arch = "wasm32")]
     value: f64,
 
     #[cfg(not(target_arch = "wasm32"))]
-    value: Instant
+    value: Instant,
 }

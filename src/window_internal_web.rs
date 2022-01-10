@@ -29,23 +29,13 @@ use crate::error::{BacktraceError, ErrorMessage};
 use crate::numeric::RoundFloat;
 use crate::web::{WebCanvasElement, WebCursorType, WebDocument, WebPending, WebWindow};
 use crate::window::{
-    DrawingWindowHandler,
-    EventLoopSendError,
-    KeyScancode,
-    ModifiersState,
-    MouseButton,
-    MouseScrollDistance,
-    UserEventSender,
-    VirtualKeyCode,
-    WindowFullscreenMode,
-    WindowHandler,
-    WindowHelper,
-    WindowStartupInfo
+    DrawingWindowHandler, EventLoopSendError, KeyScancode, ModifiersState, MouseButton,
+    MouseScrollDistance, UserEventSender, VirtualKeyCode, WindowFullscreenMode,
+    WindowHandler, WindowHelper, WindowStartupInfo,
 };
 use crate::GLRenderer;
 
-fn key_code_from_web(code: &str) -> Option<VirtualKeyCode>
-{
+fn key_code_from_web(code: &str) -> Option<VirtualKeyCode> {
     match code {
         "Escape" => Some(VirtualKeyCode::Escape),
         "Digit1" => Some(VirtualKeyCode::Key1),
@@ -197,12 +187,11 @@ fn key_code_from_web(code: &str) -> Option<VirtualKeyCode>
         "BrowserBack" => Some(VirtualKeyCode::WebBack),
         "LaunchMail" => Some(VirtualKeyCode::Mail),
         "MediaSelect" => Some(VirtualKeyCode::MediaSelect),
-        _ => None
+        _ => None,
     }
 }
 
-fn get_scan_code_from_key_code(code: VirtualKeyCode) -> Option<KeyScancode>
-{
+fn get_scan_code_from_key_code(code: VirtualKeyCode) -> Option<KeyScancode> {
     Some(match code {
         VirtualKeyCode::Escape => 0x0001,
         VirtualKeyCode::Key1 => 0x0002,
@@ -366,20 +355,19 @@ fn get_scan_code_from_key_code(code: VirtualKeyCode) -> Option<KeyScancode>
         VirtualKeyCode::Sysrq => return None,
         VirtualKeyCode::Underline => return None,
         VirtualKeyCode::Unlabeled => return None,
-        VirtualKeyCode::Wake => return None
+        VirtualKeyCode::Wake => return None,
     })
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum KeyEventType
-{
+enum KeyEventType {
     Down,
-    Up
+    Up,
 }
 
 pub struct WindowHelperWeb<UserEventType>
 where
-    UserEventType: 'static
+    UserEventType: 'static,
 {
     redraw_pending: RefCell<Option<WebPending>>,
     redraw_request_action: Option<Box<RefCell<dyn FnMut() -> WebPending>>>,
@@ -387,13 +375,11 @@ where
     terminate_loop_action: Option<Box<dyn FnOnce()>>,
     canvas: WebCanvasElement,
     document: WebDocument,
-    window: WebWindow
+    window: WebWindow,
 }
 
-impl<UserEventType: 'static> WindowHelperWeb<UserEventType>
-{
-    fn new(canvas: WebCanvasElement, document: WebDocument, window: WebWindow) -> Self
-    {
+impl<UserEventType: 'static> WindowHelperWeb<UserEventType> {
+    fn new(canvas: WebCanvasElement, document: WebDocument, window: WebWindow) -> Self {
         Self {
             redraw_pending: RefCell::new(None),
             redraw_request_action: None,
@@ -401,41 +387,39 @@ impl<UserEventType: 'static> WindowHelperWeb<UserEventType>
             terminate_loop_action: None,
             canvas,
             document,
-            window
+            window,
         }
     }
 
     pub fn set_redraw_request_action<F>(&mut self, redraw_request_action: F)
     where
-        F: FnMut() -> WebPending + 'static
+        F: FnMut() -> WebPending + 'static,
     {
         self.redraw_request_action = Some(Box::new(RefCell::new(redraw_request_action)));
     }
 
     pub fn set_post_user_event_action<F>(&mut self, post_user_event_action: F)
     where
-        F: FnMut(UserEventType) -> Result<(), BacktraceError<ErrorMessage>> + 'static
+        F: FnMut(UserEventType) -> Result<(), BacktraceError<ErrorMessage>> + 'static,
     {
         self.post_user_event_action = Some(Rc::new(RefCell::new(post_user_event_action)));
     }
 
     pub fn set_terminate_loop_action<F>(&mut self, terminate_loop_action: F)
     where
-        F: FnOnce() + 'static
+        F: FnOnce() + 'static,
     {
         self.terminate_loop_action = Some(Box::new(terminate_loop_action));
     }
 
-    pub fn clear_redraw_pending_flag(&self)
-    {
+    pub fn clear_redraw_pending_flag(&self) {
         if let Some(pending) = self.redraw_pending.borrow_mut().deref_mut() {
             pending.mark_as_triggered()
         }
         self.redraw_pending.replace(None);
     }
 
-    pub fn terminate_loop(&mut self)
-    {
+    pub fn terminate_loop(&mut self) {
         self.redraw_pending.replace(None);
         self.redraw_request_action = None;
         if let Some(action) = self.terminate_loop_action.take() {
@@ -446,17 +430,16 @@ impl<UserEventType: 'static> WindowHelperWeb<UserEventType>
     pub fn set_icon_from_rgba_pixels<S>(
         &self,
         _data: Vec<u8>,
-        _size: S
+        _size: S,
     ) -> Result<(), BacktraceError<ErrorMessage>>
     where
-        S: Into<Vector2<u32>>
+        S: Into<Vector2<u32>>,
     {
         // Do nothing
         Err(ErrorMessage::msg("Cannot set icon for WebCanvas"))
     }
 
-    pub fn set_cursor_visible(&self, visible: bool)
-    {
+    pub fn set_cursor_visible(&self, visible: bool) {
         if visible {
             self.canvas.set_cursor(WebCursorType::Auto);
         } else {
@@ -466,9 +449,8 @@ impl<UserEventType: 'static> WindowHelperWeb<UserEventType>
 
     pub fn set_cursor_grab(
         &self,
-        grabbed: bool
-    ) -> Result<(), BacktraceError<ErrorMessage>>
-    {
+        grabbed: bool,
+    ) -> Result<(), BacktraceError<ErrorMessage>> {
         if grabbed {
             self.canvas.request_pointer_lock();
         } else {
@@ -478,14 +460,12 @@ impl<UserEventType: 'static> WindowHelperWeb<UserEventType>
         Ok(())
     }
 
-    pub fn set_resizable(&self, _resizable: bool)
-    {
+    pub fn set_resizable(&self, _resizable: bool) {
         // Do nothing
     }
 
     #[inline]
-    pub fn request_redraw(&self)
-    {
+    pub fn request_redraw(&self) {
         if self.redraw_request_action.borrow().is_none() {
             log::warn!("Ignoring call to request_redraw() in invalid state");
             return;
@@ -501,13 +481,11 @@ impl<UserEventType: 'static> WindowHelperWeb<UserEventType>
         }
     }
 
-    pub fn set_title(&self, title: &str)
-    {
+    pub fn set_title(&self, title: &str) {
         self.window.document().unwrap().set_title(title);
     }
 
-    pub fn set_fullscreen_mode(&self, mode: WindowFullscreenMode)
-    {
+    pub fn set_fullscreen_mode(&self, mode: WindowFullscreenMode) {
         match mode {
             WindowFullscreenMode::Windowed => {
                 self.document.exit_fullscreen();
@@ -518,37 +496,31 @@ impl<UserEventType: 'static> WindowHelperWeb<UserEventType>
         }
     }
 
-    pub fn set_size_pixels<S: Into<Vector2<u32>>>(&self, _size: S)
-    {
+    pub fn set_size_pixels<S: Into<Vector2<u32>>>(&self, _size: S) {
         // Do nothing
     }
 
-    pub fn set_position_pixels<P: Into<Vector2<i32>>>(&self, _position: P)
-    {
+    pub fn set_position_pixels<P: Into<Vector2<i32>>>(&self, _position: P) {
         // Do nothing
     }
 
-    pub fn set_size_scaled_pixels<S: Into<Vector2<f32>>>(&self, _size: S)
-    {
+    pub fn set_size_scaled_pixels<S: Into<Vector2<f32>>>(&self, _size: S) {
         // Do nothing
     }
 
-    pub fn set_position_scaled_pixels<P: Into<Vector2<f32>>>(&self, _position: P)
-    {
+    pub fn set_position_scaled_pixels<P: Into<Vector2<f32>>>(&self, _position: P) {
         // Do nothing
     }
 
     #[inline]
     #[must_use]
-    pub fn get_scale_factor(&self) -> f64
-    {
+    pub fn get_scale_factor(&self) -> f64 {
         self.window.device_pixel_ratio()
     }
 
-    pub fn create_user_event_sender(&self) -> UserEventSender<UserEventType>
-    {
+    pub fn create_user_event_sender(&self) -> UserEventSender<UserEventType> {
         UserEventSender::new(UserEventSenderWeb::new(
-            self.post_user_event_action.as_ref().unwrap().clone()
+            self.post_user_event_action.as_ref().unwrap().clone(),
         ))
     }
 }
@@ -559,42 +531,37 @@ type UserEventSenderActionType<UserEventType> =
 #[derive(Clone)]
 pub struct UserEventSenderWeb<UserEventType>
 where
-    UserEventType: 'static
+    UserEventType: 'static,
 {
-    action: Rc<RefCell<UserEventSenderActionType<UserEventType>>>
+    action: Rc<RefCell<UserEventSenderActionType<UserEventType>>>,
 }
 
-impl<UserEventType: 'static> UserEventSenderWeb<UserEventType>
-{
-    fn new(action: Rc<RefCell<UserEventSenderActionType<UserEventType>>>) -> Self
-    {
+impl<UserEventType: 'static> UserEventSenderWeb<UserEventType> {
+    fn new(action: Rc<RefCell<UserEventSenderActionType<UserEventType>>>) -> Self {
         Self { action }
     }
 
     #[inline]
-    pub fn send_event(&self, event: UserEventType) -> Result<(), EventLoopSendError>
-    {
+    pub fn send_event(&self, event: UserEventType) -> Result<(), EventLoopSendError> {
         RefCell::borrow_mut(Rc::borrow(&self.action))(event).unwrap();
         Ok(())
     }
 }
 
-pub struct WebCanvasImpl
-{
-    event_listeners_to_clean_up: Rc<RefCell<Vec<WebPending>>>
+pub struct WebCanvasImpl {
+    event_listeners_to_clean_up: Rc<RefCell<Vec<WebPending>>>,
 }
 
-impl WebCanvasImpl
-{
+impl WebCanvasImpl {
     fn handle_key_event<H, UserEventType>(
         event_type: KeyEventType,
         event: KeyboardEvent,
         handler: &Rc<RefCell<DrawingWindowHandler<UserEventType, H>>>,
         helper: &Rc<RefCell<WindowHelper<UserEventType>>>,
-        modifiers: &Rc<RefCell<ModifiersState>>
+        modifiers: &Rc<RefCell<ModifiersState>>,
     ) where
         H: WindowHandler<UserEventType> + 'static,
-        UserEventType: 'static
+        UserEventType: 'static,
     {
         let code: String = event.code();
 
@@ -610,13 +577,13 @@ impl WebCanvasImpl
                     KeyEventType::Down => handler.on_key_down(
                         helper.deref_mut(),
                         Some(virtual_key_code),
-                        scancode
+                        scancode,
                     ),
                     KeyEventType::Up => handler.on_key_up(
                         helper.deref_mut(),
                         Some(virtual_key_code),
-                        scancode
-                    )
+                        scancode,
+                    ),
                 }
             } else {
                 log::warn!(
@@ -640,7 +607,7 @@ impl WebCanvasImpl
             ctrl: event.get_modifier_state("Control"),
             alt: event.get_modifier_state("Alt"),
             shift: event.get_modifier_state("Shift"),
-            logo: event.get_modifier_state("OS")
+            logo: event.get_modifier_state("OS"),
         };
 
         if new_modifiers != *modifiers {
@@ -651,12 +618,12 @@ impl WebCanvasImpl
 
     pub fn new<S, H, UserEventType>(
         element_id: S,
-        handler: H
+        handler: H,
     ) -> Result<Self, BacktraceError<ErrorMessage>>
     where
         S: AsRef<str>,
         H: WindowHandler<UserEventType> + 'static,
-        UserEventType: 'static
+        UserEventType: 'static,
     {
         let window = WebWindow::new()?;
         let document = window.document()?;
@@ -691,7 +658,7 @@ impl WebCanvasImpl
             Rc::new(RefCell::new(WindowHelper::new(WindowHelperWeb::new(
                 canvas.clone(),
                 document.clone(),
-                window.clone()
+                window.clone(),
             ))))
         };
 
@@ -736,12 +703,12 @@ impl WebCanvasImpl
                     let mut pending_events = Vec::new();
                     std::mem::swap(
                         &mut pending_events,
-                        RefCell::borrow_mut(Rc::borrow(&user_event_queue)).deref_mut()
+                        RefCell::borrow_mut(Rc::borrow(&user_event_queue)).deref_mut(),
                     );
                     pending_events.drain(..).for_each(|event| {
                         RefCell::borrow_mut(Rc::borrow(&handler)).on_user_event(
                             RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut(),
-                            event
+                            event,
                         )
                     });
                 }) as Box<dyn FnMut()>))
@@ -800,13 +767,13 @@ impl WebCanvasImpl
 
                         RefCell::borrow_mut(Rc::borrow(&handler)).on_resize(
                             RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut(),
-                            size_unscaled
+                            size_unscaled,
                         );
 
                         RefCell::borrow_mut(Rc::borrow(&handler)).on_draw(
-                            RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut()
+                            RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut(),
                         );
-                    })?
+                    })?,
             );
         }
 
@@ -828,9 +795,9 @@ impl WebCanvasImpl
                         RefCell::borrow_mut(Rc::borrow(&handler))
                             .on_mouse_grab_status_changed(
                                 RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut(),
-                                mouse_grabbed
+                                mouse_grabbed,
                             );
-                    })?
+                    })?,
             );
         }
 
@@ -847,9 +814,9 @@ impl WebCanvasImpl
                         RefCell::borrow_mut(Rc::borrow(&handler))
                             .on_fullscreen_status_changed(
                                 RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut(),
-                                fullscreen
+                                fullscreen,
                             );
-                    })?
+                    })?,
             );
         }
 
@@ -876,10 +843,10 @@ impl WebCanvasImpl
 
                         RefCell::borrow_mut(Rc::borrow(&handler)).on_mouse_move(
                             RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut(),
-                            position
+                            position,
                         );
-                    }
-                )?
+                    },
+                )?,
             );
         }
 
@@ -900,10 +867,10 @@ impl WebCanvasImpl
                         Some(button) => RefCell::borrow_mut(Rc::borrow(&handler))
                             .on_mouse_button_down(
                                 RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut(),
-                                button
-                            )
-                    }
-                )?
+                                button,
+                            ),
+                    },
+                )?,
             );
         }
 
@@ -924,10 +891,10 @@ impl WebCanvasImpl
                         Some(button) => RefCell::borrow_mut(Rc::borrow(&handler))
                             .on_mouse_button_up(
                                 RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut(),
-                                button
-                            )
-                    }
-                )?
+                                button,
+                            ),
+                    },
+                )?,
             );
         }
 
@@ -945,19 +912,19 @@ impl WebCanvasImpl
                             0x00 => MouseScrollDistance::Pixels {
                                 x: event.delta_x(),
                                 y: -event.delta_y(),
-                                z: event.delta_z()
+                                z: event.delta_z(),
                             },
 
                             0x01 => MouseScrollDistance::Lines {
                                 x: event.delta_x(),
                                 y: -event.delta_y(),
-                                z: event.delta_z()
+                                z: event.delta_z(),
                             },
 
                             0x02 => MouseScrollDistance::Pages {
                                 x: event.delta_x(),
                                 y: -event.delta_y(),
-                                z: event.delta_z()
+                                z: event.delta_z(),
                             },
 
                             mode => {
@@ -968,10 +935,10 @@ impl WebCanvasImpl
 
                         handler.borrow_mut().on_mouse_wheel_scroll(
                             helper.borrow_mut().deref_mut(),
-                            delta
+                            delta,
                         );
-                    }
-                )?
+                    },
+                )?,
             );
         }
 
@@ -991,10 +958,10 @@ impl WebCanvasImpl
                             event,
                             &handler,
                             &helper,
-                            &modifier_state
+                            &modifier_state,
                         );
-                    }
-                )?
+                    },
+                )?,
             );
         }
 
@@ -1011,10 +978,10 @@ impl WebCanvasImpl
                             event,
                             &handler,
                             &helper,
-                            &modifier_state
+                            &modifier_state,
                         );
-                    }
-                )?
+                    },
+                )?,
             );
         }
 
@@ -1050,7 +1017,7 @@ impl WebCanvasImpl
 
                     handler.borrow_mut().on_scale_factor_changed(
                         RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut(),
-                        new_dpr
+                        new_dpr,
                     );
 
                     let callback_inner = callback_inner.clone();
@@ -1061,7 +1028,7 @@ impl WebCanvasImpl
                             window
                                 .clone()
                                 .match_media(
-                                    format!("(resolution: {}dppx", new_dpr).as_str()
+                                    format!("(resolution: {}dppx", new_dpr).as_str(),
                                 )
                                 .unwrap()
                                 .register_event_listener_media_event_list_once(
@@ -1069,12 +1036,12 @@ impl WebCanvasImpl
                                     move |_event| {
                                         RefCell::borrow_mut(Rc::borrow(&callback_inner))(
                                         );
-                                    }
+                                    },
                                 )
-                                .unwrap()
-                        )
+                                .unwrap(),
+                        ),
                     );
-                })
+                }),
             ));
 
             RefCell::borrow_mut(Rc::borrow(&callback))();
@@ -1106,7 +1073,7 @@ impl WebCanvasImpl
 
         RefCell::borrow_mut(Rc::borrow(&handler)).on_start(
             RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut(),
-            WindowStartupInfo::new(initial_size_unscaled, initial_dpr)
+            WindowStartupInfo::new(initial_size_unscaled, initial_dpr),
         );
 
         if !terminated.get() {
@@ -1115,27 +1082,24 @@ impl WebCanvasImpl
         }
 
         Ok(WebCanvasImpl {
-            event_listeners_to_clean_up
+            event_listeners_to_clean_up,
         })
     }
 }
 
-impl Drop for WebCanvasImpl
-{
-    fn drop(&mut self)
-    {
+impl Drop for WebCanvasImpl {
+    fn drop(&mut self) {
         log::info!("Unregistering WebCanvasImpl");
         RefCell::borrow_mut(Rc::borrow(&self.event_listeners_to_clean_up)).clear();
     }
 }
 
-fn mouse_button_from_event(event: &MouseEvent) -> Option<MouseButton>
-{
+fn mouse_button_from_event(event: &MouseEvent) -> Option<MouseButton> {
     let button: i16 = event.button();
     match button {
         0 => Some(MouseButton::Left),
         1 => Some(MouseButton::Middle),
         2 => Some(MouseButton::Right),
-        _ => Some(MouseButton::Other(button.try_into().unwrap()))
+        _ => Some(MouseButton::Other(button.try_into().unwrap())),
     }
 }

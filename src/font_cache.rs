@@ -26,24 +26,20 @@ use crate::dimen::Vector2;
 use crate::error::{BacktraceError, Context, ErrorMessage};
 use crate::font;
 use crate::glwrapper::{
-    GLContextManager,
-    GLTexture,
-    GLTextureImageFormatU8,
-    GLTextureSmoothing
+    GLContextManager, GLTexture, GLTextureImageFormatU8, GLTextureSmoothing,
 };
 use crate::numeric::RoundFloat;
 use crate::renderer2d::{Renderer2DAction, Renderer2DVertex};
 use crate::shape::Rectangle;
 use crate::texture_packer::{TexturePacker, TexturePackerError};
 
-pub(crate) trait GlyphCacheInterface
-{
+pub(crate) trait GlyphCacheInterface {
     fn get_renderer2d_actions(
         &self,
         glyph: &font::FormattedGlyph,
         position: Vector2<f32>,
         color: Color,
-        output: &mut Vec<Renderer2DAction>
+        output: &mut Vec<Renderer2DAction>,
     );
 
     fn add_to_cache(&mut self, context: &GLContextManager, glyph: &font::FormattedGlyph);
@@ -52,50 +48,43 @@ pub(crate) trait GlyphCacheInterface
 
     fn prepare_for_draw(
         &mut self,
-        context: &GLContextManager
+        context: &GLContextManager,
     ) -> Result<(), BacktraceError<ErrorMessage>>;
 }
 
 #[repr(transparent)]
 #[derive(Debug, Hash, Eq, PartialEq, Clone)]
-struct QuantizedDimension
-{
+struct QuantizedDimension {
     /// The number of pixels, multiplied by 10
-    inner_value: i32
+    inner_value: i32,
 }
 
-impl QuantizedDimension
-{
-    fn from_pixels(pixels: f32) -> Self
-    {
+impl QuantizedDimension {
+    fn from_pixels(pixels: f32) -> Self {
         QuantizedDimension {
             // Round to nearest
-            inner_value: ((10.0 * pixels) + 0.5) as i32
+            inner_value: ((10.0 * pixels) + 0.5) as i32,
         }
     }
 
-    fn to_pixels(&self) -> f32
-    {
+    fn to_pixels(&self) -> f32 {
         (self.inner_value as f32) / 10.0
     }
 }
 
 #[derive(Debug, Hash, Eq, PartialEq, Clone)]
-struct GlyphCacheKey
-{
+struct GlyphCacheKey {
     font_id: usize,
 
     /// Value between -0.5 and 0.5
     subpixel_offset: (QuantizedDimension, QuantizedDimension),
 
     scale: QuantizedDimension,
-    glyph_id: rusttype::GlyphId
+    glyph_id: rusttype::GlyphId,
 }
 
-impl GlyphCacheKey
-{
-    fn from(font_id: usize, positioned_glyph: &rusttype::PositionedGlyph) -> Self
-    {
+impl GlyphCacheKey {
+    fn from(font_id: usize, positioned_glyph: &rusttype::PositionedGlyph) -> Self {
         // Assuming scale is uniform
         let scale = QuantizedDimension::from_pixels(positioned_glyph.scale().y);
 
@@ -104,45 +93,42 @@ impl GlyphCacheKey
 
         let subpixel_offset = (
             QuantizedDimension::from_pixels(pos.x - pos.x.round()),
-            QuantizedDimension::from_pixels(pos.y - pos.y.round())
+            QuantizedDimension::from_pixels(pos.y - pos.y.round()),
         );
 
         GlyphCacheKey {
             font_id,
             subpixel_offset,
             scale,
-            glyph_id: positioned_glyph.id()
+            glyph_id: positioned_glyph.id(),
         }
     }
 }
 
-pub(crate) struct GlyphCache
-{
+pub(crate) struct GlyphCache {
     last_frame: HashSet<GlyphCacheKey>,
     this_frame: HashSet<GlyphCacheKey>,
 
     cache_entries: HashMap<GlyphCacheKey, GlyphCacheEntry>,
-    textures: Vec<GlyphCacheTexture>
+    textures: Vec<GlyphCacheTexture>,
 }
 
-impl GlyphCacheInterface for GlyphCache
-{
+impl GlyphCacheInterface for GlyphCache {
     #[inline]
     fn get_renderer2d_actions(
         &self,
         glyph: &font::FormattedGlyph,
         position: Vector2<f32>,
         color: Color,
-        output: &mut Vec<Renderer2DAction>
-    )
-    {
+        output: &mut Vec<Renderer2DAction>,
+    ) {
         let positioned_glyph = glyph.glyph();
 
         let key = GlyphCacheKey::from(glyph.font_id(), positioned_glyph);
 
         let entry = match self.cache_entries.get(&key) {
             None => return, // This is valid for many glyphs, e.g. space
-            Some(entry) => entry
+            Some(entry) => entry,
         };
 
         let texture_cache = self.textures.get(entry.texture_id.unwrap()).unwrap();
@@ -161,7 +147,7 @@ impl GlyphCacheInterface for GlyphCache
                 .texture_area
                 .bottom_right()
                 .into_f32()
-                .div(texture_size)
+                .div(texture_size),
         );
 
         let position = position + Vector2::from(positioned_glyph.position());
@@ -170,7 +156,7 @@ impl GlyphCacheInterface for GlyphCache
 
         let screen_region = Rectangle::new(
             screen_region_start,
-            screen_region_start + texture_entry.texture_area.size().into_i32()
+            screen_region_start + texture_entry.texture_area.size().into_i32(),
         )
         .into_f32();
 
@@ -182,23 +168,23 @@ impl GlyphCacheInterface for GlyphCache
                     texture_coord: *texture_region.top_left(),
                     color,
                     texture_mix: 1.0,
-                    circle_mix: 0.0
+                    circle_mix: 0.0,
                 },
                 Renderer2DVertex {
                     position: screen_region.top_right(),
                     texture_coord: texture_region.top_right(),
                     color,
                     texture_mix: 1.0,
-                    circle_mix: 0.0
+                    circle_mix: 0.0,
                 },
                 Renderer2DVertex {
                     position: *screen_region.bottom_right(),
                     texture_coord: *texture_region.bottom_right(),
                     color,
                     texture_mix: 1.0,
-                    circle_mix: 0.0
-                }
-            ]
+                    circle_mix: 0.0,
+                },
+            ],
         });
 
         output.push(Renderer2DAction {
@@ -209,32 +195,31 @@ impl GlyphCacheInterface for GlyphCache
                     texture_coord: *texture_region.bottom_right(),
                     color,
                     texture_mix: 1.0,
-                    circle_mix: 0.0
+                    circle_mix: 0.0,
                 },
                 Renderer2DVertex {
                     position: screen_region.bottom_left(),
                     texture_coord: texture_region.bottom_left(),
                     color,
                     texture_mix: 1.0,
-                    circle_mix: 0.0
+                    circle_mix: 0.0,
                 },
                 Renderer2DVertex {
                     position: *screen_region.top_left(),
                     texture_coord: *texture_region.top_left(),
                     color,
                     texture_mix: 1.0,
-                    circle_mix: 0.0
-                }
-            ]
+                    circle_mix: 0.0,
+                },
+            ],
         });
     }
 
     fn add_to_cache(
         &mut self,
         _context: &GLContextManager,
-        formatted_glyph: &font::FormattedGlyph
-    )
-    {
+        formatted_glyph: &font::FormattedGlyph,
+    ) {
         let key = GlyphCacheKey::from(formatted_glyph.font_id(), formatted_glyph.glyph());
 
         self.this_frame.insert(key.clone());
@@ -255,17 +240,17 @@ impl GlyphCacheInterface for GlyphCache
                     .scaled(rusttype::Scale::uniform(key.scale.to_pixels()))
                     .positioned(rusttype::point(
                         key.subpixel_offset.0.to_pixels(),
-                        key.subpixel_offset.1.to_pixels()
+                        key.subpixel_offset.1.to_pixels(),
                     ));
 
                 let bounding_box = match glyph.pixel_bounding_box() {
                     None => return, // This is valid for some glyphs, e.g. space
-                    Some(bounding_box) => bounding_box
+                    Some(bounding_box) => bounding_box,
                 };
 
                 let bounding_box_size = Vector2::new(
                     bounding_box.width() as u32,
-                    bounding_box.height() as u32
+                    bounding_box.height() as u32,
                 );
 
                 if bounding_box_size.x > GlyphCacheTexture::SIZE
@@ -289,25 +274,23 @@ impl GlyphCacheInterface for GlyphCache
                     glyph_bitmap: Rc::new(bitmap),
                     bounding_box_offset: Vector2::new(
                         bounding_box.min.x,
-                        bounding_box.min.y
+                        bounding_box.min.y,
                     ),
-                    texture_id: None
+                    texture_id: None,
                 });
             }
         }
     }
 
-    fn on_new_frame_start(&mut self)
-    {
+    fn on_new_frame_start(&mut self) {
         self.last_frame.clear();
         std::mem::swap(&mut self.last_frame, &mut self.this_frame);
     }
 
     fn prepare_for_draw(
         &mut self,
-        context: &GLContextManager
-    ) -> Result<(), BacktraceError<ErrorMessage>>
-    {
+        context: &GLContextManager,
+    ) -> Result<(), BacktraceError<ErrorMessage>> {
         if self.try_insert_pending().is_err() {
             // Not enough space. Rearrange everything!
 
@@ -347,7 +330,7 @@ impl GlyphCacheInterface for GlyphCache
                     &mut self.textures,
                     &mut cleared_textures,
                     key,
-                    &entry.glyph_bitmap
+                    &entry.glyph_bitmap,
                 )
                 .map_err(|err| {
                     ErrorMessage::msg_with_cause("Glyph rearrangement failed", err)
@@ -372,26 +355,23 @@ impl GlyphCacheInterface for GlyphCache
     }
 }
 
-impl GlyphCache
-{
-    pub(crate) fn new() -> Self
-    {
+impl GlyphCache {
+    pub(crate) fn new() -> Self {
         Self {
             last_frame: HashSet::new(),
             this_frame: HashSet::new(),
             cache_entries: HashMap::new(),
-            textures: Vec::new()
+            textures: Vec::new(),
         }
     }
 
-    fn try_insert_pending(&mut self) -> Result<(), GlyphCacheTextureAppendError>
-    {
+    fn try_insert_pending(&mut self) -> Result<(), GlyphCacheTextureAppendError> {
         for (key, entry) in &mut self.cache_entries {
             if entry.texture_id == None {
                 let texture_id = Self::try_append_to_existing_texture(
                     &mut self.textures,
                     key,
-                    &entry.glyph_bitmap
+                    &entry.glyph_bitmap,
                 )?;
 
                 entry.texture_id = Some(texture_id);
@@ -404,16 +384,15 @@ impl GlyphCache
     fn try_append_to_existing_texture(
         all_textures: &mut Vec<GlyphCacheTexture>,
         key: &GlyphCacheKey,
-        glyph_bitmap: &Rc<BitmapRGBA>
-    ) -> Result<usize, GlyphCacheTextureAppendError>
-    {
+        glyph_bitmap: &Rc<BitmapRGBA>,
+    ) -> Result<usize, GlyphCacheTextureAppendError> {
         let mut last_error: GlyphCacheTextureAppendError =
             GlyphCacheTextureAppendError::NotEnoughSpace;
 
         for (i, texture) in all_textures.iter_mut().enumerate() {
             match texture.try_append_glyph(key, glyph_bitmap) {
                 Ok(_) => return Ok(i),
-                Err(err) => last_error = err
+                Err(err) => last_error = err,
             }
         }
 
@@ -425,9 +404,8 @@ impl GlyphCache
         current_textures: &mut Vec<GlyphCacheTexture>,
         previous_textures: &mut Vec<GlyphCacheTexture>,
         key: &GlyphCacheKey,
-        glyph_bitmap: &Rc<BitmapRGBA>
-    ) -> Result<usize, BacktraceError<ErrorMessage>>
-    {
+        glyph_bitmap: &Rc<BitmapRGBA>,
+    ) -> Result<usize, BacktraceError<ErrorMessage>> {
         for (i, texture) in current_textures.iter_mut().enumerate() {
             if texture.try_append_glyph(key, glyph_bitmap).is_ok() {
                 return Ok(i);
@@ -457,7 +435,7 @@ impl GlyphCache
             Err(err) => {
                 return Err(ErrorMessage::msg_with_cause(
                     "Failed to create new texture",
-                    err
+                    err,
                 ))
             }
         });
@@ -470,35 +448,30 @@ impl GlyphCache
             Ok(_) => Ok(current_textures.len() - 1),
             Err(err) => Err(ErrorMessage::msg_with_cause(
                 "Internal bug: Could not append to new texture",
-                err
-            ))
+                err,
+            )),
         }
     }
 }
 
-struct BitmapRGBA
-{
+struct BitmapRGBA {
     data: Vec<u8>,
-    size: Vector2<u32>
+    size: Vector2<u32>,
 }
 
-impl BitmapRGBA
-{
+impl BitmapRGBA {
     #[inline]
-    fn new(size: Vector2<u32>) -> Self
-    {
+    fn new(size: Vector2<u32>) -> Self {
         let data = vec![0; (size.x * size.y * 4).try_into().unwrap()];
         BitmapRGBA { data, size }
     }
 
-    fn clear(&mut self)
-    {
+    fn clear(&mut self) {
         self.data.fill(0);
     }
 
     #[inline]
-    fn draw_glyph(&mut self, glyph: &rusttype::PositionedGlyph)
-    {
+    fn draw_glyph(&mut self, glyph: &rusttype::PositionedGlyph) {
         glyph.draw(|x, y, alpha| {
             let start = (4 * (self.size.x * y + x)) as usize;
             self.data[start] = 255;
@@ -509,8 +482,7 @@ impl BitmapRGBA
     }
 
     #[inline]
-    fn draw_bitmap_at(&mut self, bitmap: &Self, position: &Vector2<u32>)
-    {
+    fn draw_bitmap_at(&mut self, bitmap: &Self, position: &Vector2<u32>) {
         let src_w_px: usize = bitmap.size.x.try_into().unwrap();
         let dest_w_px: usize = self.size.x.try_into().unwrap();
 
@@ -534,7 +506,7 @@ impl BitmapRGBA
                 std::ptr::copy_nonoverlapping(
                     bitmap.data.as_ptr().add(src_pos_bytes),
                     self.data.as_mut_ptr().add(dest_pos_bytes),
-                    line_size_bytes
+                    line_size_bytes,
                 );
             }
 
@@ -546,53 +518,46 @@ impl BitmapRGBA
     fn upload_to_texture(
         &self,
         context: &GLContextManager,
-        texture: &GLTexture
-    ) -> Result<(), BacktraceError<ErrorMessage>>
-    {
+        texture: &GLTexture,
+    ) -> Result<(), BacktraceError<ErrorMessage>> {
         texture.set_image_data(
             context,
             GLTextureImageFormatU8::RGBA,
             GLTextureSmoothing::NearestNeighbour,
             &self.size,
-            self.data.as_slice()
+            self.data.as_slice(),
         )
     }
 }
 
 #[derive(Clone)]
-struct GlyphCacheEntry
-{
+struct GlyphCacheEntry {
     glyph_bitmap: Rc<BitmapRGBA>,
     bounding_box_offset: Vector2<i32>,
-    texture_id: Option<usize>
+    texture_id: Option<usize>,
 }
 
-struct GlyphTextureCacheEntry
-{
-    texture_area: Rectangle<u32>
+struct GlyphTextureCacheEntry {
+    texture_area: Rectangle<u32>,
 }
 
-struct GlyphCacheTexture
-{
+struct GlyphCacheTexture {
     bitmap: BitmapRGBA,
     texture: GLTexture,
     invalidated: bool,
 
     packer: TexturePacker,
 
-    entries: HashMap<GlyphCacheKey, GlyphTextureCacheEntry>
+    entries: HashMap<GlyphCacheKey, GlyphTextureCacheEntry>,
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
-pub(crate) enum GlyphCacheTextureAppendError
-{
-    NotEnoughSpace
+pub(crate) enum GlyphCacheTextureAppendError {
+    NotEnoughSpace,
 }
 
-impl Display for GlyphCacheTextureAppendError
-{
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result
-    {
+impl Display for GlyphCacheTextureAppendError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             GlyphCacheTextureAppendError::NotEnoughSpace => {
                 f.write_str("Not enough space")
@@ -603,10 +568,8 @@ impl Display for GlyphCacheTextureAppendError
 
 impl std::error::Error for GlyphCacheTextureAppendError {}
 
-impl From<TexturePackerError> for GlyphCacheTextureAppendError
-{
-    fn from(value: TexturePackerError) -> Self
-    {
+impl From<TexturePackerError> for GlyphCacheTextureAppendError {
+    fn from(value: TexturePackerError) -> Self {
         match value {
             TexturePackerError::NotEnoughSpace => {
                 GlyphCacheTextureAppendError::NotEnoughSpace
@@ -615,16 +578,14 @@ impl From<TexturePackerError> for GlyphCacheTextureAppendError
     }
 }
 
-impl GlyphCacheTexture
-{
+impl GlyphCacheTexture {
     const SIZE: u32 = 1024;
 
-    fn new(context: &GLContextManager) -> Result<Self, BacktraceError<ErrorMessage>>
-    {
+    fn new(context: &GLContextManager) -> Result<Self, BacktraceError<ErrorMessage>> {
         Ok(GlyphCacheTexture {
             bitmap: BitmapRGBA::new(Vector2::new(
                 GlyphCacheTexture::SIZE,
-                GlyphCacheTexture::SIZE
+                GlyphCacheTexture::SIZE,
             )),
 
             texture: context
@@ -635,12 +596,11 @@ impl GlyphCacheTexture
 
             packer: TexturePacker::new(GlyphCacheTexture::SIZE, GlyphCacheTexture::SIZE),
 
-            entries: HashMap::new()
+            entries: HashMap::new(),
         })
     }
 
-    fn clear(&mut self)
-    {
+    fn clear(&mut self) {
         self.invalidated = false;
 
         self.packer =
@@ -654,9 +614,8 @@ impl GlyphCacheTexture
     fn try_append_glyph(
         &mut self,
         key: &GlyphCacheKey,
-        glyph_bitmap: &Rc<BitmapRGBA>
-    ) -> Result<(), GlyphCacheTextureAppendError>
-    {
+        glyph_bitmap: &Rc<BitmapRGBA>,
+    ) -> Result<(), GlyphCacheTextureAppendError> {
         let texture_area = self.packer.try_allocate(glyph_bitmap.size)?;
 
         self.bitmap
@@ -672,9 +631,8 @@ impl GlyphCacheTexture
 
     fn revalidate(
         &mut self,
-        context: &GLContextManager
-    ) -> Result<(), BacktraceError<ErrorMessage>>
-    {
+        context: &GLContextManager,
+    ) -> Result<(), BacktraceError<ErrorMessage>> {
         if self.invalidated {
             self.invalidated = false;
             self.bitmap.upload_to_texture(context, &self.texture)

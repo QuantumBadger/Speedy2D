@@ -26,38 +26,32 @@ use speedy2d::shape::Rectangle;
 use speedy2d::window::UserEventSender;
 use speedy2d::Graphics2D;
 
-pub struct TriggerableEvent<UserEventType: Clone + 'static>
-{
+pub struct TriggerableEvent<UserEventType: Clone + 'static> {
     sender: UserEventSender<UserEventType>,
-    event: UserEventType
+    event: UserEventType,
 }
 
-impl<UserEventType: Clone> TriggerableEvent<UserEventType>
-{
-    pub fn new(sender: &UserEventSender<UserEventType>, event: UserEventType) -> Self
-    {
+impl<UserEventType: Clone> TriggerableEvent<UserEventType> {
+    pub fn new(sender: &UserEventSender<UserEventType>, event: UserEventType) -> Self {
         TriggerableEvent {
             sender: sender.clone(),
-            event
+            event,
         }
     }
 
-    pub fn trigger(&self)
-    {
+    pub fn trigger(&self) {
         self.sender.send_event(self.event.clone()).unwrap()
     }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
-pub enum ButtonMouseState
-{
+pub enum ButtonMouseState {
     None,
     ClickingOnThis,
-    ClickingOnOther
+    ClickingOnOther,
 }
 
-pub struct Button<UserEventType: Clone + 'static>
-{
+pub struct Button<UserEventType: Clone + 'static> {
     text: String,
     font: Font,
     text_formatted: Option<Rc<FormattedTextBlock>>,
@@ -65,11 +59,10 @@ pub struct Button<UserEventType: Clone + 'static>
     position: Rectangle,
     currently_hovering: bool,
     mouse_state: ButtonMouseState,
-    action: TriggerableEvent<UserEventType>
+    action: TriggerableEvent<UserEventType>,
 }
 
-impl<UserEventType: Clone + 'static> Button<UserEventType>
-{
+impl<UserEventType: Clone + 'static> Button<UserEventType> {
     const TEXT_SIZE: f32 = 16.0;
     const PADDING: f32 = 10.0;
 
@@ -81,9 +74,8 @@ impl<UserEventType: Clone + 'static> Button<UserEventType>
     pub fn new<S: AsRef<str>>(
         text: S,
         font: Font,
-        action: TriggerableEvent<UserEventType>
-    ) -> Self
-    {
+        action: TriggerableEvent<UserEventType>,
+    ) -> Self {
         Self {
             text: String::from(text.as_ref()),
             font,
@@ -92,17 +84,15 @@ impl<UserEventType: Clone + 'static> Button<UserEventType>
             position: Rectangle::new(Vector2::ZERO, Vector2::ZERO),
             currently_hovering: false,
             mouse_state: ButtonMouseState::None,
-            action
+            action,
         }
     }
 
-    pub fn on_mouse_move(&mut self, position: Vector2<f32>)
-    {
+    pub fn on_mouse_move(&mut self, position: Vector2<f32>) {
         self.currently_hovering = self.position.contains(position);
     }
 
-    pub fn on_mouse_left_down(&mut self)
-    {
+    pub fn on_mouse_left_down(&mut self) {
         self.mouse_state = if self.currently_hovering {
             ButtonMouseState::ClickingOnThis
         } else {
@@ -110,8 +100,7 @@ impl<UserEventType: Clone + 'static> Button<UserEventType>
         }
     }
 
-    pub fn on_mouse_left_up(&mut self)
-    {
+    pub fn on_mouse_left_up(&mut self) {
         if self.mouse_state == ButtonMouseState::ClickingOnThis && self.currently_hovering
         {
             log::info!("Clicked: {}", self.text);
@@ -121,12 +110,11 @@ impl<UserEventType: Clone + 'static> Button<UserEventType>
         self.mouse_state = ButtonMouseState::None;
     }
 
-    pub fn layout(&mut self, top_left: Vector2<f32>, scale: f32)
-    {
+    pub fn layout(&mut self, top_left: Vector2<f32>, scale: f32) {
         let text_formatted = self.font.layout_text(
             self.text.as_str(),
             Self::TEXT_SIZE * scale,
-            TextOptions::new()
+            TextOptions::new(),
         );
 
         self.text_formatted = Some(text_formatted.clone());
@@ -136,26 +124,25 @@ impl<UserEventType: Clone + 'static> Button<UserEventType>
             (top_left
                 + text_formatted.size()
                 + Vector2::new(Self::PADDING, Self::PADDING) * 2.0 * scale)
-                .round()
+                .round(),
         );
 
         self.text_position =
             top_left + Vector2::new(Self::PADDING, Self::PADDING) * scale;
     }
 
-    pub fn draw(&mut self, graphics: &mut Graphics2D)
-    {
+    pub fn draw(&mut self, graphics: &mut Graphics2D) {
         let color = if self.currently_hovering {
             match self.mouse_state {
                 ButtonMouseState::None => Self::COLOR_HOVER,
                 ButtonMouseState::ClickingOnThis => Self::COLOR_CLICK,
-                ButtonMouseState::ClickingOnOther => Self::COLOR_NORMAL
+                ButtonMouseState::ClickingOnOther => Self::COLOR_NORMAL,
             }
         } else {
             match self.mouse_state {
                 ButtonMouseState::None => Self::COLOR_NORMAL,
                 ButtonMouseState::ClickingOnThis => Self::COLOR_HOVER,
-                ButtonMouseState::ClickingOnOther => Self::COLOR_NORMAL
+                ButtonMouseState::ClickingOnOther => Self::COLOR_NORMAL,
             }
         };
 
@@ -163,44 +150,43 @@ impl<UserEventType: Clone + 'static> Button<UserEventType>
         graphics.draw_text(
             self.text_position,
             Self::COLOR_TEXT,
-            self.text_formatted.as_ref().unwrap()
+            self.text_formatted.as_ref().unwrap(),
         );
     }
 
-    pub fn width(&self) -> f32
-    {
+    pub fn width(&self) -> f32 {
         self.position.width()
     }
 }
 
-pub struct ButtonGroup<UserEventType: Clone + 'static>
-{
+pub struct ButtonGroup<UserEventType: Clone + 'static> {
     buttons: Vec<Button<UserEventType>>,
     layout_position: Option<Vector2<f32>>,
-    layout_scale: Option<f32>
+    layout_scale: Option<f32>,
 }
 
-impl<UserEventType: Clone + 'static> ButtonGroup<UserEventType>
-{
+impl<UserEventType: Clone + 'static> ButtonGroup<UserEventType> {
     const GAP: f32 = 10.0;
 
-    pub fn new() -> Self
-    {
+    pub fn new() -> Self {
         Self {
             buttons: Vec::new(),
             layout_position: None,
-            layout_scale: None
+            layout_scale: None,
         }
     }
 
-    pub fn add(&mut self, button: Button<UserEventType>)
-    {
+    pub fn add(&mut self, button: Button<UserEventType>) {
         self.buttons.push(button);
         self.layout_position = None;
     }
 
-    pub fn draw(&mut self, graphics: &mut Graphics2D, top_left: Vector2<f32>, scale: f32)
-    {
+    pub fn draw(
+        &mut self,
+        graphics: &mut Graphics2D,
+        top_left: Vector2<f32>,
+        scale: f32,
+    ) {
         if self.layout_position != Some(top_left) || self.layout_scale != Some(scale) {
             let mut x_pos = 0.0;
 
@@ -218,22 +204,19 @@ impl<UserEventType: Clone + 'static> ButtonGroup<UserEventType>
         }
     }
 
-    pub fn on_mouse_move(&mut self, position: Vector2<f32>)
-    {
+    pub fn on_mouse_move(&mut self, position: Vector2<f32>) {
         for button in &mut self.buttons {
             button.on_mouse_move(position)
         }
     }
 
-    pub fn on_mouse_left_down(&mut self)
-    {
+    pub fn on_mouse_left_down(&mut self) {
         for button in &mut self.buttons {
             button.on_mouse_left_down()
         }
     }
 
-    pub fn on_mouse_left_up(&mut self)
-    {
+    pub fn on_mouse_left_up(&mut self) {
         for button in &mut self.buttons {
             button.on_mouse_left_up()
         }

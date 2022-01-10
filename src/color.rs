@@ -17,16 +17,14 @@
 /// A struct representing a color with red, green, blue, and alpha components.
 /// Each component is stored as a float.
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub struct Color
-{
+pub struct Color {
     r: f32,
     g: f32,
     b: f32,
-    a: f32
+    a: f32,
 }
 
-impl Color
-{
+impl Color {
     /// Color constant for transparency, with the alpha value set to zero.
     pub const TRANSPARENT: Color = Color::from_rgba(0.0, 0.0, 0.0, 0.0);
 
@@ -66,8 +64,7 @@ impl Color
     /// Creates a color with the specified components, including an alpha
     /// component. Each component should be in the range `0.0` to `1.0`.
     #[inline]
-    pub const fn from_rgba(r: f32, g: f32, b: f32, a: f32) -> Self
-    {
+    pub const fn from_rgba(r: f32, g: f32, b: f32, a: f32) -> Self {
         Color { r, g, b, a }
     }
 
@@ -75,21 +72,19 @@ impl Color
     /// be set to 1.0 (full opacity). Each component should be in the range
     /// `0.0` to `1.0`.
     #[inline]
-    pub const fn from_rgb(r: f32, g: f32, b: f32) -> Self
-    {
+    pub const fn from_rgb(r: f32, g: f32, b: f32) -> Self {
         Color { r, g, b, a: 1.0 }
     }
 
     /// Creates a color with the specified components, including an alpha
     /// component. Each component should be in the range `0` to `255`.
     #[inline]
-    pub fn from_int_rgba(r: u8, g: u8, b: u8, a: u8) -> Self
-    {
+    pub fn from_int_rgba(r: u8, g: u8, b: u8, a: u8) -> Self {
         Color {
             r: r as f32 / 255.0,
             g: g as f32 / 255.0,
             b: b as f32 / 255.0,
-            a: a as f32 / 255.0
+            a: a as f32 / 255.0,
         }
     }
 
@@ -97,13 +92,12 @@ impl Color
     /// be set to 255 (full opacity). Each component should be in the range
     /// `0` to `255`.
     #[inline]
-    pub fn from_int_rgb(r: u8, g: u8, b: u8) -> Self
-    {
+    pub fn from_int_rgb(r: u8, g: u8, b: u8) -> Self {
         Color {
             r: r as f32 / 255.0,
             g: g as f32 / 255.0,
             b: b as f32 / 255.0,
-            a: 1.0
+            a: 1.0,
         }
     }
 
@@ -120,13 +114,12 @@ impl Color
     /// Note: If you don't specify the alpha component, the color will be
     /// transparent.
     #[inline]
-    pub fn from_hex_argb(argb: u32) -> Self
-    {
+    pub fn from_hex_argb(argb: u32) -> Self {
         Color::from_int_rgba(
             (argb >> 16) as u8,
             (argb >> 8) as u8,
             argb as u8,
-            (argb >> 24) as u8
+            (argb >> 24) as u8,
         )
     }
 
@@ -144,32 +137,28 @@ impl Color
     /// integer, it will be ignored. See [Color::from_hex_argb] if you wish to
     /// specify the alpha component.
     #[inline]
-    pub fn from_hex_rgb(rgb: u32) -> Self
-    {
+    pub fn from_hex_rgb(rgb: u32) -> Self {
         Color::from_int_rgb((rgb >> 16) as u8, (rgb >> 8) as u8, rgb as u8)
     }
 
     /// Returns the red component of the color, as a value in the range `0.0` to
     /// `1.0`.
     #[inline]
-    pub const fn r(&self) -> f32
-    {
+    pub const fn r(&self) -> f32 {
         self.r
     }
 
     /// Returns the green component of the color, as a value in the range `0.0`
     /// to `1.0`.
     #[inline]
-    pub const fn g(&self) -> f32
-    {
+    pub const fn g(&self) -> f32 {
         self.g
     }
 
     /// Returns the blue component of the color, as a value in the range `0.0`
     /// to `1.0`.
     #[inline]
-    pub const fn b(&self) -> f32
-    {
+    pub const fn b(&self) -> f32 {
         self.b
     }
 
@@ -177,8 +166,7 @@ impl Color
     /// to `1.0`. The value `0.0` is fully transparent, and the value `1.0`
     /// is fully opaque.
     #[inline]
-    pub const fn a(&self) -> f32
-    {
+    pub const fn a(&self) -> f32 {
         self.a
     }
 
@@ -195,20 +183,17 @@ impl Color
     /// red * 0.299 + green * 0.587 + blue * 0.114
     /// # ;
     /// ```
-    pub fn subjective_brightness(&self) -> f32
-    {
+    pub fn subjective_brightness(&self) -> f32 {
         self.r * 0.299 + self.g * 0.587 + self.b * 0.114
     }
 }
 
 #[cfg(test)]
-mod tests
-{
+mod tests {
     use super::*;
 
     #[test]
-    fn test_from_hex()
-    {
+    fn test_from_hex() {
         // We're comparing floats for equality here, which is normally a bad idea, but
         // here the result should be deterministic as it's computed the same way both
         // times.

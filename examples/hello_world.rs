@@ -23,8 +23,7 @@ use speedy2d::font::{Font, FormattedTextBlock, TextLayout, TextOptions};
 use speedy2d::window::{WindowHandler, WindowHelper};
 use speedy2d::{Graphics2D, Window};
 
-fn main()
-{
+fn main() {
     simple_logger::SimpleLogger::new().init().unwrap();
 
     let window = Window::new_centered("Speedy2D: Hello World", (640, 240)).unwrap();
@@ -36,15 +35,12 @@ fn main()
     window.run_loop(MyWindowHandler { text })
 }
 
-struct MyWindowHandler
-{
-    text: Rc<FormattedTextBlock>
+struct MyWindowHandler {
+    text: Rc<FormattedTextBlock>,
 }
 
-impl WindowHandler for MyWindowHandler
-{
-    fn on_draw(&mut self, helper: &mut WindowHelper, graphics: &mut Graphics2D)
-    {
+impl WindowHandler for MyWindowHandler {
+    fn on_draw(&mut self, helper: &mut WindowHelper, graphics: &mut Graphics2D) {
         graphics.clear_screen(Color::WHITE);
 
         graphics.draw_circle((150.0, 120.0), 75.0, Color::from_rgb(0.8, 0.9, 1.0));

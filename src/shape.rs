@@ -22,101 +22,86 @@ use crate::dimen::Vector2;
 /// top left vertex, and the bottom right vertex.
 #[derive(Debug, PartialEq, Clone)]
 #[repr(C)]
-pub struct Rectangle<T = f32>
-{
+pub struct Rectangle<T = f32> {
     top_left: Vector2<T>,
-    bottom_right: Vector2<T>
+    bottom_right: Vector2<T>,
 }
 
-impl<T> Rectangle<T>
-{
+impl<T> Rectangle<T> {
     /// Constructs a new `Rectangle`. The top left vertex must be above and to
     /// the left of the bottom right vertex.
     #[inline]
-    pub const fn new(top_left: Vector2<T>, bottom_right: Vector2<T>) -> Self
-    {
+    pub const fn new(top_left: Vector2<T>, bottom_right: Vector2<T>) -> Self {
         Rectangle {
             top_left,
-            bottom_right
+            bottom_right,
         }
     }
 
     /// Constructs a new `Rectangle`. The top left vertex must be above and to
     /// the left of the bottom right vertex.
     #[inline]
-    pub fn from_tuples(top_left: (T, T), bottom_right: (T, T)) -> Self
-    {
+    pub fn from_tuples(top_left: (T, T), bottom_right: (T, T)) -> Self {
         Rectangle {
             top_left: Vector2::new(top_left.0, top_left.1),
-            bottom_right: Vector2::new(bottom_right.0, bottom_right.1)
+            bottom_right: Vector2::new(bottom_right.0, bottom_right.1),
         }
     }
 
     /// Returns a reference to the top left vertex.
     #[inline]
-    pub const fn top_left(&self) -> &Vector2<T>
-    {
+    pub const fn top_left(&self) -> &Vector2<T> {
         &self.top_left
     }
 
     /// Returns a reference to the bottom right vertex.
     #[inline]
-    pub const fn bottom_right(&self) -> &Vector2<T>
-    {
+    pub const fn bottom_right(&self) -> &Vector2<T> {
         &self.bottom_right
     }
 }
 
-impl<T: Copy> Rectangle<T>
-{
+impl<T: Copy> Rectangle<T> {
     /// Returns a vector representing the top right vertex.
     #[inline]
-    pub fn top_right(&self) -> Vector2<T>
-    {
+    pub fn top_right(&self) -> Vector2<T> {
         Vector2::new(self.bottom_right.x, self.top_left.y)
     }
 
     /// Returns a vector representing the bottom left vertex.
     #[inline]
-    pub fn bottom_left(&self) -> Vector2<T>
-    {
+    pub fn bottom_left(&self) -> Vector2<T> {
         Vector2::new(self.top_left.x, self.bottom_right.y)
     }
 }
 
-impl<T: std::ops::Sub<Output = T> + Copy> Rectangle<T>
-{
+impl<T: std::ops::Sub<Output = T> + Copy> Rectangle<T> {
     /// Returns the width of the rectangle.
     #[inline]
-    pub fn width(&self) -> T
-    {
+    pub fn width(&self) -> T {
         self.bottom_right.x - self.top_left.x
     }
 
     /// Returns the height of the rectangle.
     #[inline]
-    pub fn height(&self) -> T
-    {
+    pub fn height(&self) -> T {
         self.bottom_right.y - self.top_left.y
     }
 
     /// Returns a `Vector2` containing the width and height of the rectangle.
     #[inline]
-    pub fn size(&self) -> Vector2<T>
-    {
+    pub fn size(&self) -> Vector2<T> {
         Vector2::new(self.width(), self.height())
     }
 }
 
-impl<T: PartialOrd<T> + Copy> Rectangle<T>
-{
+impl<T: PartialOrd<T> + Copy> Rectangle<T> {
     /// Returns true if the specified point is inside this rectangle. This is
     /// inclusive of the top and left coordinates, and exclusive of the bottom
     /// and right coordinates.
     #[inline]
     #[must_use]
-    pub fn contains(&self, point: Vector2<T>) -> bool
-    {
+    pub fn contains(&self, point: Vector2<T>) -> bool {
         point.x >= self.top_left.x
             && point.y >= self.top_left.y
             && point.x < self.bottom_right.x
@@ -124,46 +109,39 @@ impl<T: PartialOrd<T> + Copy> Rectangle<T>
     }
 }
 
-impl<T: PartialEq> Rectangle<T>
-{
+impl<T: PartialEq> Rectangle<T> {
     /// Returns `true` if the rectangle has zero area.
     #[inline]
-    pub fn is_zero_area(&self) -> bool
-    {
+    pub fn is_zero_area(&self) -> bool {
         self.top_left.x == self.bottom_right.x || self.top_left.y == self.bottom_right.y
     }
 }
 
 impl<T: Copy> Rectangle<T>
 where
-    Vector2<T>: std::ops::Add<Output = Vector2<T>>
+    Vector2<T>: std::ops::Add<Output = Vector2<T>>,
 {
     /// Returns a new rectangle, whose vertices are offset relative to the
     /// current rectangle by the specified amount. This is equivalent to
     /// adding the specified vector to each vertex.
     #[inline]
-    pub fn with_offset(&self, offset: Vector2<T>) -> Self
-    {
+    pub fn with_offset(&self, offset: Vector2<T>) -> Self {
         Rectangle::new(self.top_left + offset, self.bottom_right + offset)
     }
 }
 
-impl<T> From<rusttype::Rect<T>> for Rectangle<T>
-{
-    fn from(rect: Rect<T>) -> Self
-    {
+impl<T> From<rusttype::Rect<T>> for Rectangle<T> {
+    fn from(rect: Rect<T>) -> Self {
         Rectangle::new(Vector2::from(rect.min), Vector2::from(rect.max))
     }
 }
 
-impl<T: num_traits::AsPrimitive<f32>> Rectangle<T>
-{
+impl<T: num_traits::AsPrimitive<f32>> Rectangle<T> {
     /// Returns a new rectangle where the coordinates have been cast to `f32`
     /// values, using the `as` operator.
     #[inline]
     #[must_use]
-    pub fn into_f32(self) -> Rectangle<f32>
-    {
+    pub fn into_f32(self) -> Rectangle<f32> {
         Rectangle::new(self.top_left.into_f32(), self.bottom_right.into_f32())
     }
 }

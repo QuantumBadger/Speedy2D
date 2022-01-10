@@ -27,100 +27,79 @@ use crate::dimen::Vector2;
 use crate::error::{BacktraceError, Context, ErrorMessage};
 use crate::glbackend::constants::*;
 use crate::glbackend::types::{
-    GLTypeBuffer,
-    GLTypeProgram,
-    GLTypeShader,
-    GLTypeTexture,
-    GLTypeUniformLocation,
-    GLenum,
-    GLint,
-    GLuint
+    GLTypeBuffer, GLTypeProgram, GLTypeShader, GLTypeTexture, GLTypeUniformLocation,
+    GLenum, GLint, GLuint,
 };
 use crate::glbackend::GLBackend;
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
 #[allow(dead_code)]
-pub enum GLVersion
-{
+pub enum GLVersion {
     OpenGL2_0,
-    WebGL2_0
+    WebGL2_0,
 }
 
-impl From<TryFromIntError> for BacktraceError<ErrorMessage>
-{
-    fn from(_: TryFromIntError) -> Self
-    {
+impl From<TryFromIntError> for BacktraceError<ErrorMessage> {
+    fn from(_: TryFromIntError) -> Self {
         ErrorMessage::msg("Integer conversion failed/out of bounds")
     }
 }
 
 fn gl_check_error_always(
-    context: &GLContextManager
-) -> Result<(), BacktraceError<ErrorMessage>>
-{
+    context: &GLContextManager,
+) -> Result<(), BacktraceError<ErrorMessage>> {
     context.with_gl_backend(|backend| backend.gl_check_error_always())
 }
 
-fn gl_clear_and_log_old_error(context: &GLContextManager)
-{
+fn gl_clear_and_log_old_error(context: &GLContextManager) {
     context.with_gl_backend(|backend| backend.gl_clear_and_log_old_error())
 }
 
-trait GLHandleOwner<HandleType: GLHandleId>
-{
+trait GLHandleOwner<HandleType: GLHandleId> {
     fn get_handle(&self) -> HandleType::HandleRawType;
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
-enum GLHandleType
-{
+enum GLHandleType {
     Program,
     Shader,
     Buffer,
-    Texture
+    Texture,
 }
 
-trait GLHandleId: Debug + Hash + PartialEq + Eq
-{
+trait GLHandleId: Debug + Hash + PartialEq + Eq {
     type HandleRawType;
     fn delete(&self, context: &GLContextManager);
 }
 
 #[derive(Debug, Hash, PartialEq, Eq)]
-struct GLHandleTypeProgram
-{
-    handle: GLTypeProgram
+struct GLHandleTypeProgram {
+    handle: GLTypeProgram,
 }
 
 #[derive(Debug, Hash, PartialEq, Eq)]
-struct GLHandleTypeShader
-{
-    handle: GLTypeShader
+struct GLHandleTypeShader {
+    handle: GLTypeShader,
 }
 
 #[derive(Debug, Hash, PartialEq, Eq)]
-struct GLHandleTypeBuffer
-{
-    handle: GLTypeBuffer
+struct GLHandleTypeBuffer {
+    handle: GLTypeBuffer,
 }
 
 #[derive(Debug, Hash, PartialEq, Eq)]
-struct GLHandleTypeTexture
-{
-    handle: GLTypeTexture
+struct GLHandleTypeTexture {
+    handle: GLTypeTexture,
 }
 
-struct GLHandle<HandleType: GLHandleId>
-{
+struct GLHandle<HandleType: GLHandleId> {
     context: Weak<RefCell<GLContextManagerState>>,
     handle: HandleType,
-    handle_type: GLHandleType
+    handle_type: GLHandleType,
 }
 
-impl<HandleType: GLHandleId> Debug for GLHandle<HandleType>
-{
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result
-    {
+impl<HandleType: GLHandleId> Debug for GLHandle<HandleType> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("GLHandle")
             .field("handle", &self.handle)
             .field("handle_type", &self.handle_type)
@@ -128,19 +107,15 @@ impl<HandleType: GLHandleId> Debug for GLHandle<HandleType>
     }
 }
 
-impl<HandleType: GLHandleId> std::hash::Hash for GLHandle<HandleType>
-{
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H)
-    {
+impl<HandleType: GLHandleId> std::hash::Hash for GLHandle<HandleType> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.handle.hash(state);
         self.handle_type.hash(state);
     }
 }
 
-impl<HandleType: GLHandleId> PartialEq for GLHandle<HandleType>
-{
-    fn eq(&self, other: &Self) -> bool
-    {
+impl<HandleType: GLHandleId> PartialEq for GLHandle<HandleType> {
+    fn eq(&self, other: &Self) -> bool {
         match self.context.upgrade() {
             None => return false,
             Some(self_context) => match other.context.upgrade() {
@@ -151,7 +126,7 @@ impl<HandleType: GLHandleId> PartialEq for GLHandle<HandleType>
                         return false;
                     }
                 }
-            }
+            },
         }
 
         self.handle == other.handle && self.handle_type == other.handle_type
@@ -160,15 +135,14 @@ impl<HandleType: GLHandleId> PartialEq for GLHandle<HandleType>
 
 impl<HandleType: GLHandleId> Eq for GLHandle<HandleType> {}
 
-impl<HandleType: GLHandleId> GLHandle<HandleType>
-{
+impl<HandleType: GLHandleId> GLHandle<HandleType> {
     fn wrap<F>(
         context: &GLContextManager,
         handle_type: GLHandleType,
-        handle_creator: F
+        handle_creator: F,
     ) -> Result<Self, BacktraceError<ErrorMessage>>
     where
-        F: FnOnce() -> Result<HandleType, BacktraceError<ErrorMessage>>
+        F: FnOnce() -> Result<HandleType, BacktraceError<ErrorMessage>>,
     {
         match handle_type {
             GLHandleType::Program => gl_clear_and_log_old_error(context),
@@ -189,117 +163,97 @@ impl<HandleType: GLHandleId> GLHandle<HandleType>
         Ok(GLHandle {
             context: Rc::downgrade(&context.state),
             handle,
-            handle_type
+            handle_type,
         })
     }
 
     #[inline]
     #[must_use]
-    fn obtain_context_if_valid(&self) -> Option<GLContextManager>
-    {
+    fn obtain_context_if_valid(&self) -> Option<GLContextManager> {
         obtain_context_from_weak_if_valid(&self.context)
     }
 }
 
-impl<HandleType: GLHandleId> Drop for GLHandle<HandleType>
-{
-    fn drop(&mut self)
-    {
+impl<HandleType: GLHandleId> Drop for GLHandle<HandleType> {
+    fn drop(&mut self) {
         if let Some(context) = self.obtain_context_if_valid() {
             self.handle.delete(&context);
         }
     }
 }
 
-impl GLHandleId for GLHandleTypeProgram
-{
+impl GLHandleId for GLHandleTypeProgram {
     type HandleRawType = GLTypeProgram;
 
-    fn delete(&self, context: &GLContextManager)
-    {
+    fn delete(&self, context: &GLContextManager) {
         context
             .with_gl_backend(|backend| unsafe { backend.gl_delete_program(self.handle) });
     }
 }
 
-impl GLHandleId for GLHandleTypeShader
-{
+impl GLHandleId for GLHandleTypeShader {
     type HandleRawType = GLTypeShader;
 
-    fn delete(&self, context: &GLContextManager)
-    {
+    fn delete(&self, context: &GLContextManager) {
         context
             .with_gl_backend(|backend| unsafe { backend.gl_delete_shader(self.handle) });
     }
 }
 
-impl GLHandleId for GLHandleTypeBuffer
-{
+impl GLHandleId for GLHandleTypeBuffer {
     type HandleRawType = GLTypeBuffer;
 
-    fn delete(&self, context: &GLContextManager)
-    {
+    fn delete(&self, context: &GLContextManager) {
         context
             .with_gl_backend(|backend| unsafe { backend.gl_delete_buffer(self.handle) });
     }
 }
 
-impl GLHandleId for GLHandleTypeTexture
-{
+impl GLHandleId for GLHandleTypeTexture {
     type HandleRawType = GLTypeTexture;
 
-    fn delete(&self, context: &GLContextManager)
-    {
+    fn delete(&self, context: &GLContextManager) {
         context
             .with_gl_backend(|backend| unsafe { backend.gl_delete_texture(self.handle) });
     }
 }
 
 #[derive(Debug)]
-pub struct GLProgram
-{
+pub struct GLProgram {
     handle: GLHandle<GLHandleTypeProgram>,
-    attribute_handles: HashMap<&'static str, GLAttributeHandle>
+    attribute_handles: HashMap<&'static str, GLAttributeHandle>,
 }
 
-impl Hash for GLProgram
-{
-    fn hash<H: Hasher>(&self, state: &mut H)
-    {
+impl Hash for GLProgram {
+    fn hash<H: Hasher>(&self, state: &mut H) {
         self.handle.hash(state);
     }
 }
 
-impl PartialEq for GLProgram
-{
-    fn eq(&self, other: &Self) -> bool
-    {
+impl PartialEq for GLProgram {
+    fn eq(&self, other: &Self) -> bool {
         std::ptr::eq(self, other)
     }
 }
 
 impl Eq for GLProgram {}
 
-impl GLHandleOwner<GLHandleTypeProgram> for GLProgram
-{
-    fn get_handle(&self) -> <GLHandleTypeProgram as GLHandleId>::HandleRawType
-    {
+impl GLHandleOwner<GLHandleTypeProgram> for GLProgram {
+    fn get_handle(&self) -> <GLHandleTypeProgram as GLHandleId>::HandleRawType {
         self.handle.handle.handle
     }
 }
 
-impl GLProgram
-{
-    fn new(context: &GLContextManager) -> Result<Self, BacktraceError<ErrorMessage>>
-    {
+impl GLProgram {
+    fn new(context: &GLContextManager) -> Result<Self, BacktraceError<ErrorMessage>> {
         context.with_gl_backend(|backend| {
             Ok(GLProgram {
                 handle: GLHandle::wrap(context, GLHandleType::Program, || unsafe {
                     Ok(GLHandleTypeProgram {
-                        handle: backend.gl_create_program()?
+                        handle: backend.gl_create_program()?,
                     })
                 })?,
-                attribute_handles: HashMap::new()
+                attribute_handles: HashMap::new(),
             })
         })
     }
@@ -307,9 +261,8 @@ impl GLProgram
     fn attach_shader(
         &mut self,
         context: &GLContextManager,
-        shader: &GLShader
-    ) -> Result<(), BacktraceError<ErrorMessage>>
-    {
+        shader: &GLShader,
+    ) -> Result<(), BacktraceError<ErrorMessage>> {
         context.with_gl_backend(|backend| unsafe {
             backend.gl_attach_shader(self.get_handle(), shader.get_handle());
         });
@@ -323,9 +276,8 @@ impl GLProgram
         context: &GLContextManager,
         vertex_shader: &GLShader,
         fragment_shader: &GLShader,
-        attribute_names: impl IntoIterator<Item = &'static &'static str>
-    ) -> Result<Self, BacktraceError<ErrorMessage>>
-    {
+        attribute_names: impl IntoIterator<Item = &'static &'static str>,
+    ) -> Result<Self, BacktraceError<ErrorMessage>> {
         gl_clear_and_log_old_error(context);
 
         let mut program = GLProgram::new(context)?;
@@ -356,15 +308,14 @@ impl GLProgram
         for attribute_name in attribute_names.into_iter() {
             program.attribute_handles.insert(
                 attribute_name.as_ref(),
-                program.get_attribute_handle(attribute_name.as_ref())?
+                program.get_attribute_handle(attribute_name.as_ref())?,
             );
         }
 
         Ok(program)
     }
 
-    fn enable(&self, context: &GLContextManager)
-    {
+    fn enable(&self, context: &GLContextManager) {
         context.with_gl_backend(|backend| {
             unsafe {
                 backend.gl_use_program(self.get_handle());
@@ -378,8 +329,7 @@ impl GLProgram
         });
     }
 
-    fn disable(&self, context: &GLContextManager)
-    {
+    fn disable(&self, context: &GLContextManager) {
         context.with_gl_backend(|backend| {
             for attribute in self.attribute_handles.values() {
                 unsafe {
@@ -391,9 +341,8 @@ impl GLProgram
 
     pub fn get_attribute_handle(
         &self,
-        name: &str
-    ) -> Result<GLAttributeHandle, BacktraceError<ErrorMessage>>
-    {
+        name: &str,
+    ) -> Result<GLAttributeHandle, BacktraceError<ErrorMessage>> {
         let context = self
             .handle
             .obtain_context_if_valid()
@@ -410,16 +359,15 @@ impl GLProgram
                 "Attribute handle {} is invalid",
                 name
             ))),
-            Some(handle) => Ok(GLAttributeHandle { handle })
+            Some(handle) => Ok(GLAttributeHandle { handle }),
         }
     }
 
     pub fn get_uniform_handle(
         &self,
         context: &GLContextManager,
-        name: &str
-    ) -> Result<GLUniformHandle, BacktraceError<ErrorMessage>>
-    {
+        name: &str,
+    ) -> Result<GLUniformHandle, BacktraceError<ErrorMessage>> {
         if !context.is_valid() {
             return Err(ErrorMessage::msg("GL context no longer valid"));
         }
@@ -435,66 +383,57 @@ impl GLProgram
                 "Uniform handle {} is invalid",
                 name
             ))),
-            Some(handle) => Ok(GLUniformHandle { handle })
+            Some(handle) => Ok(GLUniformHandle { handle }),
         }
     }
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
-pub enum GLShaderType
-{
+pub enum GLShaderType {
     Vertex,
-    Fragment
+    Fragment,
 }
 
-impl GLShaderType
-{
-    fn gl_constant(&self) -> GLenum
-    {
+impl GLShaderType {
+    fn gl_constant(&self) -> GLenum {
         match self {
             GLShaderType::Vertex => GL_VERTEX_SHADER,
-            GLShaderType::Fragment => GL_FRAGMENT_SHADER
+            GLShaderType::Fragment => GL_FRAGMENT_SHADER,
         }
     }
 }
 
-pub struct GLShader
-{
-    handle: GLHandle<GLHandleTypeShader>
+pub struct GLShader {
+    handle: GLHandle<GLHandleTypeShader>,
 }
 
-impl GLHandleOwner<GLHandleTypeShader> for GLShader
-{
-    fn get_handle(&self) -> <GLHandleTypeShader as GLHandleId>::HandleRawType
-    {
+impl GLHandleOwner<GLHandleTypeShader> for GLShader {
+    fn get_handle(&self) -> <GLHandleTypeShader as GLHandleId>::HandleRawType {
         self.handle.handle.handle
     }
 }
 
-impl GLShader
-{
+impl GLShader {
     fn new(
         context: &GLContextManager,
-        shader_type: GLShaderType
-    ) -> Result<Self, BacktraceError<ErrorMessage>>
-    {
+        shader_type: GLShaderType,
+    ) -> Result<Self, BacktraceError<ErrorMessage>> {
         Ok(GLShader {
             handle: GLHandle::wrap(context, GLHandleType::Shader, || {
                 context.with_gl_backend(|backend| unsafe {
                     Ok(GLHandleTypeShader {
-                        handle: backend.gl_create_shader(shader_type.gl_constant())?
+                        handle: backend.gl_create_shader(shader_type.gl_constant())?,
                     })
                 })
-            })?
+            })?,
         })
     }
 
     fn compile(
         context: &GLContextManager,
         shader_type: GLShaderType,
-        source: &str
-    ) -> Result<Self, BacktraceError<ErrorMessage>>
-    {
+        source: &str,
+    ) -> Result<Self, BacktraceError<ErrorMessage>> {
         gl_clear_and_log_old_error(context);
 
         let shader = GLShader::new(context, shader_type)?;
@@ -518,83 +457,70 @@ impl GLShader
 }
 
 #[derive(Debug)]
-pub struct GLAttributeHandle
-{
-    handle: GLuint
+pub struct GLAttributeHandle {
+    handle: GLuint,
 }
 
 #[derive(Debug)]
-pub struct GLUniformHandle
-{
-    handle: GLTypeUniformLocation
+pub struct GLUniformHandle {
+    handle: GLTypeUniformLocation,
 }
 
-impl GLUniformHandle
-{
-    pub fn set_value_float(&self, context: &GLContextManager, value: f32)
-    {
+impl GLUniformHandle {
+    pub fn set_value_float(&self, context: &GLContextManager, value: f32) {
         context.with_gl_backend(|backend| unsafe {
             backend.gl_uniform_1f(&self.handle, value)
         })
     }
 
-    pub fn set_value_int(&self, context: &GLContextManager, value: i32)
-    {
+    pub fn set_value_int(&self, context: &GLContextManager, value: i32) {
         context.with_gl_backend(|backend| unsafe {
             backend.gl_uniform_1i(&self.handle, value)
         })
     }
 }
 
-pub enum GLBufferTarget
-{
+pub enum GLBufferTarget {
     Array,
     #[allow(dead_code)]
-    ElementArray
+    ElementArray,
 }
 
-impl GLBufferTarget
-{
-    fn gl_constant(&self) -> GLenum
-    {
+impl GLBufferTarget {
+    fn gl_constant(&self) -> GLenum {
         match self {
             GLBufferTarget::Array => GL_ARRAY_BUFFER,
-            GLBufferTarget::ElementArray => GL_ELEMENT_ARRAY_BUFFER
+            GLBufferTarget::ElementArray => GL_ELEMENT_ARRAY_BUFFER,
         }
     }
 }
 
-pub struct GLBuffer
-{
+pub struct GLBuffer {
     handle: GLHandle<GLHandleTypeBuffer>,
     target: GLBufferTarget,
     components_per_vertex: GLint,
-    attrib_index: GLAttributeHandle
+    attrib_index: GLAttributeHandle,
 }
 
-impl GLHandleOwner<GLHandleTypeBuffer> for GLBuffer
-{
-    fn get_handle(&self) -> <GLHandleTypeBuffer as GLHandleId>::HandleRawType
-    {
+impl GLHandleOwner<GLHandleTypeBuffer> for GLBuffer {
+    fn get_handle(&self) -> <GLHandleTypeBuffer as GLHandleId>::HandleRawType {
         self.handle.handle.handle
     }
 }
 
-impl GLBuffer
-{
+impl GLBuffer {
     fn new(
         context: &GLContextManager,
         target: GLBufferTarget,
         components_per_vertex: GLint,
-        attrib_index: GLAttributeHandle
-    ) -> Result<Self, BacktraceError<ErrorMessage>>
-    {
+        attrib_index: GLAttributeHandle,
+    ) -> Result<Self, BacktraceError<ErrorMessage>> {
         gl_clear_and_log_old_error(context);
 
         let handle = GLHandle::wrap(context, GLHandleType::Buffer, || {
             context.with_gl_backend(|backend| unsafe {
                 Ok(GLHandleTypeBuffer {
-                    handle: backend.gl_gen_buffer()?
+                    handle: backend.gl_gen_buffer()?,
                 })
             })
         })?;
@@ -603,12 +529,11 @@ impl GLBuffer
             handle,
             target,
             components_per_vertex,
-            attrib_index
+            attrib_index,
         })
     }
 
-    pub fn set_data(&mut self, context: &GLContextManager, data: &[f32])
-    {
+    pub fn set_data(&mut self, context: &GLContextManager, data: &[f32]) {
         if !context.is_valid() {
             log::warn!("Ignoring buffer set_data: invalid GL context");
             return;
@@ -625,87 +550,76 @@ impl GLBuffer
                 GL_FLOAT,
                 false,
                 0,
-                0
+                0,
             )
         });
     }
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
-pub enum GLTextureSmoothing
-{
+pub enum GLTextureSmoothing {
     NearestNeighbour,
-    Linear
+    Linear,
 }
 
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
-pub enum GLTextureImageFormatU8
-{
+pub enum GLTextureImageFormatU8 {
     #[allow(dead_code)]
     Red,
     RGB,
-    RGBA
+    RGBA,
 }
 
-impl GLTextureImageFormatU8
-{
-    fn get_internal_format(&self) -> GLenum
-    {
+impl GLTextureImageFormatU8 {
+    fn get_internal_format(&self) -> GLenum {
         match self {
             GLTextureImageFormatU8::Red => GL_R8,
             GLTextureImageFormatU8::RGB => GL_RGB8,
-            GLTextureImageFormatU8::RGBA => GL_RGBA8
+            GLTextureImageFormatU8::RGBA => GL_RGBA8,
         }
     }
 
-    fn get_format(&self) -> GLenum
-    {
+    fn get_format(&self) -> GLenum {
         match self {
             GLTextureImageFormatU8::Red => GL_RED,
             GLTextureImageFormatU8::RGB => GL_RGB,
-            GLTextureImageFormatU8::RGBA => GL_RGBA
+            GLTextureImageFormatU8::RGBA => GL_RGBA,
         }
     }
 
-    fn get_bytes_per_pixel(&self) -> usize
-    {
+    fn get_bytes_per_pixel(&self) -> usize {
         match self {
             GLTextureImageFormatU8::Red => 1,
             GLTextureImageFormatU8::RGB => 3,
-            GLTextureImageFormatU8::RGBA => 4
+            GLTextureImageFormatU8::RGBA => 4,
         }
     }
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
-pub struct GLTexture
-{
-    handle: Rc<GLHandle<GLHandleTypeTexture>>
+pub struct GLTexture {
+    handle: Rc<GLHandle<GLHandleTypeTexture>>,
 }
 
-impl GLHandleOwner<GLHandleTypeTexture> for GLTexture
-{
-    fn get_handle(&self) -> <GLHandleTypeTexture as GLHandleId>::HandleRawType
-    {
+impl GLHandleOwner<GLHandleTypeTexture> for GLTexture {
+    fn get_handle(&self) -> <GLHandleTypeTexture as GLHandleId>::HandleRawType {
         self.handle.handle.handle
     }
 }
 
-impl GLTexture
-{
-    fn new(context: &GLContextManager) -> Result<Self, BacktraceError<ErrorMessage>>
-    {
+impl GLTexture {
+    fn new(context: &GLContextManager) -> Result<Self, BacktraceError<ErrorMessage>> {
         let handle = GLHandle::wrap(context, GLHandleType::Texture, || {
             context.with_gl_backend(|backend| unsafe {
                 Ok(GLHandleTypeTexture {
-                    handle: backend.gl_gen_texture()?
+                    handle: backend.gl_gen_texture()?,
                 })
             })
         })?;
 
         Ok(GLTexture {
-            handle: Rc::new(handle)
+            handle: Rc::new(handle),
         })
     }
 
@@ -715,9 +629,8 @@ impl GLTexture
         format: GLTextureImageFormatU8,
         smoothing: GLTextureSmoothing,
         size: &Vector2<u32>,
-        data: &[u8]
-    ) -> Result<(), BacktraceError<ErrorMessage>>
-    {
+        data: &[u8],
+    ) -> Result<(), BacktraceError<ErrorMessage>> {
         if !context.is_valid() {
             log::warn!("Ignoring texture set_image_data: invalid GL context");
             return Ok(());
@@ -725,7 +638,7 @@ impl GLTexture
 
         let smoothing_constant = match smoothing {
             GLTextureSmoothing::NearestNeighbour => GL_NEAREST,
-            GLTextureSmoothing::Linear => GL_LINEAR
+            GLTextureSmoothing::Linear => GL_LINEAR,
         } as GLint;
 
         context.bind_texture(self);
@@ -748,22 +661,22 @@ impl GLTexture
                 backend.gl_tex_parameter_i(
                     GL_TEXTURE_2D,
                     GL_TEXTURE_WRAP_S,
-                    GL_CLAMP_TO_EDGE as GLint
+                    GL_CLAMP_TO_EDGE as GLint,
                 );
                 backend.gl_tex_parameter_i(
                     GL_TEXTURE_2D,
                     GL_TEXTURE_WRAP_T,
-                    GL_CLAMP_TO_EDGE as GLint
+                    GL_CLAMP_TO_EDGE as GLint,
                 );
                 backend.gl_tex_parameter_i(
                     GL_TEXTURE_2D,
                     GL_TEXTURE_MIN_FILTER,
-                    smoothing_constant
+                    smoothing_constant,
                 );
                 backend.gl_tex_parameter_i(
                     GL_TEXTURE_2D,
                     GL_TEXTURE_MAG_FILTER,
-                    smoothing_constant
+                    smoothing_constant,
                 );
 
                 backend.gl_tex_image_2d(
@@ -778,25 +691,24 @@ impl GLTexture
                     0,
                     format.get_format(),
                     GL_UNSIGNED_BYTE,
-                    Some(data)
+                    Some(data),
                 );
 
                 Ok(())
-            }
+            },
         )
     }
 }
 
 #[must_use]
 fn obtain_context_if_valid(
-    state: &RefCell<GLContextManagerState>
-) -> Option<GLContextManager>
-{
+    state: &RefCell<GLContextManagerState>,
+) -> Option<GLContextManager> {
     let state = state.borrow_mut();
 
     if state.is_valid {
         Some(GLContextManager {
-            state: state.weak_ref_to_self.upgrade().unwrap()
+            state: state.weak_ref_to_self.upgrade().unwrap(),
         })
     } else {
         None
@@ -806,17 +718,15 @@ fn obtain_context_if_valid(
 #[inline]
 #[must_use]
 fn obtain_context_from_weak_if_valid(
-    state: &Weak<RefCell<GLContextManagerState>>
-) -> Option<GLContextManager>
-{
+    state: &Weak<RefCell<GLContextManagerState>>,
+) -> Option<GLContextManager> {
     match state.upgrade() {
         None => None,
-        Some(state) => obtain_context_if_valid(&state)
+        Some(state) => obtain_context_if_valid(&state),
     }
 }
 
-struct GLContextManagerState
-{
+struct GLContextManagerState {
     is_valid: bool,
     active_texture: Option<GLTexture>,
     active_program: Option<Rc<GLProgram>>,
@@ -825,30 +735,25 @@ struct GLContextManagerState
     scissor_enabled: bool,
     gl_backend: Rc<dyn GLBackend + 'static>,
     gl_version: GLVersion,
-    weak_ref_to_self: Weak<RefCell<GLContextManagerState>>
+    weak_ref_to_self: Weak<RefCell<GLContextManagerState>>,
 }
 
-impl PartialEq for GLContextManagerState
-{
-    fn eq(&self, other: &Self) -> bool
-    {
+impl PartialEq for GLContextManagerState {
+    fn eq(&self, other: &Self) -> bool {
         std::ptr::eq(self, other)
     }
 }
 
 #[derive(Clone)]
-pub struct GLContextManager
-{
-    state: Rc<RefCell<GLContextManagerState>>
+pub struct GLContextManager {
+    state: Rc<RefCell<GLContextManagerState>>,
 }
 
-impl GLContextManager
-{
+impl GLContextManager {
     pub fn create(
         gl_backend: Rc<dyn GLBackend>,
-        gl_version: GLVersion
-    ) -> Result<Self, BacktraceError<ErrorMessage>>
-    {
+        gl_version: GLVersion,
+    ) -> Result<Self, BacktraceError<ErrorMessage>> {
         let manager = GLContextManager {
             state: Rc::new(RefCell::new(GLContextManagerState {
                 is_valid: true,
@@ -859,8 +764,8 @@ impl GLContextManager
                 scissor_enabled: false,
                 gl_backend,
                 gl_version,
-                weak_ref_to_self: Weak::new()
-            }))
+                weak_ref_to_self: Weak::new(),
+            })),
         };
 
         RefCell::borrow_mut(&manager.state).weak_ref_to_self =
@@ -871,8 +776,7 @@ impl GLContextManager
         Ok(manager)
     }
 
-    pub fn mark_invalid(&self)
-    {
+    pub fn mark_invalid(&self) {
         log::info!("GL context manager is now inactive");
         RefCell::borrow_mut(&self.state).is_valid = false;
     }
@@ -881,9 +785,8 @@ impl GLContextManager
         &self,
         target: GLBufferTarget,
         components_per_vertex: GLint,
-        attrib_index: GLAttributeHandle
-    ) -> Result<GLBuffer, BacktraceError<ErrorMessage>>
-    {
+        attrib_index: GLAttributeHandle,
+    ) -> Result<GLBuffer, BacktraceError<ErrorMessage>> {
         self.ensure_valid()?;
         GLBuffer::new(self, target, components_per_vertex, attrib_index)
     }
@@ -891,9 +794,8 @@ impl GLContextManager
     pub fn new_shader(
         &self,
         shader_type: GLShaderType,
-        source: &str
-    ) -> Result<GLShader, BacktraceError<ErrorMessage>>
-    {
+        source: &str,
+    ) -> Result<GLShader, BacktraceError<ErrorMessage>> {
         self.ensure_valid()?;
         GLShader::compile(self, shader_type, source)
     }
@@ -902,27 +804,24 @@ impl GLContextManager
         &self,
         vertex_shader: &GLShader,
         fragment_shader: &GLShader,
-        attribute_names: impl IntoIterator<Item = &'static &'static str>
-    ) -> Result<Rc<GLProgram>, BacktraceError<ErrorMessage>>
-    {
+        attribute_names: impl IntoIterator<Item = &'static &'static str>,
+    ) -> Result<Rc<GLProgram>, BacktraceError<ErrorMessage>> {
         self.ensure_valid()?;
 
         Ok(Rc::new(GLProgram::link(
             self,
             vertex_shader,
             fragment_shader,
-            attribute_names
+            attribute_names,
         )?))
     }
 
-    pub fn new_texture(&self) -> Result<GLTexture, BacktraceError<ErrorMessage>>
-    {
+    pub fn new_texture(&self) -> Result<GLTexture, BacktraceError<ErrorMessage>> {
         self.ensure_valid()?;
         GLTexture::new(self)
     }
 
-    pub fn set_viewport_size(&self, size: Vector2<u32>)
-    {
+    pub fn set_viewport_size(&self, size: Vector2<u32>) {
         if !self.is_valid() {
             log::warn!("Ignoring set_viewport_size: invalid GL context");
             return;
@@ -937,8 +836,7 @@ impl GLContextManager
         });
     }
 
-    pub fn bind_texture(&self, texture: &GLTexture)
-    {
+    pub fn bind_texture(&self, texture: &GLTexture) {
         if !self.is_valid() {
             log::warn!("Ignoring bind_texture: invalid GL context");
             return;
@@ -961,8 +859,7 @@ impl GLContextManager
         });
     }
 
-    pub fn unbind_texture(&self)
-    {
+    pub fn unbind_texture(&self) {
         #[cfg(not(target_arch = "wasm32"))]
         {
             if !self.is_valid() {
@@ -977,8 +874,7 @@ impl GLContextManager
         }
     }
 
-    pub fn use_program(&self, program: &Rc<GLProgram>)
-    {
+    pub fn use_program(&self, program: &Rc<GLProgram>) {
         if !self.is_valid() {
             log::warn!("Ignoring use_program: invalid GL context");
             return;
@@ -997,8 +893,7 @@ impl GLContextManager
         program.enable(self);
     }
 
-    fn set_blend_mode(&self, blend_mode: GLBlendEnabled)
-    {
+    fn set_blend_mode(&self, blend_mode: GLBlendEnabled) {
         if RefCell::borrow(&self.state).active_blend_mode == Some(blend_mode.clone()) {
             return;
         }
@@ -1010,41 +905,38 @@ impl GLContextManager
                 GLBlendMode::OneMinusSrcAlpha => self.with_gl_backend(|backend| unsafe {
                     backend.gl_enable(GL_BLEND);
                     backend.gl_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                })
+                }),
             },
 
             GLBlendEnabled::Disabled => self.with_gl_backend(|backend| unsafe {
                 backend.gl_disable(GL_BLEND);
-            })
+            }),
         }
     }
 
-    pub fn set_enable_scissor(&self, enabled: bool)
-    {
+    pub fn set_enable_scissor(&self, enabled: bool) {
         if enabled != self.state.borrow().scissor_enabled {
             self.with_gl_backend(|backend| unsafe {
                 match enabled {
                     true => backend.gl_enable(GL_SCISSOR_TEST),
-                    false => backend.gl_disable(GL_SCISSOR_TEST)
+                    false => backend.gl_disable(GL_SCISSOR_TEST),
                 }
             });
             self.state.borrow_mut().scissor_enabled = enabled;
         }
     }
 
-    pub fn set_clip(&self, x: i32, y: i32, width: i32, height: i32)
-    {
+    pub fn set_clip(&self, x: i32, y: i32, width: i32, height: i32) {
         let vp_height = match self.state.borrow().viewport_size {
             None => panic!("Call to set_clip before viewport size set"),
-            Some(viewport_size) => viewport_size.y as i32
+            Some(viewport_size) => viewport_size.y as i32,
         };
         self.with_gl_backend(|backend| unsafe {
             backend.gl_scissor(x, vp_height - y - height, width, height);
         });
     }
 
-    pub fn draw_triangles(&self, blend_mode: GLBlendEnabled, vertex_count: usize)
-    {
+    pub fn draw_triangles(&self, blend_mode: GLBlendEnabled, vertex_count: usize) {
         if !self.is_valid() {
             log::warn!("Ignoring draw_triangles: invalid GL context");
             return;
@@ -1057,8 +949,7 @@ impl GLContextManager
         });
     }
 
-    pub fn clear_screen(&self, color: Color)
-    {
+    pub fn clear_screen(&self, color: Color) {
         if !self.is_valid() {
             log::warn!("Ignoring clear_screen: invalid GL context");
             return;
@@ -1072,19 +963,17 @@ impl GLContextManager
 
     fn with_gl_backend<Return, F>(&self, callback: F) -> Return
     where
-        F: FnOnce(&Rc<dyn GLBackend>) -> Return
+        F: FnOnce(&Rc<dyn GLBackend>) -> Return,
     {
         let backend = RefCell::borrow(&self.state).gl_backend.clone();
         callback(&backend)
     }
 
-    fn is_valid(&self) -> bool
-    {
+    fn is_valid(&self) -> bool {
         RefCell::borrow(&self.state).is_valid
     }
 
-    fn ensure_valid(&self) -> Result<(), BacktraceError<ErrorMessage>>
-    {
+    fn ensure_valid(&self) -> Result<(), BacktraceError<ErrorMessage>> {
         if !self.is_valid() {
             Err(ErrorMessage::msg("GL context no longer valid"))
         } else {
@@ -1092,22 +981,19 @@ impl GLContextManager
         }
     }
 
-    pub fn version(&self) -> GLVersion
-    {
+    pub fn version(&self) -> GLVersion {
         self.state.borrow().gl_version
     }
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
-pub enum GLBlendMode
-{
-    OneMinusSrcAlpha
+pub enum GLBlendMode {
+    OneMinusSrcAlpha,
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
-pub enum GLBlendEnabled
-{
+pub enum GLBlendEnabled {
     Enabled(GLBlendMode),
     #[allow(dead_code)]
-    Disabled
+    Disabled,
 }

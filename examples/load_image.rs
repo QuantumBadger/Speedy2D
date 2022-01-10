@@ -21,8 +21,7 @@ use speedy2d::image::{ImageHandle, ImageSmoothingMode};
 use speedy2d::window::{WindowHandler, WindowHelper};
 use speedy2d::{Graphics2D, Window};
 
-fn main()
-{
+fn main() {
     simple_logger::SimpleLogger::new().init().unwrap();
 
     let window = Window::new_centered("Speedy2D: Load image", (800, 600)).unwrap();
@@ -30,21 +29,18 @@ fn main()
     window.run_loop(MyWindowHandler { image: None })
 }
 
-struct MyWindowHandler
-{
-    image: Option<ImageHandle>
+struct MyWindowHandler {
+    image: Option<ImageHandle>,
 }
 
-impl WindowHandler for MyWindowHandler
-{
-    fn on_draw(&mut self, helper: &mut WindowHelper, graphics: &mut Graphics2D)
-    {
+impl WindowHandler for MyWindowHandler {
+    fn on_draw(&mut self, helper: &mut WindowHelper, graphics: &mut Graphics2D) {
         if self.image.is_none() {
             let image = graphics
                 .create_image_from_file_path(
                     None,
                     ImageSmoothingMode::NearestNeighbor,
-                    "assets/screenshots/hello_world.png"
+                    "assets/screenshots/hello_world.png",
                 )
                 .unwrap();
 

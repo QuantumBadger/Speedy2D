@@ -48,14 +48,12 @@ pub type FontId = usize;
 /// The `user_index` field allows you to determine which output glyph
 /// corresponds to which input codepoint.
 #[derive(Debug, Hash, Eq, PartialEq, Clone)]
-pub struct Codepoint
-{
+pub struct Codepoint {
     user_index: UserGlyphIndex,
-    codepoint: char
+    codepoint: char,
 }
 
-impl Codepoint
-{
+impl Codepoint {
     /// The Unicode codepoint for a zero width space. You may use this to denote
     /// places where it would be appropriate to insert a line break when
     /// wrapping.
@@ -66,16 +64,14 @@ impl Codepoint
     /// during layout.
     #[inline]
     #[must_use]
-    pub fn new(user_index: UserGlyphIndex, codepoint: char) -> Self
-    {
+    pub fn new(user_index: UserGlyphIndex, codepoint: char) -> Self {
         Codepoint {
             user_index,
-            codepoint
+            codepoint,
         }
     }
 
-    fn from_unindexed_codepoints(unindexed_codepoints: &[char]) -> Vec<Self>
-    {
+    fn from_unindexed_codepoints(unindexed_codepoints: &[char]) -> Vec<Self> {
         let mut codepoints = Vec::new();
         codepoints.reserve(unindexed_codepoints.len());
 
@@ -88,36 +84,30 @@ impl Codepoint
 }
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
-struct RenderableWord
-{
+struct RenderableWord {
     codepoints: Vec<Codepoint>,
-    is_whitespace: bool
+    is_whitespace: bool,
 }
 
-impl RenderableWord
-{
-    fn starting_from_codepoint_location(mut self, location: usize) -> Self
-    {
+impl RenderableWord {
+    fn starting_from_codepoint_location(mut self, location: usize) -> Self {
         self.codepoints.drain(0..location);
 
         RenderableWord {
             codepoints: self.codepoints,
-            is_whitespace: self.is_whitespace
+            is_whitespace: self.is_whitespace,
         }
     }
 }
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
-enum Word
-{
+enum Word {
     Renderable(RenderableWord),
-    Newline
+    Newline,
 }
 
-impl Word
-{
-    fn split_words(codepoints: &[Codepoint]) -> Vec<Word>
-    {
+impl Word {
+    fn split_words(codepoints: &[Codepoint]) -> Vec<Word> {
         let mut reader = codepoints.iter().peekable();
 
         let mut result = Vec::new();
@@ -133,7 +123,7 @@ impl Word
                 ' ' | '\t' => {
                     result.push(Word::Renderable(RenderableWord {
                         codepoints: vec![first_token.clone()],
-                        is_whitespace: true
+                        is_whitespace: true,
                     }));
                 }
 
@@ -149,13 +139,13 @@ impl Word
                             ' ' | '\t' | '\r' | '\n' | Codepoint::ZERO_WIDTH_SPACE => {
                                 break
                             }
-                            _ => word_codepoints.push(reader.next().unwrap().clone())
+                            _ => word_codepoints.push(reader.next().unwrap().clone()),
                         }
                     }
 
                     result.push(Word::Renderable(RenderableWord {
                         codepoints: word_codepoints,
-                        is_whitespace: false
+                        is_whitespace: false,
                     }));
                 }
             }
@@ -166,39 +156,33 @@ impl Word
 }
 
 /// A struct representing a glyph in a font.
-pub struct FontGlyph
-{
+pub struct FontGlyph {
     glyph: rusttype::Glyph<'static>,
-    font: Font
+    font: Font,
 }
 
-struct WordsIterator
-{
+struct WordsIterator {
     words: Peekable<IntoIter<Word>>,
-    pending: VecDeque<Word>
+    pending: VecDeque<Word>,
 }
 
-impl WordsIterator
-{
-    fn from(words: Vec<Word>) -> Self
-    {
+impl WordsIterator {
+    fn from(words: Vec<Word>) -> Self {
         WordsIterator {
             words: words.into_iter().peekable(),
-            pending: VecDeque::new()
+            pending: VecDeque::new(),
         }
     }
 
     #[inline]
     #[must_use]
-    fn has_next(&self) -> bool
-    {
+    fn has_next(&self) -> bool {
         self.words.len() > 0 || !self.pending.is_empty()
     }
 
     #[inline]
     #[must_use]
-    fn peek(&mut self) -> Option<&Word>
-    {
+    fn peek(&mut self) -> Option<&Word> {
         if let Some(word) = self.pending.front() {
             return Some(word);
         }
@@ -211,8 +195,7 @@ impl WordsIterator
     }
 
     #[inline]
-    fn next(&mut self) -> Option<Word>
-    {
+    fn next(&mut self) -> Option<Word> {
         if let Some(word) = self.pending.pop_front() {
             return Some(word);
         }
@@ -225,41 +208,36 @@ impl WordsIterator
     }
 
     #[inline]
-    fn add_pending(&mut self, word: Word)
-    {
+    fn add_pending(&mut self, word: Word) {
         self.pending.push_back(word);
     }
 }
 
 #[derive(Clone, Debug)]
-struct LineLayoutMetrics
-{
+struct LineLayoutMetrics {
     x_pos: f32,
     max_ascent: f32,
     min_descent: f32,
     max_line_gap: f32,
     last_glyph_id: Option<rusttype::GlyphId>,
-    last_font_id: Option<FontId>
+    last_font_id: Option<FontId>,
 }
 
-impl LineLayoutMetrics
-{
-    fn new() -> Self
-    {
+impl LineLayoutMetrics {
+    fn new() -> Self {
         LineLayoutMetrics {
             x_pos: 0.0,
             max_ascent: 0.0,
             min_descent: 0.0,
             max_line_gap: 0.0,
             last_glyph_id: None,
-            last_font_id: None
+            last_font_id: None,
         }
     }
 
     #[inline]
     #[must_use]
-    fn height(&self) -> f32
-    {
+    fn height(&self) -> f32 {
         self.max_ascent - self.min_descent
     }
 
@@ -268,9 +246,8 @@ impl LineLayoutMetrics
         glyph: &rusttype::ScaledGlyph,
         font_id: FontId,
         scale: &rusttype::Scale,
-        options: &TextOptions
-    ) -> f32
-    {
+        options: &TextOptions,
+    ) -> f32 {
         if let Some(last_glyph_id) = self.last_glyph_id {
             if self.last_font_id == Some(font_id) {
                 self.x_pos +=
@@ -301,30 +278,26 @@ impl LineLayoutMetrics
     }
 }
 
-enum WordLayoutResult
-{
+enum WordLayoutResult {
     Success(LineLayoutMetrics),
     PartialWord(LineLayoutMetrics),
-    NotEnoughSpace
+    NotEnoughSpace,
 }
 
-impl WordLayoutResult
-{
-    fn get_metrics(&self) -> Option<&LineLayoutMetrics>
-    {
+impl WordLayoutResult {
+    fn get_metrics(&self) -> Option<&LineLayoutMetrics> {
         match self {
             WordLayoutResult::Success(metrics) => Some(metrics),
             WordLayoutResult::PartialWord(metrics) => Some(metrics),
-            WordLayoutResult::NotEnoughSpace => None
+            WordLayoutResult::NotEnoughSpace => None,
         }
     }
 
-    fn end_of_line(&self) -> bool
-    {
+    fn end_of_line(&self) -> bool {
         match self {
             WordLayoutResult::Success(_) => false,
             WordLayoutResult::PartialWord(_) => true,
-            WordLayoutResult::NotEnoughSpace => true
+            WordLayoutResult::NotEnoughSpace => true,
         }
     }
 }
@@ -339,9 +312,8 @@ fn try_layout_word_internal<T: TextLayout>(
     pos_y_baseline: f32,
     first_word_on_line: bool,
     previous_metrics: &LineLayoutMetrics,
-    output: &mut Vec<FormattedGlyph>
-) -> WordLayoutResult
-{
+    output: &mut Vec<FormattedGlyph>,
+) -> WordLayoutResult {
     let mut new_word_metrics = previous_metrics.clone();
     let pos_x_max = options.wrap_words_after_width;
 
@@ -351,8 +323,8 @@ fn try_layout_word_internal<T: TextLayout>(
         i,
         Codepoint {
             user_index,
-            codepoint: c
-        }
+            codepoint: c,
+        },
     ) in word.codepoints.iter().enumerate()
     {
         // We can't modify the actual values until we're sure we can render this glyph
@@ -365,10 +337,10 @@ fn try_layout_word_internal<T: TextLayout>(
                     .or_else(|| layout_helper.lookup_glyph_for_codepoint('?'))
                 {
                     None => continue,
-                    Some(glyph) => glyph
+                    Some(glyph) => glyph,
                 }
             }
-            Some(glyph) => glyph
+            Some(glyph) => glyph,
         };
 
         let scaled_glyph = glyph.glyph.scaled(*scale);
@@ -377,13 +349,13 @@ fn try_layout_word_internal<T: TextLayout>(
             &scaled_glyph,
             glyph.font.id(),
             scale,
-            options
+            options,
         );
 
         let formatted_glyph = FormattedGlyph {
             user_index: *user_index,
             glyph: scaled_glyph.positioned(rusttype::point(glyph_x_pos_start, 0.0)),
-            font_id: glyph.font.id()
+            font_id: glyph.font.id(),
         };
 
         if let Some(pos_x_max) = pos_x_max {
@@ -398,12 +370,12 @@ fn try_layout_word_internal<T: TextLayout>(
                         // If there are more codepoints, we need to split the word
                         if word.codepoints.len() > 1 {
                             remaining_words.add_pending(Word::Renderable(
-                                word.starting_from_codepoint_location(i + 1)
+                                word.starting_from_codepoint_location(i + 1),
                             ));
                         }
                     } else {
                         remaining_words.add_pending(Word::Renderable(
-                            word.starting_from_codepoint_location(i)
+                            word.starting_from_codepoint_location(i),
                         ));
                     }
 
@@ -438,9 +410,8 @@ fn layout_line_internal<T: TextLayout>(
     words: &mut WordsIterator,
     scale: &rusttype::Scale,
     options: &TextOptions,
-    pos_y_baseline: f32
-) -> FormattedTextLine
-{
+    pos_y_baseline: f32,
+) -> FormattedTextLine {
     let mut line_metrics = LineLayoutMetrics::new();
     let mut glyphs = Vec::new();
 
@@ -465,7 +436,7 @@ fn layout_line_internal<T: TextLayout>(
             pos_y_baseline,
             first_word_on_line,
             &line_metrics,
-            &mut glyphs
+            &mut glyphs,
         );
 
         if let Some(metrics) = result.get_metrics() {
@@ -493,7 +464,7 @@ fn layout_line_internal<T: TextLayout>(
         height: line_metrics.height(),
         ascent: line_metrics.max_ascent,
         descent: line_metrics.min_descent,
-        line_gap: line_metrics.max_line_gap
+        line_gap: line_metrics.max_line_gap,
     }
 }
 
@@ -501,9 +472,8 @@ fn layout_multiple_lines_internal<T: TextLayout>(
     layout_helper: &T,
     codepoints: &[Codepoint],
     scale: f32,
-    options: TextOptions
-) -> Rc<FormattedTextBlock>
-{
+    options: TextOptions,
+) -> Rc<FormattedTextBlock> {
     let scale = rusttype::Scale::uniform(scale);
 
     let mut iterator = WordsIterator::from(Word::split_words(codepoints));
@@ -523,7 +493,7 @@ fn layout_multiple_lines_internal<T: TextLayout>(
                 TextAlignment::Center => {
                     line.add_offset_x((max_width - line.width) / 2.0)
                 }
-                TextAlignment::Right => line.add_offset_x(max_width - line.width)
+                TextAlignment::Right => line.add_offset_x(max_width - line.width),
             }
         }
 
@@ -541,35 +511,31 @@ fn layout_multiple_lines_internal<T: TextLayout>(
     Rc::new(FormattedTextBlock {
         lines,
         width,
-        height: pos_y
+        height: pos_y,
     })
 }
 
 /// The vertical metrics of a line of text.
 #[derive(Debug, Clone, PartialEq)]
-pub struct LineVerticalMetrics
-{
+pub struct LineVerticalMetrics {
     /// The ascent of the line in pixels.
     ascent: f32,
     /// The descent of the line in pixels.
     descent: f32,
     /// The gap between this line and the next line, in pixels.
-    line_gap: f32
+    line_gap: f32,
 }
 
-impl LineVerticalMetrics
-{
+impl LineVerticalMetrics {
     /// The height of the line in pixels.
-    pub fn height(&self) -> f32
-    {
+    pub fn height(&self) -> f32 {
         self.ascent - self.descent
     }
 }
 
 /// Objects implementing this trait are able to lay out text, ready for
 /// rendering.
-pub trait TextLayout
-{
+pub trait TextLayout {
     /// Returns the glyph corresponding to the provided codepoint. If the glyph
     /// cannot be found, `None` is returned.
     fn lookup_glyph_for_codepoint(&self, codepoint: char) -> Option<FontGlyph>;
@@ -588,10 +554,10 @@ pub trait TextLayout
         &self,
         text: &str,
         scale: f32,
-        options: TextOptions
+        options: TextOptions,
     ) -> Rc<FormattedTextBlock>
     where
-        Self: Sized
+        Self: Sized,
     {
         let codepoints: Vec<char> = text.nfc().collect();
         self.layout_text_from_unindexed_codepoints(codepoints.as_slice(), scale, options)
@@ -609,15 +575,15 @@ pub trait TextLayout
         &self,
         unindexed_codepoints: &[char],
         scale: f32,
-        options: TextOptions
+        options: TextOptions,
     ) -> Rc<FormattedTextBlock>
     where
-        Self: Sized
+        Self: Sized,
     {
         self.layout_text_from_codepoints(
             Codepoint::from_unindexed_codepoints(unindexed_codepoints).as_slice(),
             scale,
-            options
+            options,
         )
     }
 
@@ -631,10 +597,10 @@ pub trait TextLayout
         &self,
         codepoints: &[Codepoint],
         scale: f32,
-        options: TextOptions
+        options: TextOptions,
     ) -> Rc<FormattedTextBlock>
     where
-        Self: Sized
+        Self: Sized,
     {
         layout_multiple_lines_internal(self, codepoints, scale, options)
     }
@@ -647,54 +613,46 @@ pub trait TextLayout
 /// A struct representing a font.
 #[repr(transparent)]
 #[derive(Clone)]
-pub struct Font
-{
-    data: Rc<FontImpl>
+pub struct Font {
+    data: Rc<FontImpl>,
 }
 
 #[derive(Debug)]
-struct FontImpl
-{
+struct FontImpl {
     id: usize,
-    font: rusttype::Font<'static>
+    font: rusttype::Font<'static>,
 }
 
-impl Font
-{
+impl Font {
     /// Constructs a new font from the specified bytes.
     ///
     /// The font may be in TrueType or OpenType format. Support for OpenType
     /// fonts may be limited.
-    pub fn new(bytes: &[u8]) -> Result<Font, BacktraceError<ErrorMessage>>
-    {
+    pub fn new(bytes: &[u8]) -> Result<Font, BacktraceError<ErrorMessage>> {
         let font = rusttype::Font::try_from_vec(bytes.to_vec())
             .ok_or_else(|| ErrorMessage::msg("Failed to load font"))?;
 
         Ok(Font {
             data: Rc::new(FontImpl {
                 id: FONT_ID_GENERATOR.fetch_add(1, Ordering::SeqCst),
-                font
-            })
+                font,
+            }),
         })
     }
 
     #[inline]
-    fn id(&self) -> usize
-    {
+    fn id(&self) -> usize {
         self.data.id
     }
 
     #[inline]
-    fn font(&self) -> &rusttype::Font<'static>
-    {
+    fn font(&self) -> &rusttype::Font<'static> {
         &self.data.font
     }
 }
 
-impl TextLayout for FontFamily
-{
-    fn lookup_glyph_for_codepoint(&self, codepoint: char) -> Option<FontGlyph>
-    {
+impl TextLayout for FontFamily {
+    fn lookup_glyph_for_codepoint(&self, codepoint: char) -> Option<FontGlyph> {
         for font in &*self.fonts {
             if let Some(glyph) = font.lookup_glyph_for_codepoint(codepoint) {
                 return Some(glyph);
@@ -704,30 +662,27 @@ impl TextLayout for FontFamily
         None
     }
 
-    fn empty_line_vertical_metrics(&self, scale: f32) -> LineVerticalMetrics
-    {
+    fn empty_line_vertical_metrics(&self, scale: f32) -> LineVerticalMetrics {
         match Rc::deref(&self.fonts).first() {
             None => LineVerticalMetrics {
                 ascent: 0.0,
                 descent: 0.0,
-                line_gap: 0.0
+                line_gap: 0.0,
             },
             Some(font) => {
                 let metrics = font.data.font.v_metrics(Scale::uniform(scale));
                 LineVerticalMetrics {
                     ascent: metrics.ascent,
                     descent: metrics.descent,
-                    line_gap: metrics.line_gap
+                    line_gap: metrics.line_gap,
                 }
             }
         }
     }
 }
 
-impl TextLayout for Font
-{
-    fn lookup_glyph_for_codepoint(&self, codepoint: char) -> Option<FontGlyph>
-    {
+impl TextLayout for Font {
+    fn lookup_glyph_for_codepoint(&self, codepoint: char) -> Option<FontGlyph> {
         let glyph = self.font().glyph(codepoint);
 
         if glyph.id().0 == 0 {
@@ -735,46 +690,39 @@ impl TextLayout for Font
         } else {
             Some(FontGlyph {
                 glyph,
-                font: self.clone()
+                font: self.clone(),
             })
         }
     }
 
-    fn empty_line_vertical_metrics(&self, scale: f32) -> LineVerticalMetrics
-    {
+    fn empty_line_vertical_metrics(&self, scale: f32) -> LineVerticalMetrics {
         let metrics = self.data.font.v_metrics(Scale::uniform(scale));
         LineVerticalMetrics {
             ascent: metrics.ascent,
             descent: metrics.descent,
-            line_gap: metrics.line_gap
+            line_gap: metrics.line_gap,
         }
     }
 }
 
-impl PartialEq for Font
-{
+impl PartialEq for Font {
     #[inline]
-    fn eq(&self, other: &Self) -> bool
-    {
+    fn eq(&self, other: &Self) -> bool {
         self.id() == other.id()
     }
 }
 
 impl Eq for Font {}
 
-impl Hash for Font
-{
+impl Hash for Font {
     #[inline]
-    fn hash<H: Hasher>(&self, state: &mut H)
-    {
+    fn hash<H: Hasher>(&self, state: &mut H) {
         self.id().hash(state);
     }
 }
 
-impl Debug for Font
-{
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result
-    {
+impl Debug for Font {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("Font").field("id", &self.id()).finish()
     }
 }
@@ -783,20 +731,17 @@ impl Debug for Font
 /// text, if a codepoint cannot be found in the first font in the list, the
 /// subsequent fonts will also be searched.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct FontFamily
-{
-    fonts: Rc<Vec<Font>>
+pub struct FontFamily {
+    fonts: Rc<Vec<Font>>,
 }
 
-impl FontFamily
-{
+impl FontFamily {
     /// Instantiates a new font family, containing the specified fonts in
     /// decreasing order of priority.
     #[must_use]
-    pub fn new(fonts: Vec<Font>) -> Self
-    {
+    pub fn new(fonts: Vec<Font>) -> Self {
         FontFamily {
-            fonts: Rc::new(fonts)
+            fonts: Rc::new(fonts),
         }
     }
 }
@@ -804,37 +749,33 @@ impl FontFamily
 /// The horizontal alignment of a block of text. This can be set when calling
 /// `TextOptions::with_wrap_words_after_width`.
 #[derive(Clone, Debug, Hash, Eq, PartialEq)]
-pub enum TextAlignment
-{
+pub enum TextAlignment {
     /// Align the text to the left.
     Left,
     /// Center the text in the maximum width.
     Center,
     /// Align the text to the rightmost point within the maximum width.
-    Right
+    Right,
 }
 
 /// A series of options for specifying how text should be laid out.
-pub struct TextOptions
-{
+pub struct TextOptions {
     tracking: f32,
     wrap_words_after_width: Option<f32>,
     alignment: TextAlignment,
-    line_spacing_multiplier: f32
+    line_spacing_multiplier: f32,
 }
 
-impl TextOptions
-{
+impl TextOptions {
     /// Instantiates a new `TextOptions` with the default settings.
     #[inline]
     #[must_use]
-    pub fn new() -> Self
-    {
+    pub fn new() -> Self {
         TextOptions {
             tracking: 0.0,
             wrap_words_after_width: None,
             alignment: TextAlignment::Left,
-            line_spacing_multiplier: 1.0
+            line_spacing_multiplier: 1.0,
         }
     }
 
@@ -844,8 +785,7 @@ impl TextOptions
     /// The default is `0.0`.
     #[inline]
     #[must_use]
-    pub fn with_tracking(mut self, tracking: f32) -> Self
-    {
+    pub fn with_tracking(mut self, tracking: f32) -> Self {
         self.tracking = tracking;
         self
     }
@@ -861,9 +801,8 @@ impl TextOptions
     pub fn with_wrap_to_width(
         mut self,
         wrap_words_after_width_px: f32,
-        alignment: TextAlignment
-    ) -> Self
-    {
+        alignment: TextAlignment,
+    ) -> Self {
         self.wrap_words_after_width = Some(wrap_words_after_width_px);
         self.alignment = alignment;
         self
@@ -875,44 +814,37 @@ impl TextOptions
     /// The default is `1.0`.
     #[inline]
     #[must_use]
-    pub fn with_line_spacing_multiplier(mut self, line_spacing_multiplier: f32) -> Self
-    {
+    pub fn with_line_spacing_multiplier(mut self, line_spacing_multiplier: f32) -> Self {
         self.line_spacing_multiplier = line_spacing_multiplier;
         self
     }
 }
 
-impl Default for TextOptions
-{
-    fn default() -> Self
-    {
+impl Default for TextOptions {
+    fn default() -> Self {
         Self::new()
     }
 }
 
 /// Represents a glyph which has been laid out as part of a line of text.
 #[derive(Clone)]
-pub struct FormattedGlyph
-{
+pub struct FormattedGlyph {
     glyph: rusttype::PositionedGlyph<'static>,
     font_id: FontId,
-    user_index: UserGlyphIndex
+    user_index: UserGlyphIndex,
 }
 
-impl FormattedGlyph
-{
+impl FormattedGlyph {
     #[inline]
     #[must_use]
-    pub(crate) fn glyph(&self) -> &rusttype::PositionedGlyph<'static>
-    {
+    pub(crate) fn glyph(&self) -> &rusttype::PositionedGlyph<'static> {
         &self.glyph
     }
 
     /// The identifier of the font which was used to render this glyph.
     #[inline]
     #[must_use]
-    pub fn font_id(&self) -> FontId
-    {
+    pub fn font_id(&self) -> FontId {
         self.font_id
     }
 
@@ -921,22 +853,19 @@ impl FormattedGlyph
     /// `FormattedGlyph`.
     #[inline]
     #[must_use]
-    pub fn user_index(&self) -> UserGlyphIndex
-    {
+    pub fn user_index(&self) -> UserGlyphIndex {
         self.user_index
     }
 
     #[inline]
-    fn reposition_y(&mut self, y_pos: f32)
-    {
+    fn reposition_y(&mut self, y_pos: f32) {
         let existing_pos = self.glyph.position();
         self.glyph
             .set_position(rusttype::point(existing_pos.x, y_pos));
     }
 
     #[inline]
-    fn add_offset_x(&mut self, offset_x: f32)
-    {
+    fn add_offset_x(&mut self, offset_x: f32) {
         let existing_pos = self.glyph.position();
         self.glyph
             .set_position(rusttype::point(existing_pos.x + offset_x, existing_pos.y));
@@ -944,75 +873,65 @@ impl FormattedGlyph
 }
 
 /// Represents a block of text which has been laid out.
-pub struct FormattedTextBlock
-{
+pub struct FormattedTextBlock {
     lines: Vec<Rc<FormattedTextLine>>,
     width: f32,
-    height: f32
+    height: f32,
 }
 
-impl FormattedTextBlock
-{
+impl FormattedTextBlock {
     /// Iterate over the lines of text in this block.
     #[inline]
     #[must_use]
-    pub fn iter_lines(&self) -> Iter<'_, Rc<FormattedTextLine>>
-    {
+    pub fn iter_lines(&self) -> Iter<'_, Rc<FormattedTextLine>> {
         self.lines.iter()
     }
 
     /// The width (in pixels) of this text block.
     #[inline]
     #[must_use]
-    pub fn width(&self) -> f32
-    {
+    pub fn width(&self) -> f32 {
         self.width
     }
 
     /// The height (in pixels) of this text block.
     #[inline]
     #[must_use]
-    pub fn height(&self) -> f32
-    {
+    pub fn height(&self) -> f32 {
         self.height
     }
 
     /// The size (in pixels) of this text block.
     #[inline]
     #[must_use]
-    pub fn size(&self) -> Vector2<f32>
-    {
+    pub fn size(&self) -> Vector2<f32> {
         Vector2::new(self.width, self.height)
     }
 }
 
 /// Represents a line of text which has been laid out as part of a block.
-pub struct FormattedTextLine
-{
+pub struct FormattedTextLine {
     glyphs: Vec<FormattedGlyph>,
     baseline_vertical_position: f32,
     width: f32,
     height: f32,
     ascent: f32,
     descent: f32,
-    line_gap: f32
+    line_gap: f32,
 }
 
-impl FormattedTextLine
-{
+impl FormattedTextLine {
     /// Iterate over the glyphs in this line.
     #[inline]
     #[must_use]
-    pub fn iter_glyphs(&self) -> Iter<'_, FormattedGlyph>
-    {
+    pub fn iter_glyphs(&self) -> Iter<'_, FormattedGlyph> {
         self.glyphs.iter()
     }
 
     /// The width (in pixels) of this text line.
     #[inline]
     #[must_use]
-    pub fn width(&self) -> f32
-    {
+    pub fn width(&self) -> f32 {
         self.width
     }
 
@@ -1020,8 +939,7 @@ impl FormattedTextLine
     /// `ascent()` minus the `descent()`.
     #[inline]
     #[must_use]
-    pub fn height(&self) -> f32
-    {
+    pub fn height(&self) -> f32 {
         self.height
     }
 
@@ -1029,8 +947,7 @@ impl FormattedTextLine
     /// each glyph above the text baseline.
     #[inline]
     #[must_use]
-    pub fn ascent(&self) -> f32
-    {
+    pub fn ascent(&self) -> f32 {
         self.ascent
     }
 
@@ -1041,8 +958,7 @@ impl FormattedTextLine
     /// pixels below the baseline.
     #[inline]
     #[must_use]
-    pub fn descent(&self) -> f32
-    {
+    pub fn descent(&self) -> f32 {
         self.descent
     }
 
@@ -1050,48 +966,41 @@ impl FormattedTextLine
     /// font authors.
     #[inline]
     #[must_use]
-    pub fn line_gap(&self) -> f32
-    {
+    pub fn line_gap(&self) -> f32 {
         self.line_gap
     }
 
     /// The vertical position of this line's baseline within the block of text.
     #[inline]
     #[must_use]
-    pub fn baseline_position(&self) -> f32
-    {
+    pub fn baseline_position(&self) -> f32 {
         self.baseline_vertical_position
     }
 
-    fn add_offset_x(&mut self, offset_x: f32)
-    {
+    fn add_offset_x(&mut self, offset_x: f32) {
         for glyph in self.glyphs.iter_mut() {
             glyph.add_offset_x(offset_x);
         }
     }
 }
 
-impl<T: Copy> From<&rusttype::Rect<T>> for Rectangle<T>
-{
+impl<T: Copy> From<&rusttype::Rect<T>> for Rectangle<T> {
     #[inline]
     #[must_use]
-    fn from(rect: &rusttype::Rect<T>) -> Self
-    {
+    fn from(rect: &rusttype::Rect<T>) -> Self {
         Rectangle::new(
             Vector2::new(rect.min.x, rect.min.y),
-            Vector2::new(rect.max.x, rect.max.y)
+            Vector2::new(rect.max.x, rect.max.y),
         )
     }
 }
 
 #[cfg(test)]
-mod test
-{
+mod test {
     use super::*;
 
     #[test]
-    fn test_word_split_1()
-    {
+    fn test_word_split_1() {
         let codepoints = Codepoint::from_unindexed_codepoints(&['a', 'b', ' ', 'c', 'd']);
 
         let words = Word::split_words(&codepoints);
@@ -1116,10 +1025,9 @@ mod test
     }
 
     #[test]
-    fn test_word_split_2()
-    {
+    fn test_word_split_2() {
         let codepoints = Codepoint::from_unindexed_codepoints(&[
-            'a', 'b', '\t', ' ', '\n', 'c', 'd', '\n', '\n', ' '
+            'a', 'b', '\t', ' ', '\n', 'c', 'd', '\n', '\n', ' ',
         ]);
 
         let words = Word::split_words(&codepoints);

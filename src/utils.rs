@@ -16,30 +16,25 @@
 
 use std::time::Instant;
 
-pub(crate) struct BenchmarkTimer
-{
+pub(crate) struct BenchmarkTimer {
     name: String,
-    start_time: Instant
+    start_time: Instant,
 }
 
-impl BenchmarkTimer
-{
+impl BenchmarkTimer {
     #[allow(dead_code)]
-    pub(crate) fn start<S: AsRef<str>>(name: S) -> Self
-    {
+    pub(crate) fn start<S: AsRef<str>>(name: S) -> Self {
         log::info!("[Benchmark] [START] {}", name.as_ref());
 
         BenchmarkTimer {
             name: name.as_ref().to_string(),
-            start_time: Instant::now()
+            start_time: Instant::now(),
         }
     }
 }
 
-impl Drop for BenchmarkTimer
-{
-    fn drop(&mut self)
-    {
+impl Drop for BenchmarkTimer {
+    fn drop(&mut self) {
         log::info!(
             "[Benchmark] [END]   {} (took {:.3} ms)",
             self.name,

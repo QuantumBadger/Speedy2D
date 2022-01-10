@@ -19,15 +19,14 @@ use crate::glwrapper::GLTexture;
 
 /// The data type of the pixels making up the raw image data.
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
-pub enum ImageDataType
-{
+pub enum ImageDataType {
     /// Each pixel in the image is represented by three `u8` values: red, green,
     /// and blue.
     RGB,
 
     /// Each pixel in the image is represented by four `u8` values: red, green,
     /// blue, and alpha.
-    RGBA
+    RGBA,
 }
 
 /// Represents a handle for a loaded image.
@@ -35,17 +34,14 @@ pub enum ImageDataType
 /// Note: this handle can only be used in the graphics context in which it was
 /// created.
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
-pub struct ImageHandle
-{
+pub struct ImageHandle {
     pub(crate) size: Vector2<u32>,
-    pub(crate) texture: GLTexture
+    pub(crate) texture: GLTexture,
 }
 
-impl ImageHandle
-{
+impl ImageHandle {
     /// Returns the size of the image in pixels.
-    pub fn size(&self) -> &Vector2<u32>
-    {
+    pub fn size(&self) -> &Vector2<u32> {
         &self.size
     }
 }
@@ -55,8 +51,7 @@ impl ImageHandle
 /// be because the image is a different size, or because it is rendered at a
 /// position which is a non-integer number of pixels.
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
-pub enum ImageSmoothingMode
-{
+pub enum ImageSmoothingMode {
     /// The pixel drawn on the screen will be the closest pixel from the source
     /// image. This may cause aliasing/jagginess, so for a smoother result
     /// the `Linear` mode may be more suitable.
@@ -66,7 +61,7 @@ pub enum ImageSmoothingMode
     /// nearest pixels in the source image. This produces a smoother result
     /// than `NearestNeighbor`, but in cases where the image is intended to
     /// be pixel-aligned it may cause unnecessary blurriness.
-    Linear
+    Linear,
 }
 
 /// Supported image formats.
@@ -87,8 +82,7 @@ pub enum ImageSmoothingMode
 /// * `farbfeld`
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
 #[allow(missing_docs)]
-pub enum ImageFileFormat
-{
+pub enum ImageFileFormat {
     PNG,
     JPEG,
     GIF,
@@ -100,5 +94,5 @@ pub enum ImageFileFormat
     PNM,
     DDS,
     TGA,
-    Farbfeld
+    Farbfeld,
 }

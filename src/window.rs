@@ -45,23 +45,19 @@ type UserEventSenderInnerType<UserEventType> = PhantomData<UserEventType>;
 
 /// Error occurring when sending a user event.
 #[derive(Clone, Debug, Hash, Eq, PartialEq, Copy)]
-pub enum EventLoopSendError
-{
+pub enum EventLoopSendError {
     /// Send failed as the event loop no longer exists.
-    EventLoopNoLongerExists
+    EventLoopNoLongerExists,
 }
 
 /// Allows user events to be sent to the event loop from other threads.
 #[derive(Clone)]
-pub struct UserEventSender<UserEventType: 'static>
-{
-    inner: UserEventSenderInnerType<UserEventType>
+pub struct UserEventSender<UserEventType: 'static> {
+    inner: UserEventSenderInnerType<UserEventType>,
 }
 
-impl<UserEventType> UserEventSender<UserEventType>
-{
-    pub(crate) fn new(inner: UserEventSenderInnerType<UserEventType>) -> Self
-    {
+impl<UserEventType> UserEventSender<UserEventType> {
+    pub(crate) fn new(inner: UserEventSenderInnerType<UserEventType>) -> Self {
         Self { inner }
     }
 
@@ -72,16 +68,14 @@ impl<UserEventType> UserEventSender<UserEventType>
     /// This may be invoked from a different thread to the one running the event
     /// loop.
     #[inline]
-    pub fn send_event(&self, event: UserEventType) -> Result<(), EventLoopSendError>
-    {
+    pub fn send_event(&self, event: UserEventType) -> Result<(), EventLoopSendError> {
         self.inner.send_event(event)
     }
 }
 
 /// Error occurring when creating a window.
 #[derive(Clone, Copy, Debug, Hash, Eq, PartialEq)]
-pub enum WindowCreationError
-{
+pub enum WindowCreationError {
     /// Could not find the primary monitor.
     PrimaryMonitorNotFound,
     /// Could not find a suitable graphics context. Speedy2D attempts to find
@@ -91,13 +85,11 @@ pub enum WindowCreationError
     /// Failed to make the graphics context current.
     MakeContextCurrentFailed,
     /// Failed to instantiate the renderer.
-    RendererCreationFailed
+    RendererCreationFailed,
 }
 
-impl Display for WindowCreationError
-{
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result
-    {
+impl Display for WindowCreationError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             WindowCreationError::PrimaryMonitorNotFound => {
                 f.write_str("Primary monitor not found")
@@ -118,17 +110,15 @@ impl Display for WindowCreationError
 /// A set of callbacks for an active window. If a callback is not implemented,
 /// it will do nothing by default, so it is only necessary to implement the
 /// callbacks you actually need.
-pub trait WindowHandler<UserEventType = ()>
-{
+pub trait WindowHandler<UserEventType = ()> {
     /// Invoked once when the window first starts.
     #[allow(unused_variables)]
     #[inline]
     fn on_start(
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
-        info: WindowStartupInfo
-    )
-    {
+        info: WindowStartupInfo,
+    ) {
     }
 
     /// Invoked when a user-defined event is received, allowing you to wake up
@@ -140,9 +130,8 @@ pub trait WindowHandler<UserEventType = ()>
     fn on_user_event(
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
-        user_event: UserEventType
-    )
-    {
+        user_event: UserEventType,
+    ) {
     }
 
     /// Invoked when the window is resized.
@@ -151,9 +140,8 @@ pub trait WindowHandler<UserEventType = ()>
     fn on_resize(
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
-        size_pixels: Vector2<u32>
-    )
-    {
+        size_pixels: Vector2<u32>,
+    ) {
     }
 
     /// Invoked if the mouse cursor becomes grabbed or un-grabbed. See
@@ -166,9 +154,8 @@ pub trait WindowHandler<UserEventType = ()>
     fn on_mouse_grab_status_changed(
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
-        mouse_grabbed: bool
-    )
-    {
+        mouse_grabbed: bool,
+    ) {
     }
 
     /// Invoked if the window enters or exits fullscreen mode. See
@@ -178,9 +165,8 @@ pub trait WindowHandler<UserEventType = ()>
     fn on_fullscreen_status_changed(
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
-        fullscreen: bool
-    )
-    {
+        fullscreen: bool,
+    ) {
     }
 
     /// Invoked when the window scale factor changes.
@@ -189,9 +175,8 @@ pub trait WindowHandler<UserEventType = ()>
     fn on_scale_factor_changed(
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
-        scale_factor: f64
-    )
-    {
+        scale_factor: f64,
+    ) {
     }
 
     /// Invoked when the contents of the window needs to be redrawn.
@@ -203,9 +188,8 @@ pub trait WindowHandler<UserEventType = ()>
     fn on_draw(
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
-        graphics: &mut Graphics2D
-    )
-    {
+        graphics: &mut Graphics2D,
+    ) {
     }
 
     /// Invoked when the mouse changes position.
@@ -221,9 +205,8 @@ pub trait WindowHandler<UserEventType = ()>
     fn on_mouse_move(
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
-        position: Vector2<f32>
-    )
-    {
+        position: Vector2<f32>,
+    ) {
     }
 
     /// Invoked when a mouse button is pressed.
@@ -232,9 +215,8 @@ pub trait WindowHandler<UserEventType = ()>
     fn on_mouse_button_down(
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
-        button: MouseButton
-    )
-    {
+        button: MouseButton,
+    ) {
     }
 
     /// Invoked when a mouse button is released.
@@ -243,9 +225,8 @@ pub trait WindowHandler<UserEventType = ()>
     fn on_mouse_button_up(
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
-        button: MouseButton
-    )
-    {
+        button: MouseButton,
+    ) {
     }
 
     /// Invoked when the mouse wheel moves.
@@ -254,9 +235,8 @@ pub trait WindowHandler<UserEventType = ()>
     fn on_mouse_wheel_scroll(
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
-        distance: MouseScrollDistance
-    )
-    {
+        distance: MouseScrollDistance,
+    ) {
     }
 
     /// Invoked when a keyboard key is pressed.
@@ -269,9 +249,8 @@ pub trait WindowHandler<UserEventType = ()>
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
         virtual_key_code: Option<VirtualKeyCode>,
-        scancode: KeyScancode
-    )
-    {
+        scancode: KeyScancode,
+    ) {
     }
 
     /// Invoked when a keyboard key is released.
@@ -281,9 +260,8 @@ pub trait WindowHandler<UserEventType = ()>
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
         virtual_key_code: Option<VirtualKeyCode>,
-        scancode: KeyScancode
-    )
-    {
+        scancode: KeyScancode,
+    ) {
     }
 
     /// Invoked when a character is typed on the keyboard.
@@ -295,9 +273,8 @@ pub trait WindowHandler<UserEventType = ()>
     fn on_keyboard_char(
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
-        unicode_codepoint: char
-    )
-    {
+        unicode_codepoint: char,
+    ) {
     }
 
     /// Invoked when the state of the modifier keys has changed.
@@ -306,33 +283,31 @@ pub trait WindowHandler<UserEventType = ()>
     fn on_keyboard_modifiers_changed(
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
-        state: ModifiersState
-    )
-    {
+        state: ModifiersState,
+    ) {
     }
 }
 
 pub(crate) struct DrawingWindowHandler<UserEventType, H>
 where
     UserEventType: 'static,
-    H: WindowHandler<UserEventType>
+    H: WindowHandler<UserEventType>,
 {
     window_handler: H,
     renderer: GLRenderer,
-    phantom: PhantomData<UserEventType>
+    phantom: PhantomData<UserEventType>,
 }
 
 impl<UserEventType, H> DrawingWindowHandler<UserEventType, H>
 where
     H: WindowHandler<UserEventType>,
-    UserEventType: 'static
+    UserEventType: 'static,
 {
-    pub fn new(window_handler: H, renderer: GLRenderer) -> Self
-    {
+    pub fn new(window_handler: H, renderer: GLRenderer) -> Self {
         DrawingWindowHandler {
             window_handler,
             renderer,
-            phantom: PhantomData::default()
+            phantom: PhantomData::default(),
         }
     }
 
@@ -340,9 +315,8 @@ where
     pub fn on_start(
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
-        info: WindowStartupInfo
-    )
-    {
+        info: WindowStartupInfo,
+    ) {
         self.window_handler.on_start(helper, info);
     }
 
@@ -350,9 +324,8 @@ where
     pub fn on_user_event(
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
-        user_event: UserEventType
-    )
-    {
+        user_event: UserEventType,
+    ) {
         self.window_handler.on_user_event(helper, user_event)
     }
 
@@ -360,9 +333,8 @@ where
     pub fn on_resize(
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
-        size_pixels: Vector2<u32>
-    )
-    {
+        size_pixels: Vector2<u32>,
+    ) {
         self.renderer.set_viewport_size_pixels(size_pixels);
         self.window_handler.on_resize(helper, size_pixels)
     }
@@ -371,9 +343,8 @@ where
     pub fn on_mouse_grab_status_changed(
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
-        mouse_grabbed: bool
-    )
-    {
+        mouse_grabbed: bool,
+    ) {
         self.window_handler
             .on_mouse_grab_status_changed(helper, mouse_grabbed)
     }
@@ -382,9 +353,8 @@ where
     pub fn on_fullscreen_status_changed(
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
-        fullscreen: bool
-    )
-    {
+        fullscreen: bool,
+    ) {
         self.window_handler
             .on_fullscreen_status_changed(helper, fullscreen)
     }
@@ -393,16 +363,14 @@ where
     pub fn on_scale_factor_changed(
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
-        scale_factor: f64
-    )
-    {
+        scale_factor: f64,
+    ) {
         self.window_handler
             .on_scale_factor_changed(helper, scale_factor)
     }
 
     #[inline]
-    pub fn on_draw(&mut self, helper: &mut WindowHelper<UserEventType>)
-    {
+    pub fn on_draw(&mut self, helper: &mut WindowHelper<UserEventType>) {
         let renderer = &mut self.renderer;
         let window_handler = &mut self.window_handler;
 
@@ -413,9 +381,8 @@ where
     pub fn on_mouse_move(
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
-        position: Vector2<f32>
-    )
-    {
+        position: Vector2<f32>,
+    ) {
         self.window_handler.on_mouse_move(helper, position)
     }
 
@@ -423,9 +390,8 @@ where
     pub fn on_mouse_button_down(
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
-        button: MouseButton
-    )
-    {
+        button: MouseButton,
+    ) {
         self.window_handler.on_mouse_button_down(helper, button)
     }
 
@@ -433,9 +399,8 @@ where
     pub fn on_mouse_button_up(
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
-        button: MouseButton
-    )
-    {
+        button: MouseButton,
+    ) {
         self.window_handler.on_mouse_button_up(helper, button)
     }
 
@@ -443,9 +408,8 @@ where
     pub fn on_mouse_wheel_scroll(
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
-        distance: MouseScrollDistance
-    )
-    {
+        distance: MouseScrollDistance,
+    ) {
         self.window_handler.on_mouse_wheel_scroll(helper, distance)
     }
 
@@ -454,9 +418,8 @@ where
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
         virtual_key_code: Option<VirtualKeyCode>,
-        scancode: KeyScancode
-    )
-    {
+        scancode: KeyScancode,
+    ) {
         self.window_handler
             .on_key_down(helper, virtual_key_code, scancode)
     }
@@ -466,9 +429,8 @@ where
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
         virtual_key_code: Option<VirtualKeyCode>,
-        scancode: KeyScancode
-    )
-    {
+        scancode: KeyScancode,
+    ) {
         self.window_handler
             .on_key_up(helper, virtual_key_code, scancode)
     }
@@ -477,9 +439,8 @@ where
     pub fn on_keyboard_char(
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
-        unicode_codepoint: char
-    )
-    {
+        unicode_codepoint: char,
+    ) {
         self.window_handler
             .on_keyboard_char(helper, unicode_codepoint)
     }
@@ -488,9 +449,8 @@ where
     pub fn on_keyboard_modifiers_changed(
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
-        state: ModifiersState
-    )
-    {
+        state: ModifiersState,
+    ) {
         self.window_handler
             .on_keyboard_modifiers_changed(helper, state)
     }
@@ -499,22 +459,19 @@ where
 /// A set of helper methods to perform actions on a [crate::Window].
 pub struct WindowHelper<UserEventType = ()>
 where
-    UserEventType: 'static
+    UserEventType: 'static,
 {
-    inner: WindowHelperInnerType<UserEventType>
+    inner: WindowHelperInnerType<UserEventType>,
 }
 
-impl<UserEventType> WindowHelper<UserEventType>
-{
-    pub(crate) fn new(inner: WindowHelperInnerType<UserEventType>) -> Self
-    {
+impl<UserEventType> WindowHelper<UserEventType> {
+    pub(crate) fn new(inner: WindowHelperInnerType<UserEventType>) -> Self {
         WindowHelper { inner }
     }
 
     #[inline]
     #[must_use]
-    pub(crate) fn inner(&mut self) -> &mut WindowHelperInnerType<UserEventType>
-    {
+    pub(crate) fn inner(&mut self) -> &mut WindowHelperInnerType<UserEventType> {
         &mut self.inner
     }
 
@@ -531,8 +488,7 @@ impl<UserEventType> WindowHelper<UserEventType>
     /// destructed before exiting.
     ///
     /// No further callbacks will be given once this function has been called.
-    pub fn terminate_loop(&mut self)
-    {
+    pub fn terminate_loop(&mut self) {
         self.inner.terminate_loop()
     }
 
@@ -545,34 +501,31 @@ impl<UserEventType> WindowHelper<UserEventType>
     pub fn set_icon_from_rgba_pixels<S>(
         &self,
         data: Vec<u8>,
-        size: S
+        size: S,
     ) -> Result<(), BacktraceError<ErrorMessage>>
     where
-        S: Into<Vector2<u32>>
+        S: Into<Vector2<u32>>,
     {
         self.inner.set_icon_from_rgba_pixels(data, size.into())
     }
 
     /// Sets the visibility of the mouse cursor.
-    pub fn set_cursor_visible(&self, visible: bool)
-    {
+    pub fn set_cursor_visible(&self, visible: bool) {
         self.inner.set_cursor_visible(visible)
     }
 
     /// Grabs the cursor, preventing it from leaving the window.
     pub fn set_cursor_grab(
         &self,
-        grabbed: bool
-    ) -> Result<(), BacktraceError<ErrorMessage>>
-    {
+        grabbed: bool,
+    ) -> Result<(), BacktraceError<ErrorMessage>> {
         self.inner.set_cursor_grab(grabbed)
     }
 
     /// Set to false to prevent the user from resizing the window.
     ///
     /// For `WebCanvas`, this function has no effect.
-    pub fn set_resizable(&self, resizable: bool)
-    {
+    pub fn set_resizable(&self, resizable: bool) {
         self.inner.set_resizable(resizable)
     }
 
@@ -581,14 +534,12 @@ impl<UserEventType> WindowHelper<UserEventType>
     /// This will cause the [WindowHandler::on_draw] callback to be invoked on
     /// the next frame.
     #[inline]
-    pub fn request_redraw(&self)
-    {
+    pub fn request_redraw(&self) {
         self.inner.request_redraw()
     }
 
     /// Sets the window title.
-    pub fn set_title<S: AsRef<str>>(&self, title: S)
-    {
+    pub fn set_title<S: AsRef<str>>(&self, title: S) {
         self.inner.set_title(title.as_ref())
     }
 
@@ -598,8 +549,7 @@ impl<UserEventType> WindowHelper<UserEventType>
     /// depending on where this is called from, and the user's browser settings.
     /// If the operation is successful, the
     /// [WindowHandler::on_fullscreen_status_changed] callback will be invoked.
-    pub fn set_fullscreen_mode(&self, mode: WindowFullscreenMode)
-    {
+    pub fn set_fullscreen_mode(&self, mode: WindowFullscreenMode) {
         self.inner.set_fullscreen_mode(mode)
     }
 
@@ -607,8 +557,7 @@ impl<UserEventType> WindowHelper<UserEventType>
     /// excluding the border.
     ///
     /// For `WebCanvas`, this function has no effect.
-    pub fn set_size_pixels<S: Into<Vector2<u32>>>(&self, size: S)
-    {
+    pub fn set_size_pixels<S: Into<Vector2<u32>>>(&self, size: S) {
         self.inner.set_size_pixels(size)
     }
 
@@ -617,8 +566,7 @@ impl<UserEventType> WindowHelper<UserEventType>
     /// area, spanning all the monitors.
     ///
     /// For `WebCanvas`, this function has no effect.
-    pub fn set_position_pixels<P: Into<Vector2<i32>>>(&self, position: P)
-    {
+    pub fn set_position_pixels<P: Into<Vector2<i32>>>(&self, position: P) {
         self.inner.set_position_pixels(position)
     }
 
@@ -626,8 +574,7 @@ impl<UserEventType> WindowHelper<UserEventType>
     /// window's inner size, excluding the border.
     ///
     /// For `WebCanvas`, this function has no effect.
-    pub fn set_size_scaled_pixels<S: Into<Vector2<f32>>>(&self, size: S)
-    {
+    pub fn set_size_scaled_pixels<S: Into<Vector2<f32>>>(&self, size: S) {
         self.inner.set_size_scaled_pixels(size)
     }
 
@@ -636,16 +583,14 @@ impl<UserEventType> WindowHelper<UserEventType>
     /// left of the display area, spanning all the monitors.
     ///
     /// For `WebCanvas`, this function has no effect.
-    pub fn set_position_scaled_pixels<P: Into<Vector2<f32>>>(&self, position: P)
-    {
+    pub fn set_position_scaled_pixels<P: Into<Vector2<f32>>>(&self, position: P) {
         self.inner.set_position_scaled_pixels(position)
     }
 
     /// Gets the window's scale factor.
     #[inline]
     #[must_use]
-    pub fn get_scale_factor(&self) -> f64
-    {
+    pub fn get_scale_factor(&self) -> f64 {
         self.inner.get_scale_factor()
     }
 
@@ -653,8 +598,7 @@ impl<UserEventType> WindowHelper<UserEventType>
     /// this event loop from another thread.
     ///
     /// See [UserEventSender::send_event], [WindowHandler::on_user_event].
-    pub fn create_user_event_sender(&self) -> UserEventSender<UserEventType>
-    {
+    pub fn create_user_event_sender(&self) -> UserEventSender<UserEventType> {
         self.inner.create_user_event_sender()
     }
 }
@@ -662,8 +606,7 @@ impl<UserEventType> WindowHelper<UserEventType>
 #[cfg(any(doc, doctest, not(target_arch = "wasm32")))]
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
 #[must_use]
-pub(crate) enum WindowEventLoopAction
-{
+pub(crate) enum WindowEventLoopAction {
     /// Continue running the event loop.
     Continue,
 
@@ -672,45 +615,39 @@ pub(crate) enum WindowEventLoopAction
     ///
     /// No further callbacks will be given once a handler has returned this
     /// value. The handler itself will be dropped before exiting.
-    Exit
+    Exit,
 }
 
 /// Information about the starting state of the window.
 #[derive(Debug, PartialEq, Clone)]
-pub struct WindowStartupInfo
-{
+pub struct WindowStartupInfo {
     viewport_size_pixels: Vector2<u32>,
-    scale_factor: f64
+    scale_factor: f64,
 }
 
-impl WindowStartupInfo
-{
-    pub(crate) fn new(viewport_size_pixels: Vector2<u32>, scale_factor: f64) -> Self
-    {
+impl WindowStartupInfo {
+    pub(crate) fn new(viewport_size_pixels: Vector2<u32>, scale_factor: f64) -> Self {
         WindowStartupInfo {
             viewport_size_pixels,
-            scale_factor
+            scale_factor,
         }
     }
 
     /// The scale factor of the window. When a high-dpi display is in use,
     /// this will be greater than `1.0`.
-    pub fn scale_factor(&self) -> f64
-    {
+    pub fn scale_factor(&self) -> f64 {
         self.scale_factor
     }
 
     /// The size of the viewport in pixels.
-    pub fn viewport_size_pixels(&self) -> &Vector2<u32>
-    {
+    pub fn viewport_size_pixels(&self) -> &Vector2<u32> {
         &self.viewport_size_pixels
     }
 }
 
 /// Identifies a mouse button.
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
-pub enum MouseButton
-{
+pub enum MouseButton {
     /// The left mouse button.
     Left,
     /// The middle mouse button.
@@ -718,17 +655,15 @@ pub enum MouseButton
     /// The right mouse button.
     Right,
     /// Another mouse button, identified by a number.
-    Other(u16)
+    Other(u16),
 }
 
 /// Describes a difference in the mouse scroll wheel position.
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub enum MouseScrollDistance
-{
+pub enum MouseScrollDistance {
     /// Number of lines or rows to scroll in each direction. The `y` field
     /// represents the vertical scroll direction on a typical mouse wheel.
-    Lines
-    {
+    Lines {
         /// The horizontal scroll distance. Negative values indicate scrolling
         /// left, and positive values indicate scrolling right.
         x: f64,
@@ -736,14 +671,13 @@ pub enum MouseScrollDistance
         /// down, and positive values indicate scrolling up.
         y: f64,
         /// The forward/backward scroll distance, supported on some 3D mice.
-        z: f64
+        z: f64,
     },
     /// Number of pixels to scroll in each direction. Scroll events are
     /// expressed in pixels if supported by the device (eg. a touchpad) and
     /// platform. The `y` field represents the vertical scroll direction on a
     /// typical mouse wheel.
-    Pixels
-    {
+    Pixels {
         /// The horizontal scroll distance. Negative values indicate scrolling
         /// left, and positive values indicate scrolling right.
         x: f64,
@@ -751,13 +685,12 @@ pub enum MouseScrollDistance
         /// down, and positive values indicate scrolling up.
         y: f64,
         /// The forward/backward scroll distance, supported on some 3D mice.
-        z: f64
+        z: f64,
     },
     /// Number of pages to scroll in each direction (only supported for
     /// WebCanvas). The `y` field represents the vertical scroll direction on a
     /// typical mouse wheel.
-    Pages
-    {
+    Pages {
         /// The horizontal scroll distance. Negative values indicate scrolling
         /// left, and positive values indicate scrolling right.
         x: f64,
@@ -765,15 +698,14 @@ pub enum MouseScrollDistance
         /// down, and positive values indicate scrolling up.
         y: f64,
         /// The forward/backward scroll distance, supported on some 3D mice.
-        z: f64
-    }
+        z: f64,
+    },
 }
 
 /// A virtual key code.
 #[allow(missing_docs)]
 #[derive(Debug, Hash, Ord, PartialOrd, PartialEq, Eq, Clone, Copy)]
-pub enum VirtualKeyCode
-{
+pub enum VirtualKeyCode {
     Key1,
     Key2,
     Key3,
@@ -947,50 +879,44 @@ pub enum VirtualKeyCode
     Yen,
     Copy,
     Paste,
-    Cut
+    Cut,
 }
 
 /// The state of the modifier keys.
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Default)]
-pub struct ModifiersState
-{
+pub struct ModifiersState {
     pub(crate) ctrl: bool,
     pub(crate) alt: bool,
     pub(crate) shift: bool,
-    pub(crate) logo: bool
+    pub(crate) logo: bool,
 }
 
-impl ModifiersState
-{
+impl ModifiersState {
     /// This is true if the CTRL key is pressed.
     #[inline]
     #[must_use]
-    pub fn ctrl(&self) -> bool
-    {
+    pub fn ctrl(&self) -> bool {
         self.ctrl
     }
 
     /// This is true if the ALT key is pressed.
     #[inline]
     #[must_use]
-    pub fn alt(&self) -> bool
-    {
+    pub fn alt(&self) -> bool {
         self.alt
     }
 
     /// This is true if the SHIFT key is pressed.
     #[inline]
     #[must_use]
-    pub fn shift(&self) -> bool
-    {
+    pub fn shift(&self) -> bool {
         self.shift
     }
 
     /// This is true if the logo key is pressed (normally the Windows key).
     #[inline]
     #[must_use]
-    pub fn logo(&self) -> bool
-    {
+    pub fn logo(&self) -> bool {
         self.logo
     }
 }
@@ -998,26 +924,23 @@ impl ModifiersState
 /// Configuration options about the mode in which the window should be created,
 /// for example fullscreen or windowed.
 #[derive(Debug, PartialEq, Clone)]
-pub(crate) enum WindowCreationMode
-{
+pub(crate) enum WindowCreationMode {
     /// Create the window in non-fullscreen mode.
-    Windowed
-    {
+    Windowed {
         /// The size of the window.
         size: WindowSize,
 
         /// The position of the window.
-        position: Option<WindowPosition>
+        position: Option<WindowPosition>,
     },
 
     /// Create the window in fullscreen borderless mode.
-    FullscreenBorderless
+    FullscreenBorderless,
 }
 
 /// The size of the window to create.
 #[derive(Debug, PartialEq, Clone)]
-pub enum WindowSize
-{
+pub enum WindowSize {
     /// Define the window size in pixels.
     PhysicalPixels(Vector2<u32>),
     /// Define the window size in device-independent scaled pixels.
@@ -1027,49 +950,44 @@ pub enum WindowSize
     MarginPhysicalPixels(u32),
     /// Make the window fill the screen, except for a margin around the outer
     /// edges.
-    MarginScaledPixels(f32)
+    MarginScaledPixels(f32),
 }
 
 /// The position of the window to create.
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
-pub enum WindowPosition
-{
+pub enum WindowPosition {
     /// Place the window in the center of the primary monitor.
     Center,
     /// Place the window at the specified pixel location from the top left of
     /// the primary monitor.
-    PrimaryMonitorPixelsFromTopLeft(Vector2<i32>)
+    PrimaryMonitorPixelsFromTopLeft(Vector2<i32>),
 }
 
 /// Whether or not the window is in fullscreen mode.
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
-pub enum WindowFullscreenMode
-{
+pub enum WindowFullscreenMode {
     /// Non-fullscreen mode.
     Windowed,
     /// Fullscreen borderless mode.
-    FullscreenBorderless
+    FullscreenBorderless,
 }
 
 /// Options used during the creation of a window.
 #[derive(Debug, Clone, PartialEq)]
-pub struct WindowCreationOptions
-{
+pub struct WindowCreationOptions {
     pub(crate) mode: WindowCreationMode,
     pub(crate) multisampling: u16,
     pub(crate) vsync: bool,
     pub(crate) always_on_top: bool,
     pub(crate) resizable: bool,
     pub(crate) maximized: bool,
-    pub(crate) decorations: bool
+    pub(crate) decorations: bool,
 }
 
-impl WindowCreationOptions
-{
+impl WindowCreationOptions {
     /// Instantiates a new `WindowCreationOptions` structure with the default
     /// options, in non-fullscreen mode.
-    pub fn new_windowed(size: WindowSize, position: Option<WindowPosition>) -> Self
-    {
+    pub fn new_windowed(size: WindowSize, position: Option<WindowPosition>) -> Self {
         Self::new(WindowCreationMode::Windowed { size, position })
     }
 
@@ -1077,15 +995,13 @@ impl WindowCreationOptions
     /// options, in borderless fullscreen mode.
     #[inline]
     #[must_use]
-    pub fn new_fullscreen_borderless() -> Self
-    {
+    pub fn new_fullscreen_borderless() -> Self {
         Self::new(WindowCreationMode::FullscreenBorderless)
     }
 
     #[inline]
     #[must_use]
-    fn new(mode: WindowCreationMode) -> Self
-    {
+    fn new(mode: WindowCreationMode) -> Self {
         WindowCreationOptions {
             mode,
             multisampling: 16,
@@ -1093,7 +1009,7 @@ impl WindowCreationOptions
             always_on_top: false,
             resizable: true,
             maximized: false,
-            decorations: true
+            decorations: true,
         }
     }
 
@@ -1104,8 +1020,7 @@ impl WindowCreationOptions
     /// effect.
     #[inline]
     #[must_use]
-    pub fn with_multisampling(mut self, multisampling: u16) -> Self
-    {
+    pub fn with_multisampling(mut self, multisampling: u16) -> Self {
         self.multisampling = multisampling;
         self
     }
@@ -1117,8 +1032,7 @@ impl WindowCreationOptions
     /// effect.
     #[inline]
     #[must_use]
-    pub fn with_vsync(mut self, vsync: bool) -> Self
-    {
+    pub fn with_vsync(mut self, vsync: bool) -> Self {
         self.vsync = vsync;
         self
     }
@@ -1127,8 +1041,7 @@ impl WindowCreationOptions
     /// is `true`.
     #[inline]
     #[must_use]
-    pub fn with_resizable(mut self, resizable: bool) -> Self
-    {
+    pub fn with_resizable(mut self, resizable: bool) -> Self {
         self.resizable = resizable;
         self
     }
@@ -1137,8 +1050,7 @@ impl WindowCreationOptions
     /// default is `false`.
     #[inline]
     #[must_use]
-    pub fn with_always_on_top(mut self, always_on_top: bool) -> Self
-    {
+    pub fn with_always_on_top(mut self, always_on_top: bool) -> Self {
         self.always_on_top = always_on_top;
         self
     }
@@ -1147,8 +1059,7 @@ impl WindowCreationOptions
     /// `false`.
     #[inline]
     #[must_use]
-    pub fn with_maximized(mut self, maximized: bool) -> Self
-    {
+    pub fn with_maximized(mut self, maximized: bool) -> Self {
         self.maximized = maximized;
         self
     }
@@ -1157,8 +1068,7 @@ impl WindowCreationOptions
     /// `true`.
     #[inline]
     #[must_use]
-    pub fn with_decorations(mut self, decorations: bool) -> Self
-    {
+    pub fn with_decorations(mut self, decorations: bool) -> Self {
         self.decorations = decorations;
         self
     }
