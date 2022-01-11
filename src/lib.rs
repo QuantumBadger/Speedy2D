@@ -300,9 +300,8 @@ use std::rc::Rc;
 use {
     crate::image::ImageFileFormat,
     std::io::{BufRead, Seek},
-    std::path::Path,
+    std::path::Path
 };
-
 
 use crate::color::Color;
 use crate::dimen::Vector2;
@@ -314,15 +313,18 @@ use crate::glbackend::{GLBackendGLRS, GLBackendGlow};
 use crate::glwrapper::{GLContextManager, GLVersion};
 use crate::image::{ImageDataType, ImageHandle, ImageSmoothingMode};
 use crate::renderer2d::Renderer2D;
-use crate::shape::{Rectangle, Polygon};
+use crate::shape::{Polygon, Rectangle};
 #[cfg(target_arch = "wasm32")]
 use crate::web::WebCanvasElement;
 #[cfg(any(doc, doctest, feature = "windowing"))]
 use crate::window::WindowHandler;
 #[cfg(any(doc, doctest, all(feature = "windowing", not(target_arch = "wasm32"))))]
 use crate::window::{
-    UserEventSender, WindowCreationError, WindowCreationOptions, WindowPosition,
-    WindowSize,
+    UserEventSender,
+    WindowCreationError,
+    WindowCreationOptions,
+    WindowPosition,
+    WindowSize
 };
 #[cfg(any(doc, doctest))]
 use crate::window_internal_doctest::{WebCanvasImpl, WindowGlutin};
@@ -388,37 +390,41 @@ mod utils;
 
 /// An error encountered during the creation of a [GLRenderer].
 #[derive(Clone, Debug)]
-pub struct GLRendererCreationError {
-    description: String,
+pub struct GLRendererCreationError
+{
+    description: String
 }
 
-impl GLRendererCreationError {
+impl GLRendererCreationError
+{
     fn msg_with_cause<S, Cause>(description: S, cause: Cause) -> BacktraceError<Self>
     where
         S: AsRef<str>,
-        Cause: std::error::Error + 'static,
+        Cause: std::error::Error + 'static
     {
         BacktraceError::new_with_cause(
             Self {
-                description: description.as_ref().to_string(),
+                description: description.as_ref().to_string()
             },
-            cause,
+            cause
         )
     }
 
     #[allow(dead_code)]
     fn msg<S>(description: S) -> BacktraceError<Self>
     where
-        S: AsRef<str>,
+        S: AsRef<str>
     {
         BacktraceError::new(Self {
-            description: description.as_ref().to_string(),
+            description: description.as_ref().to_string()
         })
     }
 }
 
-impl Display for GLRendererCreationError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+impl Display for GLRendererCreationError
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result
+    {
         Display::fmt("GL renderer creation error: ", f)?;
         Display::fmt(&self.description, f)
     }
@@ -428,12 +434,14 @@ impl Display for GLRendererCreationError {
 ///
 /// Note: There is no need to use this struct if you are letting Speedy2D create
 /// a window for you.
-pub struct GLRenderer {
+pub struct GLRenderer
+{
     context: GLContextManager,
-    renderer: Graphics2D,
+    renderer: Graphics2D
 }
 
-impl GLRenderer {
+impl GLRenderer
+{
     /// Creates a `GLRenderer` for the current OpenGL context.
     /// `viewport_size_pixels` should be set to the initial viewport size,
     /// however this can be changed later using [GLRenderer::
@@ -456,12 +464,13 @@ impl GLRenderer {
     /// as `GLRenderer`.
     #[cfg(not(target_arch = "wasm32"))]
     pub unsafe fn new_for_current_context<V: Into<Vector2<u32>>>(
-        viewport_size_pixels: V,
-    ) -> Result<Self, BacktraceError<GLRendererCreationError>> {
+        viewport_size_pixels: V
+    ) -> Result<Self, BacktraceError<GLRendererCreationError>>
+    {
         Self::new_with_gl_backend(
             viewport_size_pixels,
             Rc::new(GLBackendGLRS {}),
-            GLVersion::OpenGL2_0,
+            GLVersion::OpenGL2_0
         )
     }
 
@@ -484,11 +493,11 @@ impl GLRenderer {
     #[cfg(not(target_arch = "wasm32"))]
     pub unsafe fn new_for_gl_context<V, F>(
         viewport_size_pixels: V,
-        loader_function: F,
+        loader_function: F
     ) -> Result<Self, BacktraceError<GLRendererCreationError>>
     where
         V: Into<Vector2<u32>>,
-        F: FnMut(&str) -> *const std::os::raw::c_void,
+        F: FnMut(&str) -> *const std::os::raw::c_void
     {
         let backend =
             GLBackendGlow::new(glow::Context::from_loader_function(loader_function));
@@ -496,7 +505,7 @@ impl GLRenderer {
         Self::new_with_gl_backend(
             viewport_size_pixels,
             Rc::new(backend),
-            GLVersion::OpenGL2_0,
+            GLVersion::OpenGL2_0
         )
     }
 
@@ -509,11 +518,11 @@ impl GLRenderer {
     #[cfg(any(doc, doctest, target_arch = "wasm32"))]
     pub fn new_for_web_canvas_by_id<V, S>(
         viewport_size_pixels: V,
-        element_id: S,
+        element_id: S
     ) -> Result<Self, BacktraceError<GLRendererCreationError>>
     where
         V: Into<Vector2<u32>>,
-        S: AsRef<str>,
+        S: AsRef<str>
     {
         WebCanvasElement::new_by_id(element_id.as_ref())
             .map_err(|err| {
@@ -525,22 +534,23 @@ impl GLRenderer {
     fn new_with_gl_backend<V: Into<Vector2<u32>>>(
         viewport_size_pixels: V,
         gl_backend: Rc<dyn GLBackend>,
-        gl_version: GLVersion,
-    ) -> Result<Self, BacktraceError<GLRendererCreationError>> {
+        gl_version: GLVersion
+    ) -> Result<Self, BacktraceError<GLRendererCreationError>>
+    {
         let viewport_size_pixels = viewport_size_pixels.into();
 
         let context =
             GLContextManager::create(gl_backend, gl_version).map_err(|err| {
                 GLRendererCreationError::msg_with_cause(
                     "GL context manager creation failed",
-                    err,
+                    err
                 )
             })?;
 
         let renderer = Graphics2D {
             renderer: Renderer2D::new(&context, viewport_size_pixels).map_err(|err| {
                 GLRendererCreationError::msg_with_cause("Renderer2D creation failed", err)
-            })?,
+            })?
         };
 
         Ok(GLRenderer { context, renderer })
@@ -548,7 +558,8 @@ impl GLRenderer {
 
     /// Sets the renderer viewport to the specified pixel size, in response to a
     /// change in the window size.
-    pub fn set_viewport_size_pixels(&mut self, viewport_size_pixels: Vector2<u32>) {
+    pub fn set_viewport_size_pixels(&mut self, viewport_size_pixels: Vector2<u32>)
+    {
         self.renderer
             .renderer
             .set_viewport_size_pixels(viewport_size_pixels)
@@ -566,8 +577,9 @@ impl GLRenderer {
         data_type: ImageDataType,
         smoothing_mode: ImageSmoothingMode,
         size: Vector2<u32>,
-        data: &[u8],
-    ) -> Result<ImageHandle, BacktraceError<ErrorMessage>> {
+        data: &[u8]
+    ) -> Result<ImageHandle, BacktraceError<ErrorMessage>>
+    {
         self.renderer
             .create_image_from_raw_pixels(data_type, smoothing_mode, size, data)
     }
@@ -586,8 +598,9 @@ impl GLRenderer {
         &mut self,
         data_type: Option<ImageFileFormat>,
         smoothing_mode: ImageSmoothingMode,
-        path: S,
-    ) -> Result<ImageHandle, BacktraceError<ErrorMessage>> {
+        path: S
+    ) -> Result<ImageHandle, BacktraceError<ErrorMessage>>
+    {
         self.renderer
             .create_image_from_file_path(data_type, smoothing_mode, path)
     }
@@ -626,8 +639,9 @@ impl GLRenderer {
         &mut self,
         data_type: Option<ImageFileFormat>,
         smoothing_mode: ImageSmoothingMode,
-        file_bytes: R,
-    ) -> Result<ImageHandle, BacktraceError<ErrorMessage>> {
+        file_bytes: R
+    ) -> Result<ImageHandle, BacktraceError<ErrorMessage>>
+    {
         self.renderer
             .create_image_from_file_bytes(data_type, smoothing_mode, file_bytes)
     }
@@ -639,7 +653,8 @@ impl GLRenderer {
     /// Note: if calling this method, you are responsible for swapping the
     /// window context buffers if necessary.
     #[inline]
-    pub fn draw_frame<F: FnOnce(&mut Graphics2D) -> R, R>(&mut self, callback: F) -> R {
+    pub fn draw_frame<F: FnOnce(&mut Graphics2D) -> R, R>(&mut self, callback: F) -> R
+    {
         self.renderer.set_clip(None);
         let result = callback(&mut self.renderer);
         self.renderer.renderer.flush_render_queue();
@@ -647,8 +662,10 @@ impl GLRenderer {
     }
 }
 
-impl Drop for GLRenderer {
-    fn drop(&mut self) {
+impl Drop for GLRenderer
+{
+    fn drop(&mut self)
+    {
         self.context.mark_invalid();
     }
 }
@@ -660,11 +677,13 @@ impl Drop for GLRenderer {
 ///
 /// If you are managing the GL context yourself, you must invoke
 /// [GLRenderer::draw_frame] to obtain an instance.
-pub struct Graphics2D {
-    renderer: Renderer2D,
+pub struct Graphics2D
+{
+    renderer: Renderer2D
 }
 
-impl Graphics2D {
+impl Graphics2D
+{
     /// Creates a new [ImageHandle] from the specified raw pixel data.
     ///
     /// The data provided in the `data` parameter must be in the format
@@ -677,13 +696,14 @@ impl Graphics2D {
         data_type: ImageDataType,
         smoothing_mode: ImageSmoothingMode,
         size: S,
-        data: &[u8],
-    ) -> Result<ImageHandle, BacktraceError<ErrorMessage>> {
+        data: &[u8]
+    ) -> Result<ImageHandle, BacktraceError<ErrorMessage>>
+    {
         self.renderer.create_image_from_raw_pixels(
             data_type,
             smoothing_mode,
             size.into(),
-            data,
+            data
         )
     }
 
@@ -701,8 +721,9 @@ impl Graphics2D {
         &mut self,
         data_type: Option<ImageFileFormat>,
         smoothing_mode: ImageSmoothingMode,
-        path: S,
-    ) -> Result<ImageHandle, BacktraceError<ErrorMessage>> {
+        path: S
+    ) -> Result<ImageHandle, BacktraceError<ErrorMessage>>
+    {
         self.renderer
             .create_image_from_file_path(data_type, smoothing_mode, path)
     }
@@ -743,14 +764,16 @@ impl Graphics2D {
         &mut self,
         data_type: Option<ImageFileFormat>,
         smoothing_mode: ImageSmoothingMode,
-        file_bytes: R,
-    ) -> Result<ImageHandle, BacktraceError<ErrorMessage>> {
+        file_bytes: R
+    ) -> Result<ImageHandle, BacktraceError<ErrorMessage>>
+    {
         self.renderer
             .create_image_from_file_bytes(data_type, smoothing_mode, file_bytes)
     }
 
     /// Fills the screen with the specified color.
-    pub fn clear_screen(&mut self, color: Color) {
+    pub fn clear_screen(&mut self, color: Color)
+    {
         self.renderer.clear_screen(color);
     }
 
@@ -776,19 +799,19 @@ impl Graphics2D {
         &mut self,
         position: V,
         color: Color,
-        text: &Rc<FormattedTextBlock>,
-    ) {
+        text: &Rc<FormattedTextBlock>
+    )
+    {
         self.renderer.draw_text(position, color, text);
     }
 
     /// Draws a polygon with a single color.
     ///
-    /// The vertex positions do not require any specific order, but they cannot be self intersecting.
-    pub fn draw_polygon(&mut self, polygon: &Polygon, color: Color) {
-        self.renderer.draw_polygon(
-            polygon,
-            color,
-        )
+    /// The vertex positions do not require any specific order, but they cannot
+    /// be self intersecting.
+    pub fn draw_polygon(&mut self, polygon: &Polygon, color: Color)
+    {
+        self.renderer.draw_polygon(polygon, color)
     }
 
     /// Draws a triangle with the specified colors (one color for each corner).
@@ -798,11 +821,12 @@ impl Graphics2D {
     pub fn draw_triangle_three_color(
         &mut self,
         vertex_positions_clockwise: [Vector2<f32>; 3],
-        vertex_colors_clockwise: [Color; 3],
-    ) {
+        vertex_colors_clockwise: [Color; 3]
+    )
+    {
         self.renderer.draw_triangle_three_color(
             vertex_positions_clockwise,
-            vertex_colors_clockwise,
+            vertex_colors_clockwise
         );
     }
 
@@ -825,13 +849,14 @@ impl Graphics2D {
         vertex_positions_clockwise: [Vector2<f32>; 3],
         vertex_colors: [Color; 3],
         image_coords_normalized: [Vector2<f32>; 3],
-        image: &ImageHandle,
-    ) {
+        image: &ImageHandle
+    )
+    {
         self.renderer.draw_triangle_image_tinted(
             vertex_positions_clockwise,
             vertex_colors,
             image_coords_normalized,
-            image,
+            image
         );
     }
 
@@ -842,8 +867,9 @@ impl Graphics2D {
     pub fn draw_triangle(
         &mut self,
         vertex_positions_clockwise: [Vector2<f32>; 3],
-        color: Color,
-    ) {
+        color: Color
+    )
+    {
         self.draw_triangle_three_color(vertex_positions_clockwise, [color, color, color]);
     }
 
@@ -856,8 +882,9 @@ impl Graphics2D {
     pub fn draw_quad_four_color(
         &mut self,
         vertex_positions_clockwise: [Vector2<f32>; 4],
-        vertex_colors: [Color; 4],
-    ) {
+        vertex_colors: [Color; 4]
+    )
+    {
         let vp = vertex_positions_clockwise;
         let vc = vertex_colors;
 
@@ -873,11 +900,12 @@ impl Graphics2D {
     pub fn draw_quad(
         &mut self,
         vertex_positions_clockwise: [Vector2<f32>; 4],
-        color: Color,
-    ) {
+        color: Color
+    )
+    {
         self.draw_quad_four_color(
             vertex_positions_clockwise,
-            [color, color, color, color],
+            [color, color, color, color]
         );
     }
 
@@ -902,8 +930,9 @@ impl Graphics2D {
         vertex_positions_clockwise: [Vector2<f32>; 4],
         vertex_colors: [Color; 4],
         image_coords_normalized: [Vector2<f32>; 4],
-        image: &ImageHandle,
-    ) {
+        image: &ImageHandle
+    )
+    {
         let vp = vertex_positions_clockwise;
         let vc = vertex_colors;
         let ic = image_coords_normalized;
@@ -912,14 +941,14 @@ impl Graphics2D {
             [vp[0], vp[1], vp[2]],
             [vc[0], vc[1], vc[2]],
             [ic[0], ic[1], ic[2]],
-            image,
+            image
         );
 
         self.draw_triangle_image_tinted_three_color(
             [vp[2], vp[3], vp[0]],
             [vc[2], vc[3], vc[0]],
             [ic[2], ic[3], ic[0]],
-            image,
+            image
         );
     }
 
@@ -940,23 +969,24 @@ impl Graphics2D {
         rect: Rectangle,
         color: Color,
         image_coords_normalized: Rectangle,
-        image: &ImageHandle,
-    ) {
+        image: &ImageHandle
+    )
+    {
         self.draw_quad_image_tinted_four_color(
             [
                 *rect.top_left(),
                 rect.top_right(),
                 *rect.bottom_right(),
-                rect.bottom_left(),
+                rect.bottom_left()
             ],
             [color, color, color, color],
             [
                 *image_coords_normalized.top_left(),
                 image_coords_normalized.top_right(),
                 *image_coords_normalized.bottom_right(),
-                image_coords_normalized.bottom_left(),
+                image_coords_normalized.bottom_left()
             ],
-            image,
+            image
         );
     }
 
@@ -972,51 +1002,51 @@ impl Graphics2D {
         &mut self,
         rect: Rectangle,
         color: Color,
-        image: &ImageHandle,
-    ) {
+        image: &ImageHandle
+    )
+    {
         self.draw_rectangle_image_subset_tinted(
             rect,
             color,
             Rectangle::new(Vector2::ZERO, Vector2::new(1.0, 1.0)),
-            image,
+            image
         );
     }
 
     /// Draws an image at the specified location. The image will be
     /// scaled to fill the pixel coordinates in the provided rectangle.
     #[inline]
-    pub fn draw_rectangle_image(&mut self, rect: Rectangle, image: &ImageHandle) {
+    pub fn draw_rectangle_image(&mut self, rect: Rectangle, image: &ImageHandle)
+    {
         self.draw_rectangle_image_tinted(rect, Color::WHITE, image);
     }
 
     /// Draws an image at the specified pixel location. The image will be
     /// drawn at its original size with no scaling.
     #[inline]
-    pub fn draw_image<P: Into<Vector2<f32>>>(
-        &mut self,
-        position: P,
-        image: &ImageHandle,
-    ) {
+    pub fn draw_image<P: Into<Vector2<f32>>>(&mut self, position: P, image: &ImageHandle)
+    {
         let position = position.into();
 
         self.draw_rectangle_image(
             Rectangle::new(position, position + image.size().into_f32()),
-            image,
+            image
         );
     }
 
     /// Draws a single-color rectangle at the specified location. The
     /// coordinates of the rectangle are specified in pixels.
     #[inline]
-    pub fn draw_rectangle(&mut self, rect: Rectangle, color: Color) {
+    pub fn draw_rectangle(&mut self, rect: Rectangle, color: Color)
+    {
         self.draw_quad(
             [
                 *rect.top_left(),
                 rect.top_right(),
                 *rect.bottom_right(),
-                rect.bottom_left(),
+                rect.bottom_left()
             ],
-            color,
+            color
         );
     }
 
@@ -1047,14 +1077,15 @@ impl Graphics2D {
         start_position: VStart,
         end_position: VEnd,
         thickness: f32,
-        color: Color,
-    ) {
+        color: Color
+    )
+    {
         let start_position = start_position.into();
         let end_position = end_position.into();
 
         let gradient_normalized = match (end_position - start_position).normalize() {
             None => return,
-            Some(gradient) => gradient,
+            Some(gradient) => gradient
         };
 
         let gradient_thickness = gradient_normalized * (thickness / 2.0);
@@ -1073,9 +1104,9 @@ impl Graphics2D {
                 start_anticlockwise,
                 end_anticlockwise,
                 end_clockwise,
-                start_clockwise,
+                start_clockwise
             ],
-            color,
+            color
         );
     }
 
@@ -1085,8 +1116,9 @@ impl Graphics2D {
         &mut self,
         center_position: V,
         radius: f32,
-        color: Color,
-    ) {
+        color: Color
+    )
+    {
         let center_position = center_position.into();
 
         let top_left = center_position + Vector2::new(-radius, -radius);
@@ -1100,8 +1132,8 @@ impl Graphics2D {
             [
                 Vector2::new(-1.0, -1.0),
                 Vector2::new(1.0, -1.0),
-                Vector2::new(1.0, 1.0),
-            ],
+                Vector2::new(1.0, 1.0)
+            ]
         );
 
         self.renderer.draw_circle_section(
@@ -1110,8 +1142,8 @@ impl Graphics2D {
             [
                 Vector2::new(1.0, 1.0),
                 Vector2::new(-1.0, 1.0),
-                Vector2::new(-1.0, -1.0),
-            ],
+                Vector2::new(-1.0, -1.0)
+            ]
         );
     }
 
@@ -1149,19 +1181,21 @@ impl Graphics2D {
         &mut self,
         vertex_positions_clockwise: [Vector2<f32>; 3],
         vertex_colors: [Color; 3],
-        vertex_circle_coords_normalized: [Vector2<f32>; 3],
-    ) {
+        vertex_circle_coords_normalized: [Vector2<f32>; 3]
+    )
+    {
         self.renderer.draw_circle_section(
             vertex_positions_clockwise,
             vertex_colors,
-            vertex_circle_coords_normalized,
+            vertex_circle_coords_normalized
         );
     }
 
     /// Sets the current clip to the rectangle specified by the given
     /// coordinates. Rendering operations have no effect outside of the
     /// clipping area.
-    pub fn set_clip(&mut self, rect: Option<Rectangle<i32>>) {
+    pub fn set_clip(&mut self, rect: Option<Rectangle<i32>>)
+    {
         self.renderer.set_clip(rect);
     }
 }
@@ -1170,22 +1204,23 @@ impl Graphics2D {
 #[cfg(any(doc, doctest, all(feature = "windowing", not(target_arch = "wasm32"))))]
 pub struct Window<UserEventType = ()>
 where
-    UserEventType: 'static,
+    UserEventType: 'static
 {
     window_impl: WindowGlutin<UserEventType>,
-    renderer: GLRenderer,
+    renderer: GLRenderer
 }
 
 #[cfg(any(doc, doctest, all(feature = "windowing", not(target_arch = "wasm32"))))]
-impl Window<()> {
+impl Window<()>
+{
     /// Create a new window, centered in the middle of the primary monitor.
     pub fn new_centered<Str, Size>(
         title: Str,
-        size: Size,
+        size: Size
     ) -> Result<Window<()>, BacktraceError<WindowCreationError>>
     where
         Str: AsRef<str>,
-        Size: Into<Vector2<u32>>,
+        Size: Into<Vector2<u32>>
     {
         let size = size.into();
 
@@ -1193,59 +1228,62 @@ impl Window<()> {
             title.as_ref(),
             WindowCreationOptions::new_windowed(
                 WindowSize::PhysicalPixels(size),
-                Some(WindowPosition::Center),
-            ),
+                Some(WindowPosition::Center)
+            )
         )
     }
 
     /// Create a new window, in fullscreen borderless mode on the primary
     /// monitor.
     pub fn new_fullscreen_borderless<Str>(
-        title: Str,
+        title: Str
     ) -> Result<Window<()>, BacktraceError<WindowCreationError>>
     where
-        Str: AsRef<str>,
+        Str: AsRef<str>
     {
         Self::new_with_options(
             title.as_ref(),
-            WindowCreationOptions::new_fullscreen_borderless(),
+            WindowCreationOptions::new_fullscreen_borderless()
         )
     }
 
     /// Create a new window with the specified options.
     pub fn new_with_options(
         title: &str,
-        options: WindowCreationOptions,
-    ) -> Result<Window<()>, BacktraceError<WindowCreationError>> {
+        options: WindowCreationOptions
+    ) -> Result<Window<()>, BacktraceError<WindowCreationError>>
+    {
         Self::new_with_user_events(title, options)
     }
 }
 
 #[cfg(any(doc, doctest, all(feature = "windowing", not(target_arch = "wasm32"))))]
-impl<UserEventType: 'static> Window<UserEventType> {
+impl<UserEventType: 'static> Window<UserEventType>
+{
     /// Create a new window with the specified options, with support for user
     /// events. See [window::UserEventSender].
     pub fn new_with_user_events(
         title: &str,
-        options: WindowCreationOptions,
-    ) -> Result<Self, BacktraceError<WindowCreationError>> {
+        options: WindowCreationOptions
+    ) -> Result<Self, BacktraceError<WindowCreationError>>
+    {
         let window_impl = WindowGlutin::new(title, options)?;
 
         let renderer = GLRenderer::new_with_gl_backend(
             window_impl.get_inner_size_pixels(),
             window_impl.gl_backend().clone(),
-            GLVersion::OpenGL2_0,
+            GLVersion::OpenGL2_0
         )
         .map_err(|err| {
             BacktraceError::new_with_cause(
                 WindowCreationError::RendererCreationFailed,
-                err,
+                err
             )
         })?;
 
         Ok(Window {
             window_impl,
-            renderer,
+            renderer
         })
     }
 
@@ -1256,7 +1294,8 @@ impl<UserEventType: 'static> Window<UserEventType> {
     /// `Window::<YourTypeHere>::new_with_user_events()`.
     ///
     /// See [UserEventSender::send_event], [WindowHandler::on_user_event].
-    pub fn create_user_event_sender(&self) -> UserEventSender<UserEventType> {
+    pub fn create_user_event_sender(&self) -> UserEventSender<UserEventType>
+    {
         self.window_impl.create_user_event_sender()
     }
 
@@ -1267,7 +1306,7 @@ impl<UserEventType: 'static> Window<UserEventType> {
     /// [window::WindowHelper::terminate_loop()].
     pub fn run_loop<H>(self, handler: H) -> !
     where
-        H: WindowHandler<UserEventType> + 'static,
+        H: WindowHandler<UserEventType> + 'static
     {
         self.window_impl.run_loop(handler, self.renderer);
     }
@@ -1277,15 +1316,16 @@ impl<UserEventType: 'static> Window<UserEventType> {
 #[cfg(any(doc, doctest, all(target_arch = "wasm32", feature = "windowing")))]
 pub struct WebCanvas<UserEventType = ()>
 where
-    UserEventType: 'static,
+    UserEventType: 'static
 {
     inner: Option<WebCanvasImpl>,
     should_cleanup: bool,
-    user_event_type: PhantomData<UserEventType>,
+    user_event_type: PhantomData<UserEventType>
 }
 
 #[cfg(any(doc, doctest, all(target_arch = "wasm32", feature = "windowing")))]
-impl WebCanvas<()> {
+impl WebCanvas<()>
+{
     /// Creates (and starts running) a new WebCanvas instance, attached to the
     /// HTML canvas with the specified ID. Event handlers will be registered for
     /// keyboard, mouse, and other events.
@@ -1298,18 +1338,19 @@ impl WebCanvas<()> {
     /// this function returns. Note that the main thread must not be blocked.
     pub fn new_for_id<S, H>(
         element_id: S,
-        handler: H,
+        handler: H
     ) -> Result<WebCanvas<()>, BacktraceError<ErrorMessage>>
     where
         S: AsRef<str>,
-        H: WindowHandler<()> + 'static,
+        H: WindowHandler<()> + 'static
     {
         WebCanvas::<()>::new_for_id_with_user_events(element_id, handler)
     }
 }
 
 #[cfg(any(doc, doctest, all(target_arch = "wasm32", feature = "windowing")))]
-impl<UserEventType: 'static> WebCanvas<UserEventType> {
+impl<UserEventType: 'static> WebCanvas<UserEventType>
+{
     /// Creates (and starts running) a new WebCanvas instance, attached to the
     /// HTML canvas with the specified ID. Event handlers will be registered for
     /// keyboard, mouse, and other events.
@@ -1325,16 +1366,16 @@ impl<UserEventType: 'static> WebCanvas<UserEventType> {
     /// this function returns. Note that the main thread must not be blocked.
     pub fn new_for_id_with_user_events<S, H>(
         element_id: S,
-        handler: H,
+        handler: H
     ) -> Result<Self, BacktraceError<ErrorMessage>>
     where
         S: AsRef<str>,
-        H: WindowHandler<UserEventType> + 'static,
+        H: WindowHandler<UserEventType> + 'static
     {
         Ok(WebCanvas {
             inner: Some(WebCanvasImpl::new(element_id, handler)?),
             should_cleanup: false,
-            user_event_type: PhantomData::default(),
+            user_event_type: PhantomData::default()
         })
     }
 
@@ -1342,14 +1383,17 @@ impl<UserEventType: 'static> WebCanvas<UserEventType> {
     /// dropped. If this function is not called, then the event loop (and
     /// associated event handlers) will continue to run after the WebCanvas
     /// struct is dropped.
-    pub fn unregister_when_dropped(&mut self) {
+    pub fn unregister_when_dropped(&mut self)
+    {
         self.should_cleanup = true;
     }
 }
 
 #[cfg(any(doc, doctest, all(target_arch = "wasm32", feature = "windowing")))]
-impl<UserEventType: 'static> Drop for WebCanvas<UserEventType> {
-    fn drop(&mut self) {
+impl<UserEventType: 'static> Drop for WebCanvas<UserEventType>
+{
+    fn drop(&mut self)
+    {
         if !self.should_cleanup {
             std::mem::forget(self.inner.take());
             log::info!(

@@ -33,30 +33,34 @@ use speedy2d::GLRenderer;
 const NOTO_SANS_REGULAR_BYTES: &[u8] =
     include_bytes!("../assets/fonts/NotoSans-Regular.ttf");
 
-fn get_expected_image_path<S: AsRef<str>>(name: S) -> String {
+fn get_expected_image_path<S: AsRef<str>>(name: S) -> String
+{
     format!("test/assets/expected_images/test_{}.png", name.as_ref())
 }
 
-fn write_rgba_to_png<S: AsRef<str>>(name: S, width: u32, height: u32, buf: &[u8]) {
+fn write_rgba_to_png<S: AsRef<str>>(name: S, width: u32, height: u32, buf: &[u8])
+{
     image::save_buffer_with_format(
         get_expected_image_path(name),
         buf,
         width,
         height,
         ColorType::Rgba8,
-        ImageFormat::Png,
+        ImageFormat::Png
     )
     .unwrap();
 }
 
-fn read_png_argb8<S: AsRef<str>>(name: S) -> Option<Vec<u8>> {
+fn read_png_argb8<S: AsRef<str>>(name: S) -> Option<Vec<u8>>
+{
     image::io::Reader::open(get_expected_image_path(name))
         .ok()
         .and_then(|reader| reader.decode().ok())
         .map(|image| image.into_rgba8().into_raw())
 }
 
-fn read_framebuffer_argb(width: u32, height: u32) -> Vec<u8> {
+fn read_framebuffer_argb(width: u32, height: u32) -> Vec<u8>
+{
     let mut buf: Vec<u8> = vec![0; (width * height * 4).try_into().unwrap()];
 
     unsafe {
@@ -67,7 +71,7 @@ fn read_framebuffer_argb(width: u32, height: u32) -> Vec<u8> {
             height.try_into().unwrap(),
             gl::RGBA,
             gl::UNSIGNED_BYTE,
-            buf.as_mut_ptr() as *mut c_void,
+            buf.as_mut_ptr() as *mut c_void
         );
     }
 
@@ -83,12 +87,13 @@ fn read_framebuffer_argb(width: u32, height: u32) -> Vec<u8> {
     flipped_buf
 }
 
-fn write_framebuffer_to_png<S: AsRef<str>>(name: S, width: u32, height: u32) {
+fn write_framebuffer_to_png<S: AsRef<str>>(name: S, width: u32, height: u32)
+{
     write_rgba_to_png(
         name,
         width,
         height,
-        read_framebuffer_argb(width, height).as_slice(),
+        read_framebuffer_argb(width, height).as_slice()
     );
 }
 
@@ -96,10 +101,10 @@ fn create_context_and_run<R, F>(
     event_loop: &EventLoop<()>,
     width: u32,
     height: u32,
-    action: F,
+    action: F
 ) -> R
 where
-    F: FnOnce(&mut GLRenderer) -> R,
+    F: FnOnce(&mut GLRenderer) -> R
 {
     let context_builder = glutin::ContextBuilder::new()
         .with_gl_debug_flag(true)
@@ -111,7 +116,7 @@ where
         .build_windowed(
             glutin::window::WindowBuilder::new()
                 .with_inner_size(PhysicalSize::new(width, height)),
-            &event_loop,
+            &event_loop
         )
         .unwrap();
 
@@ -141,8 +146,9 @@ fn run_test_with_new_context<S: AsRef<str>, F: FnOnce(&mut GLRenderer)>(
     expected_image_name: S,
     width: u32,
     height: u32,
-    action: F,
-) {
+    action: F
+)
+{
     let expected_image = read_png_argb8(expected_image_name.as_ref());
 
     let actual_image = create_context_and_run(event_loop, width, height, |renderer| {
@@ -156,7 +162,7 @@ fn run_test_with_new_context<S: AsRef<str>, F: FnOnce(&mut GLRenderer)>(
             write_framebuffer_to_png(
                 format!("{}_ACTUAL", expected_image_name.as_ref()),
                 width,
-                height,
+                height
             );
         }
 
@@ -187,14 +193,16 @@ fn run_test_with_new_context<S: AsRef<str>, F: FnOnce(&mut GLRenderer)>(
     );
 }
 
-struct GLTest {
+struct GLTest
+{
     width: u32,
     height: u32,
     name: String,
-    action: Box<dyn FnOnce(&mut GLRenderer)>,
+    action: Box<dyn FnOnce(&mut GLRenderer)>
 }
 
-fn main() {
+fn main()
+{
     simple_logger::SimpleLogger::new().init().unwrap();
 
     let event_loop = EventLoop::new();
@@ -211,15 +219,15 @@ fn main() {
 
                 graphics.draw_rectangle(
                     Rectangle::from_tuples((10.0, 20.0), (30.0, 40.0)),
-                    Color::MAGENTA,
+                    Color::MAGENTA
                 );
 
                 graphics.draw_rectangle(
                     Rectangle::from_tuples((15.0, 30.0), (49.0, 48.0)),
-                    Color::GREEN,
+                    Color::GREEN
                 );
             });
-        }),
+        })
     });
 
     tests.push(GLTest {
@@ -236,7 +244,7 @@ fn main() {
 
                 graphics.draw_line((1.0, 20.5), (49.0, 20.5), 5.0, Color::LIGHT_GRAY);
             });
-        }),
+        })
     });
 
     tests.push(GLTest {
@@ -253,7 +261,7 @@ fn main() {
 
                 graphics.draw_line((20.5, 1.0), (20.5, 49.0), 5.0, Color::LIGHT_GRAY);
             });
-        }),
+        })
     });
 
     tests.push(GLTest {
@@ -268,7 +276,7 @@ fn main() {
 
                 graphics.draw_circle((40.0, 40.0), 5.0, Color::BLUE);
             });
-        }),
+        })
     });
 
     tests.push(GLTest {
@@ -283,21 +291,21 @@ fn main() {
                     [
                         Vector2::new(100.0, 100.0),
                         Vector2::new(200.0, 100.0),
-                        Vector2::new(200.0, 200.0),
+                        Vector2::new(200.0, 200.0)
                     ],
                     [
                         Color::MAGENTA.clone(),
                         Color::MAGENTA.clone(),
-                        Color::MAGENTA.clone(),
+                        Color::MAGENTA.clone()
                     ],
                     [
                         Vector2::new(-1.0, -1.0),
                         Vector2::new(1.0, -1.0),
-                        Vector2::new(1.0, 1.0),
-                    ],
+                        Vector2::new(1.0, 1.0)
+                    ]
                 );
             });
-        }),
+        })
     });
 
     tests.push(GLTest {
@@ -310,7 +318,7 @@ fn main() {
             let text = typeface.layout_text(
                 "The quick brown föx jumped over the lazy dog!",
                 64.0,
-                TextOptions::new(),
+                TextOptions::new()
             );
 
             renderer.draw_frame(|graphics| {
@@ -319,9 +327,9 @@ fn main() {
                 graphics.draw_rectangle(
                     Rectangle::from_tuples(
                         (0.0, 0.0),
-                        (text.width().round(), text.height().round()),
+                        (text.width().round(), text.height().round())
                     ),
-                    Color::from_rgb(0.9, 0.9, 1.0),
+                    Color::from_rgb(0.9, 0.9, 1.0)
                 );
 
                 graphics.draw_rectangle(
@@ -329,10 +337,10 @@ fn main() {
                         (0.0, 0.0),
                         (
                             text.width().round(),
-                            text.iter_lines().next().unwrap().ascent().round(),
-                        ),
+                            text.iter_lines().next().unwrap().ascent().round()
+                        )
                     ),
-                    Color::from_rgb(0.8, 0.8, 1.0),
+                    Color::from_rgb(0.8, 0.8, 1.0)
                 );
 
                 graphics.draw_text(Vector2::new(0.0, 0.0), Color::BLACK, &text);
@@ -345,7 +353,7 @@ fn main() {
 
                 graphics.draw_text(Vector2::new(0.0, 400.0), Color::WHITE, &text);
             });
-        }),
+        })
     });
 
     tests.push(GLTest {
@@ -358,7 +366,7 @@ fn main() {
             let text = typeface.layout_text(
                 "The quick brown föx jumped over the lazy dog!",
                 64.0,
-                TextOptions::new(),
+                TextOptions::new()
             );
 
             renderer.draw_frame(|graphics| {
@@ -374,7 +382,7 @@ fn main() {
 
                 graphics.draw_text(Vector2::new(0.0, 400.0), Color::WHITE, &text);
             });
-        }),
+        })
     });
 
     tests.push(GLTest {
@@ -387,7 +395,7 @@ fn main() {
             let first_text = typeface.layout_text(
                 "The quick brown föx jumped over the lazy dog!",
                 64.0,
-                TextOptions::new().with_wrap_to_width(400.0, TextAlignment::Left),
+                TextOptions::new().with_wrap_to_width(400.0, TextAlignment::Left)
             );
 
             renderer.draw_frame(|graphics| {
@@ -396,9 +404,9 @@ fn main() {
                 graphics.draw_rectangle(
                     Rectangle::from_tuples(
                         (0.0, 0.0),
-                        (first_text.width().round(), first_text.height().round()),
+                        (first_text.width().round(), first_text.height().round())
                     ),
-                    Color::from_rgb(0.9, 0.9, 1.0),
+                    Color::from_rgb(0.9, 0.9, 1.0)
                 );
 
                 graphics.draw_rectangle(
@@ -406,10 +414,10 @@ fn main() {
                         (0.0, 0.0),
                         (
                             first_text.width().round(),
-                            first_text.iter_lines().next().unwrap().ascent().round(),
-                        ),
+                            first_text.iter_lines().next().unwrap().ascent().round()
+                        )
                     ),
-                    Color::from_rgb(0.8, 0.8, 1.0),
+                    Color::from_rgb(0.8, 0.8, 1.0)
                 );
 
                 graphics.draw_text((0.0, 0.0), Color::BLACK, &first_text);
@@ -418,7 +426,7 @@ fn main() {
 
                 graphics.draw_rectangle(
                     Rectangle::from_tuples((100.0, 200.0), (100.0 + small_width, 640.0)),
-                    Color::from_rgb(0.9, 0.9, 1.0),
+                    Color::from_rgb(0.9, 0.9, 1.0)
                 );
 
                 graphics.draw_text(
@@ -428,15 +436,15 @@ fn main() {
                         "The quick brown föx jumped over the lazy dog!",
                         64.0,
                         TextOptions::new()
-                            .with_wrap_to_width(small_width, TextAlignment::Left),
-                    ),
+                            .with_wrap_to_width(small_width, TextAlignment::Left)
+                    )
                 );
 
                 let small_width = 30.0;
 
                 graphics.draw_rectangle(
                     Rectangle::from_tuples((200.0, 200.0), (200.0 + small_width, 640.0)),
-                    Color::from_rgb(0.9, 0.9, 1.0),
+                    Color::from_rgb(0.9, 0.9, 1.0)
                 );
 
                 graphics.draw_text(
@@ -446,11 +454,11 @@ fn main() {
                         "The quick brown föx jumped over the lazy dog!",
                         64.0,
                         TextOptions::new()
-                            .with_wrap_to_width(small_width, TextAlignment::Left),
-                    ),
+                            .with_wrap_to_width(small_width, TextAlignment::Left)
+                    )
                 );
             });
-        }),
+        })
     });
 
     tests.push(GLTest {
@@ -465,7 +473,7 @@ fn main() {
                 30.0,
                 TextOptions::new()
                     .with_wrap_to_width(400.0, TextAlignment::Left)
-                    .with_tracking(100.0),
+                    .with_tracking(100.0)
             );
 
             renderer.draw_frame(|graphics| {
@@ -473,7 +481,7 @@ fn main() {
 
                 graphics.draw_text((10.0, 10.0), Color::BLACK, &text);
             });
-        }),
+        })
     });
 
     tests.push(GLTest {
@@ -488,7 +496,7 @@ fn main() {
 
                 graphics.draw_rectangle(
                     Rectangle::from_tuples((10.0, 10.0), (410.0, 640.0)),
-                    Color::from_rgb(0.9, 0.9, 1.0),
+                    Color::from_rgb(0.9, 0.9, 1.0)
                 );
 
                 graphics.draw_text(
@@ -498,8 +506,8 @@ fn main() {
                         "The quick brown föx jumped over the lazy dog!",
                         40.0,
                         TextOptions::new()
-                            .with_wrap_to_width(400.0, TextAlignment::Right),
-                    ),
+                            .with_wrap_to_width(400.0, TextAlignment::Right)
+                    )
                 );
 
                 graphics.draw_text(
@@ -509,11 +517,11 @@ fn main() {
                         "The quick brown föx jumped over the lazy dog!",
                         40.0,
                         TextOptions::new()
-                            .with_wrap_to_width(400.0, TextAlignment::Center),
-                    ),
+                            .with_wrap_to_width(400.0, TextAlignment::Center)
+                    )
                 );
             });
-        }),
+        })
     });
 
     tests.push(GLTest {
@@ -528,7 +536,7 @@ fn main() {
 
                 graphics.draw_rectangle(
                     Rectangle::from_tuples((10.0, 10.0), (410.0, 640.0)),
-                    Color::from_rgb(0.9, 0.9, 1.0),
+                    Color::from_rgb(0.9, 0.9, 1.0)
                 );
 
                 graphics.draw_text(
@@ -539,8 +547,8 @@ fn main() {
                         40.0,
                         TextOptions::new()
                             .with_wrap_to_width(400.0, TextAlignment::Left)
-                            .with_line_spacing_multiplier(0.7),
-                    ),
+                            .with_line_spacing_multiplier(0.7)
+                    )
                 );
 
                 graphics.draw_text(
@@ -551,11 +559,11 @@ fn main() {
                         40.0,
                         TextOptions::new()
                             .with_wrap_to_width(400.0, TextAlignment::Left)
-                            .with_line_spacing_multiplier(2.0),
-                    ),
+                            .with_line_spacing_multiplier(2.0)
+                    )
                 );
             });
-        }),
+        })
     });
 
     tests.push(GLTest {
@@ -568,14 +576,14 @@ fn main() {
             let text = typeface.layout_text(
                 "The quick brown föx\njumped ov\ner the lazy dog!",
                 32.0,
-                TextOptions::new(),
+                TextOptions::new()
             );
 
             renderer.draw_frame(|graphics| {
                 graphics.clear_screen(Color::WHITE);
                 graphics.draw_text(Vector2::new(0.0, 0.0), Color::BLACK, &text);
             });
-        }),
+        })
     });
 
     tests.push(GLTest {
@@ -588,14 +596,14 @@ fn main() {
             let text = typeface.layout_text(
                 "\nThe quick brown föx\nj\n\numped ov\ner the lazy dog!",
                 32.0,
-                TextOptions::new(),
+                TextOptions::new()
             );
 
             renderer.draw_frame(|graphics| {
                 graphics.clear_screen(Color::WHITE);
                 graphics.draw_text(Vector2::new(0.0, 0.0), Color::BLACK, &text);
             });
-        }),
+        })
     });
 
     tests.push(GLTest {
@@ -608,7 +616,7 @@ fn main() {
             let first_text = typeface.layout_text(
                 "The quick brown föx jumped\n over the lazy dog!",
                 64.0,
-                TextOptions::new().with_wrap_to_width(400.0, TextAlignment::Left),
+                TextOptions::new().with_wrap_to_width(400.0, TextAlignment::Left)
             );
 
             renderer.draw_frame(|graphics| {
@@ -617,9 +625,9 @@ fn main() {
                 graphics.draw_rectangle(
                     Rectangle::from_tuples(
                         (0.0, 0.0),
-                        (first_text.width().round(), first_text.height().round()),
+                        (first_text.width().round(), first_text.height().round())
                     ),
-                    Color::from_rgb(0.9, 0.9, 1.0),
+                    Color::from_rgb(0.9, 0.9, 1.0)
                 );
 
                 graphics.draw_rectangle(
@@ -627,10 +635,10 @@ fn main() {
                         (0.0, 0.0),
                         (
                             first_text.width().round(),
-                            first_text.iter_lines().next().unwrap().ascent().round(),
-                        ),
+                            first_text.iter_lines().next().unwrap().ascent().round()
+                        )
                     ),
-                    Color::from_rgb(0.8, 0.8, 1.0),
+                    Color::from_rgb(0.8, 0.8, 1.0)
                 );
 
                 graphics.draw_text((0.0, 0.0), Color::BLACK, &first_text);
@@ -639,7 +647,7 @@ fn main() {
 
                 graphics.draw_rectangle(
                     Rectangle::from_tuples((100.0, 200.0), (100.0 + small_width, 640.0)),
-                    Color::from_rgb(0.9, 0.9, 1.0),
+                    Color::from_rgb(0.9, 0.9, 1.0)
                 );
 
                 graphics.draw_text(
@@ -649,11 +657,11 @@ fn main() {
                         "The\n quick brown föx jumped over the lazy dog!",
                         32.0,
                         TextOptions::new()
-                            .with_wrap_to_width(small_width, TextAlignment::Left),
-                    ),
+                            .with_wrap_to_width(small_width, TextAlignment::Left)
+                    )
                 );
             });
-        }),
+        })
     });
 
     tests.push(GLTest {
@@ -669,7 +677,7 @@ fn main() {
                 graphics.clear_screen(Color::WHITE);
                 graphics.draw_text(Vector2::new(0.0, 0.0), Color::BLACK, &text);
             });
-        }),
+        })
     });
 
     tests.push(GLTest {
@@ -689,13 +697,13 @@ fn main() {
                         ImageDataType::RGBA,
                         ImageSmoothingMode::Linear,
                         Vector2::new(size.0, size.1),
-                        &image.to_rgba8(),
+                        &image.to_rgba8()
                     )
                     .unwrap();
 
                 graphics.draw_image(Vector2::new(200.0, 200.0), &texture);
             });
-        }),
+        })
     });
 
     tests.push(GLTest {
@@ -716,14 +724,14 @@ fn main() {
                             ImageDataType::RGBA,
                             ImageSmoothingMode::Linear,
                             Vector2::new(size.0, size.1),
-                            &image.to_rgba8(),
+                            &image.to_rgba8()
                         )
                         .unwrap();
 
                     graphics.draw_image(Vector2::new(200.0, 200.0), &texture);
                 });
             }
-        }),
+        })
     });
 
     tests.push(GLTest {
@@ -743,13 +751,13 @@ fn main() {
                         ImageDataType::RGB,
                         ImageSmoothingMode::Linear,
                         Vector2::new(size.0, size.1),
-                        &image.to_rgb8(),
+                        &image.to_rgb8()
                     )
                     .unwrap();
 
                 graphics.draw_image(Vector2::new(200.0, 200.0), &texture);
             });
-        }),
+        })
     });
 
     #[cfg(feature = "image-loading")]
@@ -762,7 +770,7 @@ fn main() {
                 .create_image_from_file_path(
                     None,
                     ImageSmoothingMode::Linear,
-                    "test/assets/expected_images/test_half_circle.png",
+                    "test/assets/expected_images/test_half_circle.png"
                 )
                 .unwrap();
 
@@ -770,7 +778,7 @@ fn main() {
                 graphics.clear_screen(Color::WHITE);
                 graphics.draw_image(Vector2::new(200.0, 200.0), &image);
             });
-        }),
+        })
     });
 
     #[cfg(feature = "image-loading")]
@@ -785,7 +793,7 @@ fn main() {
                     ImageSmoothingMode::Linear,
                     std::io::Cursor::new(include_bytes!(
                         "assets/expected_images/test_half_circle.png"
-                    )),
+                    ))
                 )
                 .unwrap();
 
@@ -793,7 +801,7 @@ fn main() {
                 graphics.clear_screen(Color::WHITE);
                 graphics.draw_image(Vector2::new(200.0, 200.0), &image);
             });
-        }),
+        })
     });
 
     tests.push(GLTest {
@@ -813,13 +821,13 @@ fn main() {
                         ImageDataType::RGB,
                         ImageSmoothingMode::NearestNeighbor,
                         Vector2::new(size.0, size.1),
-                        &image.to_rgb8(),
+                        &image.to_rgb8()
                     )
                     .unwrap();
 
                 graphics.draw_image(Vector2::new(100.0, 100.0), &texture);
             });
-        }),
+        })
     });
 
     tests.push(GLTest {
@@ -833,14 +841,14 @@ fn main() {
                 graphics.set_clip(Some(Rectangle::from_tuples((10, 10), (30, 20))));
                 graphics.draw_rectangle(
                     Rectangle::from_tuples((0.0, 0.0), (20.0, 40.0)),
-                    Color::RED,
+                    Color::RED
                 );
                 graphics.draw_rectangle(
                     Rectangle::from_tuples((20.0, 0.0), (40.0, 40.0)),
-                    Color::BLUE,
+                    Color::BLUE
                 );
             });
-        }),
+        })
     });
 
     tests.push(GLTest {
@@ -858,7 +866,7 @@ fn main() {
                 graphics.clear_screen(Color::GREEN);
                 graphics.draw_text(Vector2::new(0.0, 0.0), Color::BLACK, &text);
             });
-        }),
+        })
     });
 
     for test in tests {
@@ -869,7 +877,7 @@ fn main() {
             test.name,
             test.width,
             test.height,
-            test.action,
+            test.action
         );
     }
 

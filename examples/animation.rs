@@ -20,25 +20,30 @@ use std::time::Instant;
 
 use speedy2d::color::Color;
 use speedy2d::dimen::Vector2;
+use speedy2d::shape::Polygon;
 use speedy2d::window::{WindowHandler, WindowHelper};
 use speedy2d::{Graphics2D, Window};
 
-fn main() {
+fn main()
+{
     simple_logger::SimpleLogger::new().init().unwrap();
 
     let window = Window::new_centered("Speedy2D: Animation", (800, 800)).unwrap();
 
     window.run_loop(MyWindowHandler {
-        start_time: Instant::now(),
+        start_time: Instant::now()
     })
 }
 
-struct MyWindowHandler {
-    start_time: Instant,
+struct MyWindowHandler
+{
+    start_time: Instant
 }
 
-impl WindowHandler for MyWindowHandler {
-    fn on_draw(&mut self, helper: &mut WindowHelper, graphics: &mut Graphics2D) {
+impl WindowHandler for MyWindowHandler
+{
+    fn on_draw(&mut self, helper: &mut WindowHelper, graphics: &mut Graphics2D)
+    {
         graphics.clear_screen(Color::WHITE);
 
         let elapsed_secs = self.start_time.elapsed().as_secs_f32();
@@ -50,6 +55,16 @@ impl WindowHandler for MyWindowHandler {
             + Vector2::new(elapsed_secs.cos() * offset, elapsed_secs.sin() * offset);
 
         graphics.draw_circle(position, 75.0, Color::from_rgb(0.8, 0.9, 1.0));
+
+        let polygon = Polygon::new(&[
+            Vector2::<f32>::new(0., 0.),
+            Vector2::<f32>::new(0., 500.),
+            Vector2::<f32>::new(250., (elapsed_secs.sin() + 1.0) * 500.0),
+            Vector2::<f32>::new(500., 500.),
+            Vector2::<f32>::new(500., 0.)
+        ]);
+
+        graphics.draw_polygon(&polygon, Color::RED);
 
         // Request that we draw another frame once this one has finished
         helper.request_redraw();

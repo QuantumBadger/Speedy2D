@@ -23,30 +23,34 @@ use backtrace::Backtrace;
 #[derive(Clone)]
 pub struct BacktraceError<E>
 where
-    E: Debug + Display + 'static,
+    E: Debug + Display + 'static
 {
-    value: Rc<BacktraceErrorImpl<E>>,
+    value: Rc<BacktraceErrorImpl<E>>
 }
 
 struct BacktraceErrorImpl<E>
 where
-    E: Debug + Display,
+    E: Debug + Display
 {
     error: E,
     backtrace: Backtrace,
-    cause: Option<Box<dyn std::error::Error>>,
+    cause: Option<Box<dyn std::error::Error>>
 }
 
 impl<E: Debug + Display> std::error::Error for BacktraceError<E> {}
 
-impl<E: Debug + Display> Display for BacktraceError<E> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+impl<E: Debug + Display> Display for BacktraceError<E>
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result
+    {
         Display::fmt(self.error(), f)
     }
 }
 
-impl<E: Debug + Display> Debug for BacktraceError<E> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+impl<E: Debug + Display> Debug for BacktraceError<E>
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result
+    {
         f.debug_struct("BacktraceError")
             .field("error", self.error())
             .field("backtrace", self.get_backtrace())
@@ -55,120 +59,135 @@ impl<E: Debug + Display> Debug for BacktraceError<E> {
     }
 }
 
-impl<E: Debug + Display> BacktraceError<E> {
+impl<E: Debug + Display> BacktraceError<E>
+{
     #[must_use]
     pub(crate) fn new_with_cause<Cause: std::error::Error + 'static>(
         error: E,
-        cause: Cause,
-    ) -> Self {
+        cause: Cause
+    ) -> Self
+    {
         BacktraceError {
             value: Rc::new(BacktraceErrorImpl {
                 backtrace: Backtrace::new(),
                 error,
-                cause: Some(Box::new(cause)),
-            }),
+                cause: Some(Box::new(cause))
+            })
         }
     }
 
     #[must_use]
-    pub(crate) fn new(error: E) -> Self {
+    pub(crate) fn new(error: E) -> Self
+    {
         BacktraceError {
             value: Rc::new(BacktraceErrorImpl {
                 backtrace: Backtrace::new(),
                 error,
-                cause: None,
-            }),
+                cause: None
+            })
         }
     }
 
     /// Returns the backtrace for this error.
     #[must_use]
-    pub fn get_backtrace(&self) -> &Backtrace {
+    pub fn get_backtrace(&self) -> &Backtrace
+    {
         &self.value.backtrace
     }
 
     /// Returns the error.
     #[must_use]
-    pub fn error(&self) -> &E {
+    pub fn error(&self) -> &E
+    {
         &self.value.error
     }
 
     /// Returns the original cause of the error, if one is present.
     #[must_use]
-    pub fn cause(&self) -> &Option<Box<dyn std::error::Error>> {
+    pub fn cause(&self) -> &Option<Box<dyn std::error::Error>>
+    {
         &self.value.cause
     }
 
     #[must_use]
     pub(crate) fn context<S: AsRef<str>>(
         self,
-        description: S,
-    ) -> BacktraceError<ErrorMessage> {
+        description: S
+    ) -> BacktraceError<ErrorMessage>
+    {
         BacktraceError::new_with_cause(
             ErrorMessage {
-                description: description.as_ref().to_string(),
+                description: description.as_ref().to_string()
             },
-            self,
+            self
         )
     }
 }
 
 /// A human-readable error message.
 #[derive(Clone, Debug)]
-pub struct ErrorMessage {
-    description: String,
+pub struct ErrorMessage
+{
+    description: String
 }
 
-impl ErrorMessage {
-    pub(crate) fn msg<S: AsRef<str>>(description: S) -> BacktraceError<Self> {
+impl ErrorMessage
+{
+    pub(crate) fn msg<S: AsRef<str>>(description: S) -> BacktraceError<Self>
+    {
         BacktraceError::new(Self {
-            description: description.as_ref().to_string(),
+            description: description.as_ref().to_string()
         })
     }
 
     pub(crate) fn msg_with_cause<S, Cause>(
         description: S,
-        cause: Cause,
+        cause: Cause
     ) -> BacktraceError<Self>
     where
         S: AsRef<str>,
-        Cause: std::error::Error + 'static,
+        Cause: std::error::Error + 'static
     {
         BacktraceError::new_with_cause(
             Self {
-                description: description.as_ref().to_string(),
+                description: description.as_ref().to_string()
             },
-            cause,
+            cause
         )
     }
 }
 
-impl Display for ErrorMessage {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+impl Display for ErrorMessage
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result
+    {
         Display::fmt(&self.description, f)
     }
 }
 
-pub(crate) trait Context<R> {
+pub(crate) trait Context<R>
+{
     fn context<S: AsRef<str>>(
         self,
-        description: S,
+        description: S
     ) -> Result<R, BacktraceError<ErrorMessage>>;
 }
 
-impl<R, E: std::error::Error + 'static> Context<R> for Result<R, E> {
+impl<R, E: std::error::Error + 'static> Context<R> for Result<R, E>
+{
     fn context<S: AsRef<str>>(
         self,
-        description: S,
-    ) -> Result<R, BacktraceError<ErrorMessage>> {
+        description: S
+    ) -> Result<R, BacktraceError<ErrorMessage>>
+    {
         match self {
             Ok(result) => Ok(result),
             Err(err) => Err(BacktraceError::new_with_cause(
                 ErrorMessage {
-                    description: description.as_ref().to_string(),
+                    description: description.as_ref().to_string()
                 },
-                err,
-            )),
+                err
+            ))
         }
     }
 }

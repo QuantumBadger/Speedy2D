@@ -22,7 +22,7 @@ use {
     image::GenericImageView,
     std::fs::File,
     std::io::{BufRead, BufReader, Seek},
-    std::path::Path,
+    std::path::Path
 };
 
 use crate::color::Color;
@@ -32,9 +32,10 @@ use crate::font::FormattedTextBlock;
 use crate::font_cache::{GlyphCache, GlyphCacheInterface};
 use crate::glwrapper::*;
 use crate::image::{ImageDataType, ImageHandle, ImageSmoothingMode};
-use crate::{Rectangle, Polygon};
+use crate::{Polygon, Rectangle};
 
-struct AttributeBuffers {
+struct AttributeBuffers
+{
     position: Vec<f32>,
     color: Vec<f32>,
     texture_coord: Vec<f32>,
@@ -45,14 +46,16 @@ struct AttributeBuffers {
     glbuf_color: GLBuffer,
     glbuf_texture_coord: GLBuffer,
     glbuf_texture_mix: GLBuffer,
-    glbuf_circle_mix: GLBuffer,
+    glbuf_circle_mix: GLBuffer
 }
 
-impl AttributeBuffers {
+impl AttributeBuffers
+{
     pub fn new(
         context: &GLContextManager,
-        program: &GLProgram,
-    ) -> Result<Self, BacktraceError<ErrorMessage>> {
+        program: &GLProgram
+    ) -> Result<Self, BacktraceError<ErrorMessage>>
+    {
         Ok(AttributeBuffers {
             position: Vec::new(),
             color: Vec::new(),
@@ -66,7 +69,7 @@ impl AttributeBuffers {
                     2,
                     program
                         .get_attribute_handle(Renderer2D::ATTR_NAME_POSITION)
-                        .context("Failed to get attribute POSITION")?,
+                        .context("Failed to get attribute POSITION")?
                 )
                 .context("Failed to create buffer for attribute POSITION")?,
 
@@ -76,7 +79,7 @@ impl AttributeBuffers {
                     4,
                     program
                         .get_attribute_handle(Renderer2D::ATTR_NAME_COLOR)
-                        .context("Failed to get attribute COLOR")?,
+                        .context("Failed to get attribute COLOR")?
                 )
                 .context("Failed to create buffer for attribute COLOR")?,
 
@@ -86,7 +89,7 @@ impl AttributeBuffers {
                     2,
                     program
                         .get_attribute_handle(Renderer2D::ATTR_NAME_TEXTURE_COORD)
-                        .context("Failed to get attribute TEXTURE_COORD")?,
+                        .context("Failed to get attribute TEXTURE_COORD")?
                 )
                 .context("Failed to create buffer for attribute TEXTURE_COORD")?,
 
@@ -96,7 +99,7 @@ impl AttributeBuffers {
                     1,
                     program
                         .get_attribute_handle(Renderer2D::ATTR_NAME_TEXTURE_MIX)
-                        .context("Failed to get attribute TEXTURE_MIX")?,
+                        .context("Failed to get attribute TEXTURE_MIX")?
                 )
                 .context("Failed to create buffer for attribute TEXTURE_MIX")?,
 
@@ -106,18 +109,20 @@ impl AttributeBuffers {
                     1,
                     program
                         .get_attribute_handle(Renderer2D::ATTR_NAME_CIRCLE_MIX)
-                        .context("Failed to get attribute CIRCLE_MIX")?,
+                        .context("Failed to get attribute CIRCLE_MIX")?
                 )
-                .context("Failed to create buffer for attribute CIRCLE_MIX")?,
+                .context("Failed to create buffer for attribute CIRCLE_MIX")?
         })
     }
 
     #[inline]
-    pub fn get_vertex_count(&self) -> usize {
+    pub fn get_vertex_count(&self) -> usize
+    {
         self.texture_mix.len()
     }
 
-    pub fn upload_and_clear(&mut self, context: &GLContextManager) {
+    pub fn upload_and_clear(&mut self, context: &GLContextManager)
+    {
         self.glbuf_position.set_data(context, &self.position);
         self.glbuf_color.set_data(context, &self.color);
         self.glbuf_texture_coord
@@ -127,7 +132,8 @@ impl AttributeBuffers {
         self.clear();
     }
 
-    pub fn clear(&mut self) {
+    pub fn clear(&mut self)
+    {
         self.position.clear();
         self.color.clear();
         self.texture_coord.clear();
@@ -142,8 +148,9 @@ impl AttributeBuffers {
         color: &Color,
         texture_coord: &Vector2<f32>,
         texture_mix: f32,
-        circle_mix: f32,
-    ) {
+        circle_mix: f32
+    )
+    {
         AttributeBuffers::push_vec2(&mut self.position, position);
         AttributeBuffers::push_color(&mut self.color, color);
         AttributeBuffers::push_vec2(&mut self.texture_coord, texture_coord);
@@ -152,13 +159,15 @@ impl AttributeBuffers {
     }
 
     #[inline]
-    fn push_vec2(dest: &mut Vec<f32>, vertices: &Vector2<f32>) {
+    fn push_vec2(dest: &mut Vec<f32>, vertices: &Vector2<f32>)
+    {
         dest.push(vertices.x);
         dest.push(vertices.y);
     }
 
     #[inline]
-    fn push_color(dest: &mut Vec<f32>, color: &Color) {
+    fn push_color(dest: &mut Vec<f32>, color: &Color)
+    {
         dest.push(color.r());
         dest.push(color.g());
         dest.push(color.b());
@@ -166,17 +175,20 @@ impl AttributeBuffers {
     }
 }
 
-struct Uniforms {
+struct Uniforms
+{
     scale_x: GLUniformHandle,
     scale_y: GLUniformHandle,
-    texture: GLUniformHandle,
+    texture: GLUniformHandle
 }
 
-impl Uniforms {
+impl Uniforms
+{
     fn new(
         context: &GLContextManager,
-        program: &Rc<GLProgram>,
-    ) -> Result<Uniforms, BacktraceError<ErrorMessage>> {
+        program: &Rc<GLProgram>
+    ) -> Result<Uniforms, BacktraceError<ErrorMessage>>
+    {
         Ok(Uniforms {
             scale_x: program
                 .get_uniform_handle(context, Renderer2D::UNIFORM_NAME_SCALE_X)
@@ -186,58 +198,66 @@ impl Uniforms {
                 .context("Failed to find SCALE_Y uniform")?,
             texture: program
                 .get_uniform_handle(context, Renderer2D::UNIFORM_NAME_TEXTURE)
-                .context("Failed to find TEXTURE uniform")?,
+                .context("Failed to find TEXTURE uniform")?
         })
     }
 
     fn set_viewport_size_pixels(
         &self,
         context: &GLContextManager,
-        viewport_size_pixels: Vector2<u32>,
-    ) {
+        viewport_size_pixels: Vector2<u32>
+    )
+    {
         self.scale_x
             .set_value_float(context, 2.0 / viewport_size_pixels.x as f32);
         self.scale_y
             .set_value_float(context, -2.0 / viewport_size_pixels.y as f32);
     }
 
-    fn set_texture_unit(&self, context: &GLContextManager, texture_unit: i32) {
+    fn set_texture_unit(&self, context: &GLContextManager, texture_unit: i32)
+    {
         self.texture.set_value_int(context, texture_unit);
     }
 }
 
-pub(crate) struct Renderer2DVertex {
+pub(crate) struct Renderer2DVertex
+{
     pub position: Vector2<f32>,
     pub texture_coord: Vector2<f32>,
     pub color: Color,
     pub texture_mix: f32,
-    pub circle_mix: f32,
+    pub circle_mix: f32
 }
 
-impl Renderer2DVertex {
+impl Renderer2DVertex
+{
     #[inline]
-    fn append_to_attribute_buffers(&self, attribute_buffers: &mut AttributeBuffers) {
+    fn append_to_attribute_buffers(&self, attribute_buffers: &mut AttributeBuffers)
+    {
         attribute_buffers.append(
             &self.position,
             &self.color,
             &self.texture_coord,
             self.texture_mix,
-            self.circle_mix,
+            self.circle_mix
         );
     }
 }
 
-pub(crate) struct Renderer2DAction {
+pub(crate) struct Renderer2DAction
+{
     pub texture: Option<GLTexture>,
-    pub vertices_clockwise: [Renderer2DVertex; 3],
+    pub vertices_clockwise: [Renderer2DVertex; 3]
 }
 
-impl Renderer2DAction {
+impl Renderer2DAction
+{
     #[inline]
     fn update_current_texture_if_empty(
         &self,
-        current_texture: &mut Option<GLTexture>,
-    ) -> bool {
+        current_texture: &mut Option<GLTexture>
+    ) -> bool
+    {
         match &self.texture {
             None => true,
 
@@ -246,57 +266,65 @@ impl Renderer2DAction {
                     *current_texture = Some(own_texture.clone());
                     true
                 }
-                Some(current_texture) => *current_texture == *own_texture,
-            },
+                Some(current_texture) => *current_texture == *own_texture
+            }
         }
     }
 
     #[inline]
-    fn append_to_attribute_buffers(&self, attribute_buffers: &mut AttributeBuffers) {
+    fn append_to_attribute_buffers(&self, attribute_buffers: &mut AttributeBuffers)
+    {
         for vertex in self.vertices_clockwise.iter() {
             vertex.append_to_attribute_buffers(attribute_buffers);
         }
     }
 }
 
-enum RenderQueueItem {
-    FormattedTextBlock {
+enum RenderQueueItem
+{
+    FormattedTextBlock
+    {
         position: Vector2<f32>,
         color: Color,
-        block: Rc<crate::font::FormattedTextBlock>,
+        block: Rc<crate::font::FormattedTextBlock>
     },
 
-    CircleSectionColored {
+    CircleSectionColored
+    {
         vertex_positions_clockwise: [Vector2<f32>; 3],
         vertex_colors_clockwise: [Color; 3],
-        vertex_normalized_circle_coords_clockwise: [Vector2<f32>; 3],
+        vertex_normalized_circle_coords_clockwise: [Vector2<f32>; 3]
     },
 
-    TriangleColored {
+    TriangleColored
+    {
         vertex_positions_clockwise: [Vector2<f32>; 3],
-        vertex_colors_clockwise: [Color; 3],
+        vertex_colors_clockwise: [Color; 3]
     },
 
-    TriangleTextured {
+    TriangleTextured
+    {
         vertex_positions_clockwise: [Vector2<f32>; 3],
         vertex_colors_clockwise: [Color; 3],
         vertex_texture_coords_clockwise: [Vector2<f32>; 3],
-        texture: GLTexture,
-    },
+        texture: GLTexture
+    }
 }
 
-impl RenderQueueItem {
+impl RenderQueueItem
+{
     #[inline]
     fn generate_actions<T: GlyphCacheInterface>(
         &self,
         output: &mut Vec<Renderer2DAction>,
-        glyph_cache: &T,
-    ) {
+        glyph_cache: &T
+    )
+    {
         match self {
             RenderQueueItem::FormattedTextBlock {
                 position,
                 color,
-                block,
+                block
             } => {
                 for line in block.iter_lines() {
                     for glyph in line.iter_glyphs() {
@@ -309,7 +337,7 @@ impl RenderQueueItem {
             RenderQueueItem::CircleSectionColored {
                 vertex_positions_clockwise,
                 vertex_colors_clockwise,
-                vertex_normalized_circle_coords_clockwise,
+                vertex_normalized_circle_coords_clockwise
             } => output.push(Renderer2DAction {
                 texture: None,
                 vertices_clockwise: [
@@ -318,28 +346,28 @@ impl RenderQueueItem {
                         texture_coord: vertex_normalized_circle_coords_clockwise[0],
                         color: vertex_colors_clockwise[0],
                         texture_mix: 0.0,
-                        circle_mix: 1.0,
+                        circle_mix: 1.0
                     },
                     Renderer2DVertex {
                         position: vertex_positions_clockwise[1],
                         texture_coord: vertex_normalized_circle_coords_clockwise[1],
                         color: vertex_colors_clockwise[1],
                         texture_mix: 0.0,
-                        circle_mix: 1.0,
+                        circle_mix: 1.0
                     },
                     Renderer2DVertex {
                         position: vertex_positions_clockwise[2],
                         texture_coord: vertex_normalized_circle_coords_clockwise[2],
                         color: vertex_colors_clockwise[2],
                         texture_mix: 0.0,
-                        circle_mix: 1.0,
-                    },
-                ],
+                        circle_mix: 1.0
+                    }
+                ]
             }),
 
             RenderQueueItem::TriangleColored {
                 vertex_positions_clockwise,
-                vertex_colors_clockwise,
+                vertex_colors_clockwise
             } => output.push(Renderer2DAction {
                 texture: None,
                 vertices_clockwise: [
@@ -348,30 +376,30 @@ impl RenderQueueItem {
                         texture_coord: Vector2::ZERO,
                         color: vertex_colors_clockwise[0],
                         texture_mix: 0.0,
-                        circle_mix: 0.0,
+                        circle_mix: 0.0
                     },
                     Renderer2DVertex {
                         position: vertex_positions_clockwise[1],
                         texture_coord: Vector2::ZERO,
                         color: vertex_colors_clockwise[1],
                         texture_mix: 0.0,
-                        circle_mix: 0.0,
+                        circle_mix: 0.0
                     },
                     Renderer2DVertex {
                         position: vertex_positions_clockwise[2],
                         texture_coord: Vector2::ZERO,
                         color: vertex_colors_clockwise[2],
                         texture_mix: 0.0,
-                        circle_mix: 0.0,
-                    },
-                ],
+                        circle_mix: 0.0
+                    }
+                ]
             }),
 
             RenderQueueItem::TriangleTextured {
                 vertex_positions_clockwise,
                 vertex_colors_clockwise,
                 vertex_texture_coords_clockwise,
-                texture,
+                texture
             } => output.push(Renderer2DAction {
                 texture: Some(texture.clone()),
                 vertices_clockwise: [
@@ -380,29 +408,30 @@ impl RenderQueueItem {
                         texture_coord: vertex_texture_coords_clockwise[0],
                         color: vertex_colors_clockwise[0],
                         texture_mix: 1.0,
-                        circle_mix: 0.0,
+                        circle_mix: 0.0
                     },
                     Renderer2DVertex {
                         position: vertex_positions_clockwise[1],
                         texture_coord: vertex_texture_coords_clockwise[1],
                         color: vertex_colors_clockwise[1],
                         texture_mix: 1.0,
-                        circle_mix: 0.0,
+                        circle_mix: 0.0
                     },
                     Renderer2DVertex {
                         position: vertex_positions_clockwise[2],
                         texture_coord: vertex_texture_coords_clockwise[2],
                         color: vertex_colors_clockwise[2],
                         texture_mix: 1.0,
-                        circle_mix: 0.0,
-                    },
-                ],
-            }),
+                        circle_mix: 0.0
+                    }
+                ]
+            })
         }
     }
 }
 
-pub struct Renderer2D {
+pub struct Renderer2D
+{
     context: GLContextManager,
 
     program: Rc<GLProgram>,
@@ -415,10 +444,11 @@ pub struct Renderer2D {
     current_texture: Option<GLTexture>,
 
     #[allow(dead_code)]
-    uniforms: Uniforms,
+    uniforms: Uniforms
 }
 
-impl Renderer2D {
+impl Renderer2D
+{
     const ATTR_NAME_POSITION: &'static str = "in_Position";
     const ATTR_NAME_COLOR: &'static str = "in_Color";
     const ATTR_NAME_TEXTURE_COORD: &'static str = "in_TextureCoord";
@@ -434,13 +464,14 @@ impl Renderer2D {
         Renderer2D::ATTR_NAME_COLOR,
         Renderer2D::ATTR_NAME_TEXTURE_COORD,
         Renderer2D::ATTR_NAME_TEXTURE_MIX,
-        Renderer2D::ATTR_NAME_CIRCLE_MIX,
+        Renderer2D::ATTR_NAME_CIRCLE_MIX
     ];
 
     pub fn new(
         context: &GLContextManager,
-        viewport_size_pixels: Vector2<u32>,
-    ) -> Result<Self, BacktraceError<ErrorMessage>> {
+        viewport_size_pixels: Vector2<u32>
+    ) -> Result<Self, BacktraceError<ErrorMessage>>
+    {
         log::info!("Creating vertex shader");
 
         let (vertex_shader_src, fragment_shader_src) = match context.version() {
@@ -448,14 +479,14 @@ impl Renderer2D {
                 log::info!("Using OpenGL 2.0 shaders");
                 (
                     include_str!("shaders/r2d_vertex_v110.glsl"),
-                    include_str!("shaders/r2d_fragment_v110.glsl"),
+                    include_str!("shaders/r2d_fragment_v110.glsl")
                 )
             }
             GLVersion::WebGL2_0 => {
                 log::info!("Using WebGL 2.0 shaders");
                 (
                     include_str!("shaders/r2d_vertex_v300es.glsl"),
-                    include_str!("shaders/r2d_fragment_v300es.glsl"),
+                    include_str!("shaders/r2d_fragment_v300es.glsl")
                 )
             }
         };
@@ -476,7 +507,7 @@ impl Renderer2D {
             .new_program(
                 &vertex_shader,
                 &fragment_shader,
-                &Renderer2D::ALL_ATTRIBUTES,
+                &Renderer2D::ALL_ATTRIBUTES
             )
             .context("Failed to create Renderer2D program")?;
 
@@ -499,18 +530,20 @@ impl Renderer2D {
             glyph_cache: GlyphCache::new(),
             attribute_buffers,
             current_texture: None,
-            uniforms,
+            uniforms
         })
     }
 
-    pub fn set_viewport_size_pixels(&self, viewport_size_pixels: Vector2<u32>) {
+    pub fn set_viewport_size_pixels(&self, viewport_size_pixels: Vector2<u32>)
+    {
         self.uniforms
             .set_viewport_size_pixels(&self.context, viewport_size_pixels);
 
         self.context.set_viewport_size(viewport_size_pixels);
     }
 
-    pub fn flush_render_queue(&mut self) {
+    pub fn flush_render_queue(&mut self)
+    {
         if self.render_queue.is_empty() {
             return;
         }
@@ -550,7 +583,7 @@ impl Renderer2D {
                     &self.context,
                     &self.program,
                     &mut self.attribute_buffers,
-                    &mut self.current_texture,
+                    &mut self.current_texture
                 );
 
                 self.current_texture = action.texture.clone();
@@ -565,7 +598,7 @@ impl Renderer2D {
             &self.context,
             &self.program,
             &mut self.attribute_buffers,
-            &mut self.current_texture,
+            &mut self.current_texture
         );
     }
 
@@ -573,8 +606,9 @@ impl Renderer2D {
         context: &GLContextManager,
         program: &Rc<GLProgram>,
         attribute_buffers: &mut AttributeBuffers,
-        current_texture: &mut Option<GLTexture>,
-    ) {
+        current_texture: &mut Option<GLTexture>
+    )
+    {
         let vertex_count = attribute_buffers.get_vertex_count();
 
         if vertex_count == 0 {
@@ -589,12 +623,12 @@ impl Renderer2D {
 
         match &current_texture {
             None => context.unbind_texture(),
-            Some(texture) => context.bind_texture(texture),
+            Some(texture) => context.bind_texture(texture)
         }
 
         context.draw_triangles(
             GLBlendEnabled::Enabled(GLBlendMode::OneMinusSrcAlpha),
-            vertex_count,
+            vertex_count
         );
     }
 
@@ -603,13 +637,14 @@ impl Renderer2D {
         data_type: ImageDataType,
         smoothing_mode: ImageSmoothingMode,
         size: S,
-        data: &[u8],
-    ) -> Result<ImageHandle, BacktraceError<ErrorMessage>> {
+        data: &[u8]
+    ) -> Result<ImageHandle, BacktraceError<ErrorMessage>>
+    {
         let size = size.into();
 
         let pixel_bytes = match data_type {
             ImageDataType::RGB => 3,
-            ImageDataType::RGBA => 4,
+            ImageDataType::RGBA => 4
         };
 
         {
@@ -629,12 +664,12 @@ impl Renderer2D {
 
         let gl_format = match data_type {
             ImageDataType::RGB => GLTextureImageFormatU8::RGB,
-            ImageDataType::RGBA => GLTextureImageFormatU8::RGBA,
+            ImageDataType::RGBA => GLTextureImageFormatU8::RGBA
         };
 
         let gl_smoothing = match smoothing_mode {
             ImageSmoothingMode::NearestNeighbor => GLTextureSmoothing::NearestNeighbour,
-            ImageSmoothingMode::Linear => GLTextureSmoothing::Linear,
+            ImageSmoothingMode::Linear => GLTextureSmoothing::Linear
         };
 
         let texture = self
@@ -654,8 +689,9 @@ impl Renderer2D {
         &mut self,
         data_type: Option<ImageFileFormat>,
         smoothing_mode: ImageSmoothingMode,
-        path: P,
-    ) -> Result<ImageHandle, BacktraceError<ErrorMessage>> {
+        path: P
+    ) -> Result<ImageHandle, BacktraceError<ErrorMessage>>
+    {
         let file = File::open(path.as_ref()).context(format!(
             "Failed to open file '{:?}' for reading",
             path.as_ref()
@@ -669,8 +705,9 @@ impl Renderer2D {
         &mut self,
         data_type: Option<ImageFileFormat>,
         smoothing_mode: ImageSmoothingMode,
-        file_bytes: R,
-    ) -> Result<ImageHandle, BacktraceError<ErrorMessage>> {
+        file_bytes: R
+    ) -> Result<ImageHandle, BacktraceError<ErrorMessage>>
+    {
         let mut reader = image::io::Reader::new(file_bytes);
 
         match data_type {
@@ -691,8 +728,8 @@ impl Renderer2D {
                 ImageFileFormat::PNM => image::ImageFormat::Pnm,
                 ImageFileFormat::DDS => image::ImageFormat::Dds,
                 ImageFileFormat::TGA => image::ImageFormat::Tga,
-                ImageFileFormat::Farbfeld => image::ImageFormat::Farbfeld,
-            }),
+                ImageFileFormat::Farbfeld => image::ImageFormat::Farbfeld
+            })
         }
 
         let image = reader.decode().context("Failed to parse image data")?;
@@ -705,12 +742,13 @@ impl Renderer2D {
             ImageDataType::RGBA,
             smoothing_mode,
             dimensions,
-            bytes_rgba8.as_slice(),
+            bytes_rgba8.as_slice()
         )
     }
 
     #[inline]
-    pub(crate) fn clear_screen(&mut self, color: Color) {
+    pub(crate) fn clear_screen(&mut self, color: Color)
+    {
         if color.a() < 1.0 {
             self.flush_render_queue();
         } else {
@@ -721,7 +759,8 @@ impl Renderer2D {
     }
 
     #[inline]
-    fn add_to_render_queue(&mut self, item: RenderQueueItem) {
+    fn add_to_render_queue(&mut self, item: RenderQueueItem)
+    {
         self.render_queue.push(item);
 
         if self.render_queue.len() > 100000 {
@@ -730,14 +769,11 @@ impl Renderer2D {
     }
 
     #[inline]
-    pub(crate) fn draw_polygon(
-        &mut self,
-        polygon: &Polygon,
-        color: Color
-    ) {
+    pub(crate) fn draw_polygon(&mut self, polygon: &Polygon, color: Color)
+    {
         let color = [color; 3];
 
-        for triangle in polygon.triangles.iter(){
+        for triangle in polygon.triangles.iter() {
             self.draw_triangle_three_color(*triangle, color);
         }
     }
@@ -746,11 +782,12 @@ impl Renderer2D {
     pub(crate) fn draw_triangle_three_color(
         &mut self,
         vertex_positions_clockwise: [Vector2<f32>; 3],
-        vertex_colors_clockwise: [Color; 3],
-    ) {
+        vertex_colors_clockwise: [Color; 3]
+    )
+    {
         self.add_to_render_queue(RenderQueueItem::TriangleColored {
             vertex_positions_clockwise,
-            vertex_colors_clockwise,
+            vertex_colors_clockwise
         })
     }
 
@@ -760,13 +797,14 @@ impl Renderer2D {
         vertex_positions_clockwise: [Vector2<f32>; 3],
         vertex_colors_clockwise: [Color; 3],
         vertex_texture_coords_clockwise: [Vector2<f32>; 3],
-        image: &ImageHandle,
-    ) {
+        image: &ImageHandle
+    )
+    {
         self.add_to_render_queue(RenderQueueItem::TriangleTextured {
             vertex_positions_clockwise,
             vertex_colors_clockwise,
             vertex_texture_coords_clockwise,
-            texture: image.texture.clone(),
+            texture: image.texture.clone()
         })
     }
 
@@ -775,12 +813,13 @@ impl Renderer2D {
         &mut self,
         position: V,
         color: Color,
-        text: &Rc<FormattedTextBlock>,
-    ) {
+        text: &Rc<FormattedTextBlock>
+    )
+    {
         self.add_to_render_queue(RenderQueueItem::FormattedTextBlock {
             position: position.into(),
             color,
-            block: text.clone(),
+            block: text.clone()
         })
     }
 
@@ -789,17 +828,19 @@ impl Renderer2D {
         &mut self,
         vertex_positions_clockwise: [Vector2<f32>; 3],
         vertex_colors_clockwise: [Color; 3],
-        vertex_normalized_circle_coords_clockwise: [Vector2<f32>; 3],
-    ) {
+        vertex_normalized_circle_coords_clockwise: [Vector2<f32>; 3]
+    )
+    {
         self.add_to_render_queue(RenderQueueItem::CircleSectionColored {
             vertex_positions_clockwise,
             vertex_colors_clockwise,
-            vertex_normalized_circle_coords_clockwise,
+            vertex_normalized_circle_coords_clockwise
         })
     }
 
     #[inline]
-    pub(crate) fn set_clip(&mut self, rect: Option<Rectangle<i32>>) {
+    pub(crate) fn set_clip(&mut self, rect: Option<Rectangle<i32>>)
+    {
         // If we change the clip area, we need to draw everything in a queue
         // through the current clip before setting new one.
         self.flush_render_queue();
@@ -811,7 +852,7 @@ impl Renderer2D {
                     rect.top_left().x,
                     rect.top_left().y,
                     rect.width(),
-                    rect.height(),
+                    rect.height()
                 )
             }
         }

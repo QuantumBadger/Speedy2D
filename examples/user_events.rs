@@ -21,12 +21,17 @@ use std::time::Duration;
 use speedy2d::color::Color;
 use speedy2d::dimen::Vector2;
 use speedy2d::window::{
-    UserEventSender, WindowCreationOptions, WindowHandler, WindowHelper, WindowSize,
-    WindowStartupInfo,
+    UserEventSender,
+    WindowCreationOptions,
+    WindowHandler,
+    WindowHelper,
+    WindowSize,
+    WindowStartupInfo
 };
 use speedy2d::{Graphics2D, Window};
 
-fn main() {
+fn main()
+{
     simple_logger::SimpleLogger::new().init().unwrap();
 
     // Change "String" below to any event type of your choice
@@ -34,8 +39,8 @@ fn main() {
         "Speedy2D: User Events Example",
         WindowCreationOptions::new_windowed(
             WindowSize::PhysicalPixels(Vector2::new(640, 480)),
-            None,
-        ),
+            None
+        )
     )
     .unwrap();
 
@@ -49,12 +54,15 @@ fn main() {
     window.run_loop(MyWindowHandler { user_event_sender })
 }
 
-struct MyWindowHandler {
-    user_event_sender: UserEventSender<String>,
+struct MyWindowHandler
+{
+    user_event_sender: UserEventSender<String>
 }
 
-impl WindowHandler<String> for MyWindowHandler {
-    fn on_start(&mut self, _helper: &mut WindowHelper<String>, _info: WindowStartupInfo) {
+impl WindowHandler<String> for MyWindowHandler
+{
+    fn on_start(&mut self, _helper: &mut WindowHelper<String>, _info: WindowStartupInfo)
+    {
         let user_event_sender = self.user_event_sender.clone();
 
         std::thread::spawn(move || {
@@ -68,11 +76,13 @@ impl WindowHandler<String> for MyWindowHandler {
         });
     }
 
-    fn on_user_event(&mut self, _helper: &mut WindowHelper<String>, user_event: String) {
+    fn on_user_event(&mut self, _helper: &mut WindowHelper<String>, user_event: String)
+    {
         log::info!("Received user event: '{}'", user_event);
     }
 
-    fn on_draw(&mut self, _helper: &mut WindowHelper<String>, graphics: &mut Graphics2D) {
+    fn on_draw(&mut self, _helper: &mut WindowHelper<String>, graphics: &mut Graphics2D)
+    {
         graphics.clear_screen(Color::from_rgb(0.8, 0.9, 1.0));
 
         self.user_event_sender

@@ -24,7 +24,8 @@ use speedy2d::font::{Font, FormattedTextBlock, TextLayout, TextOptions};
 use speedy2d::window::{MouseButton, WindowHandler, WindowHelper, WindowStartupInfo};
 use speedy2d::{Graphics2D, Window};
 
-fn main() {
+fn main()
+{
     simple_logger::SimpleLogger::new().init().unwrap();
 
     let window =
@@ -35,46 +36,52 @@ fn main() {
     let text = font.layout_text(
         "Left click to grab the cursor. Right click (or press a key) to release.",
         20.0,
-        TextOptions::new(),
+        TextOptions::new()
     );
 
     window.run_loop(MyWindowHandler {
         offset: Vector2::ZERO,
         text,
         grabbed: false,
-        window_size: Vector2::ZERO,
+        window_size: Vector2::ZERO
     })
 }
 
-struct MyWindowHandler {
+struct MyWindowHandler
+{
     offset: Vector2<f32>,
     text: Rc<FormattedTextBlock>,
     grabbed: bool,
-    window_size: Vector2<u32>,
+    window_size: Vector2<u32>
 }
 
-impl WindowHandler for MyWindowHandler {
-    fn on_start(&mut self, _helper: &mut WindowHelper, info: WindowStartupInfo) {
+impl WindowHandler for MyWindowHandler
+{
+    fn on_start(&mut self, _helper: &mut WindowHelper, info: WindowStartupInfo)
+    {
         log::info!("Got on_start callback: {:?}", info);
         self.window_size = *info.viewport_size_pixels();
     }
 
-    fn on_resize(&mut self, _helper: &mut WindowHelper<()>, size_pixels: Vector2<u32>) {
+    fn on_resize(&mut self, _helper: &mut WindowHelper<()>, size_pixels: Vector2<u32>)
+    {
         self.window_size = size_pixels;
     }
 
     fn on_mouse_grab_status_changed(
         &mut self,
         helper: &mut WindowHelper<()>,
-        mouse_grabbed: bool,
-    ) {
+        mouse_grabbed: bool
+    )
+    {
         log::info!("Mouse grab status changed: {}", mouse_grabbed);
         self.grabbed = mouse_grabbed;
 
         helper.set_cursor_visible(!mouse_grabbed);
     }
 
-    fn on_draw(&mut self, _helper: &mut WindowHelper, graphics: &mut Graphics2D) {
+    fn on_draw(&mut self, _helper: &mut WindowHelper, graphics: &mut Graphics2D)
+    {
         // Clear the screen
         graphics.clear_screen(Color::from_rgb(0.8, 0.9, 1.0));
 
@@ -91,7 +98,8 @@ impl WindowHandler for MyWindowHandler {
         graphics.draw_text((20.0, 20.0), Color::BLACK, &self.text);
     }
 
-    fn on_mouse_move(&mut self, helper: &mut WindowHelper, position: Vector2<f32>) {
+    fn on_mouse_move(&mut self, helper: &mut WindowHelper, position: Vector2<f32>)
+    {
         log::info!(
             "Got on_mouse_move callback: ({:.1}, {:.1})",
             position.x,
@@ -109,7 +117,8 @@ impl WindowHandler for MyWindowHandler {
         helper.request_redraw();
     }
 
-    fn on_mouse_button_down(&mut self, helper: &mut WindowHelper, button: MouseButton) {
+    fn on_mouse_button_down(&mut self, helper: &mut WindowHelper, button: MouseButton)
+    {
         log::info!("Got on_mouse_button_down callback: {:?}", button);
 
         if button == MouseButton::Left {
@@ -122,8 +131,9 @@ impl WindowHandler for MyWindowHandler {
     fn on_keyboard_char(
         &mut self,
         helper: &mut WindowHelper<()>,
-        _unicode_codepoint: char,
-    ) {
+        _unicode_codepoint: char
+    )
+    {
         helper.set_cursor_grab(false).unwrap();
     }
 }
