@@ -169,8 +169,6 @@ impl<T: num_traits::AsPrimitive<f32>> Rectangle<T>
 }
 
 /// A struct representing a polygon.
-///
-/// It is composed of triangles, whose points are in clockwise order
 #[derive(Debug, Clone)]
 pub struct Polygon
 {
@@ -181,8 +179,7 @@ impl Polygon
 {
     /// Generate a new polygon given points that describe it's outline.
     ///
-    /// The outline does not require a specific order, but this may change, so
-    /// clockwise is recommended.
+    /// The points must be in either clockwise or couter-clockwise order.
     pub fn new<Point: Into<Vector2<f32>> + Copy>(vertices: &[Point]) -> Self
     {
         // We have to flatten the vertices in order for

@@ -805,10 +805,8 @@ impl Graphics2D
         self.renderer.draw_text(position, color, text);
     }
 
-    /// Draws a polygon with a single color.
-    ///
-    /// The vertex positions do not require any specific order, but they cannot
-    /// be self intersecting.
+    /// Draws a polygon with a single color, with the specified offset in
+    /// pixels.
     pub fn draw_polygon<V: Into<Vector2<f32>>>(
         &mut self,
         polygon: &Polygon,
