@@ -93,5 +93,9 @@ Thanks to [Revertron](https://github.com/Revertron):
 
 ### New APIs
 
-* `WindowHandler::on_mouse_wheel_scroll()` (thanks to GreatGodOfFire)
+* `WindowHandler::on_mouse_wheel_scroll()` (thanks to [GreatGodOfFire](https://github.com/GreatGodOfFire))
 * `TextLayout::empty_line_vertical_metrics()`
+
+## 1.5.0
+
+* Ability to draw polygons (thanks to [chilipepperhott](https://github.com/chilipepperhott))
