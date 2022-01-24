@@ -809,9 +809,14 @@ impl Graphics2D
     ///
     /// The vertex positions do not require any specific order, but they cannot
     /// be self intersecting.
-    pub fn draw_polygon(&mut self, polygon: &Polygon, color: Color)
+    pub fn draw_polygon<V: Into<Vector2<f32>>>(
+        &mut self,
+        polygon: &Polygon,
+        offset: V,
+        color: Color
+    )
     {
-        self.renderer.draw_polygon(polygon, color)
+        self.renderer.draw_polygon(polygon, offset, color)
     }
 
     /// Draws a triangle with the specified colors (one color for each corner).

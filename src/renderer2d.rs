@@ -769,12 +769,20 @@ impl Renderer2D
     }
 
     #[inline]
-    pub(crate) fn draw_polygon(&mut self, polygon: &Polygon, color: Color)
+    pub(crate) fn draw_polygon<V: Into<Vector2<f32>>>(
+        &mut self,
+        polygon: &Polygon,
+        offset: V,
+        color: Color
+    )
     {
         let color = [color; 3];
+        let offset = offset.into();
 
         for triangle in polygon.triangles.iter() {
-            self.draw_triangle_three_color(*triangle, color);
+            let triangle = triangle.map(|vertex| vertex + offset);
+
+            self.draw_triangle_three_color(triangle, color);
         }
     }
 
