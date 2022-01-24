@@ -48,7 +48,7 @@ impl WindowHandler for MyWindowHandler
                 )
                 .unwrap();
 
-            helper.set_size_pixels(image.size().clone());
+            helper.set_size_pixels(*image.size());
             self.image = Some(image);
         }
 

@@ -32,7 +32,7 @@ use crate::font::FormattedTextBlock;
 use crate::font_cache::{GlyphCache, GlyphCacheInterface};
 use crate::glwrapper::*;
 use crate::image::{ImageDataType, ImageHandle, ImageSmoothingMode};
-use crate::Rectangle;
+use crate::{Polygon, Rectangle};
 
 struct AttributeBuffers
 {
@@ -765,6 +765,16 @@ impl Renderer2D
 
         if self.render_queue.len() > 100000 {
             self.flush_render_queue();
+        }
+    }
+
+    #[inline]
+    pub(crate) fn draw_polygon(&mut self, polygon: &Polygon, color: Color)
+    {
+        let color = [color; 3];
+
+        for triangle in polygon.triangles.iter() {
+            self.draw_triangle_three_color(*triangle, color);
         }
     }
 

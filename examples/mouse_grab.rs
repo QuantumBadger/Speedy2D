@@ -60,7 +60,7 @@ impl WindowHandler for MyWindowHandler
     fn on_start(&mut self, _helper: &mut WindowHelper, info: WindowStartupInfo)
     {
         log::info!("Got on_start callback: {:?}", info);
-        self.window_size = info.viewport_size_pixels().clone();
+        self.window_size = *info.viewport_size_pixels();
     }
 
     fn on_resize(&mut self, _helper: &mut WindowHelper<()>, size_pixels: Vector2<u32>)

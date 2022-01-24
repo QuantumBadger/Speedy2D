@@ -313,7 +313,7 @@ use crate::glbackend::{GLBackendGLRS, GLBackendGlow};
 use crate::glwrapper::{GLContextManager, GLVersion};
 use crate::image::{ImageDataType, ImageHandle, ImageSmoothingMode};
 use crate::renderer2d::Renderer2D;
-use crate::shape::Rectangle;
+use crate::shape::{Polygon, Rectangle};
 #[cfg(target_arch = "wasm32")]
 use crate::web::WebCanvasElement;
 #[cfg(any(doc, doctest, feature = "windowing"))]
@@ -803,6 +803,15 @@ impl Graphics2D
     )
     {
         self.renderer.draw_text(position, color, text);
+    }
+
+    /// Draws a polygon with a single color.
+    ///
+    /// The vertex positions do not require any specific order, but they cannot
+    /// be self intersecting.
+    pub fn draw_polygon(&mut self, polygon: &Polygon, color: Color)
+    {
+        self.renderer.draw_polygon(polygon, color)
     }
 
     /// Draws a triangle with the specified colors (one color for each corner).
