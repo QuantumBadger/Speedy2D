@@ -196,13 +196,9 @@ impl Polygon
         }
 
         let mut triangulation = earcutr::earcut(&flattened, &Vec::new(), 2);
-        let mut triangles = Vec::with_capacity(triangulation.len() / 2);
+        let mut triangles = Vec::with_capacity(triangulation.len() / 3);
 
-        loop {
-            if triangulation.is_empty() {
-                break;
-            }
-
+        while !triangulation.is_empty() {
             triangles.push([
                 vertices[triangulation.pop().unwrap()].into(),
                 vertices[triangulation.pop().unwrap()].into(),
