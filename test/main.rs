@@ -928,6 +928,25 @@ fn main()
         })
     });
 
+    tests.push(GLTest {
+        width: 500,
+        height: 500,
+        name: "polygon_test_concave_anticlockwise".to_string(),
+        action: Box::new(|renderer| {
+            renderer.draw_frame(|graphics| {
+                graphics.clear_screen(Color::WHITE);
+                let poly = Polygon::new(&[
+                    (100.0, 400.0),
+                    (300.0, 400.0),
+                    (400.0, 100.0),
+                    (250.0, 50.0),
+                    (250.0, 350.0)
+                ]);
+                graphics.draw_polygon(&poly, (0.0, 0.0), Color::RED);
+            });
+        })
+    });
+
     for test in tests {
         log::info!("Running test {}", test.name);
 
