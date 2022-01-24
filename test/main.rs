@@ -14,6 +14,8 @@
  *  limitations under the License.
  */
 
+#[deny(warnings)]
+
 #[cfg(not(all(target_arch = "x86_64", target_os = "linux")))]
 compile_error!("The automated tests currently support Linux x86_64 only");
 
@@ -27,7 +29,7 @@ use speedy2d::color::Color;
 use speedy2d::dimen::Vector2;
 use speedy2d::font::{Font, TextAlignment, TextLayout, TextOptions};
 use speedy2d::image::{ImageDataType, ImageSmoothingMode};
-use speedy2d::shape::Rectangle;
+use speedy2d::shape::{Polygon, Rectangle};
 use speedy2d::GLRenderer;
 
 const NOTO_SANS_REGULAR_BYTES: &[u8] =
@@ -865,6 +867,26 @@ fn main()
                 graphics.set_clip(Some(Rectangle::from_tuples((25, 25), (250, 75))));
                 graphics.clear_screen(Color::GREEN);
                 graphics.draw_text(Vector2::new(0.0, 0.0), Color::BLACK, &text);
+            });
+        })
+    });
+
+    tests.push(GLTest {
+        width: 500,
+        height: 500,
+        name: "polygon_test_1".to_string(),
+        action: Box::new(|renderer| {
+
+            renderer.draw_frame(|graphics| {
+                graphics.clear_screen(Color::WHITE);
+                let poly = Polygon::new(&[
+                    (100.0, 100.0),
+                    (250.0, 50.0),
+                    (400.0, 100.0),
+                    (300.0, 400.0),
+                    (100.0, 400.0)
+                ]);
+                graphics.draw_polygon(&poly, Color::RED);
             });
         })
     });
