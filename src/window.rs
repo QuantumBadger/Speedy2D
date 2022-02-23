@@ -1061,6 +1061,7 @@ pub struct WindowCreationOptions
     pub(crate) always_on_top: bool,
     pub(crate) resizable: bool,
     pub(crate) maximized: bool,
+    pub(crate) transparent: bool,
     pub(crate) decorations: bool
 }
 
@@ -1093,7 +1094,8 @@ impl WindowCreationOptions
             always_on_top: false,
             resizable: true,
             maximized: false,
-            decorations: true
+            decorations: true,
+            transparent: false,
         }
     }
 
@@ -1160,6 +1162,19 @@ impl WindowCreationOptions
     pub fn with_decorations(mut self, decorations: bool) -> Self
     {
         self.decorations = decorations;
+        self
+    }
+
+    /// Sets whether the background of the window should be transparent. The 
+    /// default is `false`.
+    ///
+    /// Note that this depends on platform support, and setting this may have no
+    /// effect.
+    #[inline]
+    #[must_use]
+    pub fn with_transparent(mut self, transparent: bool) -> Self
+    {
+        self.transparent = transparent;
         self
     }
 }

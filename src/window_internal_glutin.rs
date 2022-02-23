@@ -305,6 +305,7 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
             .with_always_on_top(options.always_on_top)
             .with_maximized(options.maximized)
             .with_visible(false)
+            .with_transparent(options.transparent)
             .with_decorations(options.decorations);
 
         match &options.mode {
