@@ -304,6 +304,7 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
             .with_resizable(options.resizable)
             .with_always_on_top(options.always_on_top)
             .with_maximized(options.maximized)
+            .with_visible(false)
             .with_decorations(options.decorations);
 
         match &options.mode {
@@ -347,6 +348,9 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
                 // Nothing to do
             }
         }
+
+        // Show window after positioning to avoid the window jumping around
+        window_context.window().set_visible(true);
 
         let glow_context = unsafe {
             glow::Context::from_loader_function(|ptr| {
