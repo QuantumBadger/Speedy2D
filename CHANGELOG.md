@@ -99,3 +99,9 @@ Thanks to [Revertron](https://github.com/Revertron):
 ## 1.5.0
 
 * Ability to draw polygons (thanks to [chilipepperhott](https://github.com/chilipepperhott))
+
+## 1.6.0
+
+Thanks to [dnlmlr](https://github.com/dnlmlr):
+
+* Set the position before making the window visible
