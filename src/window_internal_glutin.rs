@@ -337,20 +337,25 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
             }
         });
 
-        match &options.mode {
-            WindowCreationMode::Windowed { position, .. } => {
-                if let Some(position) = position {
-                    position_window(&primary_monitor, window_context.window(), position);
-                }
-            }
-
-            WindowCreationMode::FullscreenBorderless => {
-                // Nothing to do
-            }
+        if let WindowCreationMode::Windowed {
+            position: Some(position),
+            ..
+        } = &options.mode
+        {
+            position_window(&primary_monitor, window_context.window(), position);
         }
 
         // Show window after positioning to avoid the window jumping around
         window_context.window().set_visible(true);
+
+        // Set the position again to work around an issue on Linux
+        if let WindowCreationMode::Windowed {
+            position: Some(position),
+            ..
+        } = &options.mode
+        {
+            position_window(&primary_monitor, window_context.window(), position);
+        }
 
         let glow_context = unsafe {
             glow::Context::from_loader_function(|ptr| {
