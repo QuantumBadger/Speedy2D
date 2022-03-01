@@ -1095,7 +1095,7 @@ impl WindowCreationOptions
             resizable: true,
             maximized: false,
             decorations: true,
-            transparent: false,
+            transparent: false
         }
     }
 
@@ -1165,7 +1165,7 @@ impl WindowCreationOptions
         self
     }
 
-    /// Sets whether the background of the window should be transparent. The 
+    /// Sets whether the background of the window should be transparent. The
     /// default is `false`.
     ///
     /// Note that this depends on platform support, and setting this may have no
