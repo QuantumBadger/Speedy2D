@@ -105,3 +105,4 @@ Thanks to [Revertron](https://github.com/Revertron):
 Thanks to [dnlmlr](https://github.com/dnlmlr):
 
 * Set the position before making the window visible
+* Added option to create transparent windows
