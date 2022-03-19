@@ -106,3 +106,7 @@ Thanks to [dnlmlr](https://github.com/dnlmlr):
 
 * Set the position before making the window visible
 * Added option to create transparent windows
+
+Thanks to [UdHo](https://github.com/UdHo)
+
+* Fixed Wayland regression
