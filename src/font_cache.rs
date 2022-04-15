@@ -402,7 +402,7 @@ impl GlyphCache
     }
 
     fn try_append_to_existing_texture(
-        all_textures: &mut Vec<GlyphCacheTexture>,
+        all_textures: &mut [GlyphCacheTexture],
         key: &GlyphCacheKey,
         glyph_bitmap: &Rc<BitmapRGBA>
     ) -> Result<usize, GlyphCacheTextureAppendError>
