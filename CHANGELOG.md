@@ -110,3 +110,7 @@ Thanks to [dnlmlr](https://github.com/dnlmlr):
 Thanks to [UdHo](https://github.com/UdHo)
 
 * Fixed Wayland regression
+
+## 1.7.0
+
+* Remove `Sized` requirement from `TextLayout` functions (allowing them to be called on `&dyn TextLayout`)

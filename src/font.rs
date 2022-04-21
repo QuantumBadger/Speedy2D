@@ -330,7 +330,7 @@ impl WordLayoutResult
 }
 
 #[allow(clippy::too_many_arguments)]
-fn try_layout_word_internal<T: TextLayout>(
+fn try_layout_word_internal<T: TextLayout + ?Sized>(
     layout_helper: &T,
     word: RenderableWord,
     remaining_words: &mut WordsIterator,
@@ -433,7 +433,7 @@ fn try_layout_word_internal<T: TextLayout>(
     WordLayoutResult::Success(new_word_metrics)
 }
 
-fn layout_line_internal<T: TextLayout>(
+fn layout_line_internal<T: TextLayout + ?Sized>(
     layout_helper: &T,
     words: &mut WordsIterator,
     scale: &rusttype::Scale,
@@ -497,7 +497,7 @@ fn layout_line_internal<T: TextLayout>(
     }
 }
 
-fn layout_multiple_lines_internal<T: TextLayout>(
+fn layout_multiple_lines_internal<T: TextLayout + ?Sized>(
     layout_helper: &T,
     codepoints: &[Codepoint],
     scale: f32,
@@ -590,8 +590,6 @@ pub trait TextLayout
         scale: f32,
         options: TextOptions
     ) -> Rc<FormattedTextBlock>
-    where
-        Self: Sized
     {
         let codepoints: Vec<char> = text.nfc().collect();
         self.layout_text_from_unindexed_codepoints(codepoints.as_slice(), scale, options)
@@ -611,8 +609,6 @@ pub trait TextLayout
         scale: f32,
         options: TextOptions
     ) -> Rc<FormattedTextBlock>
-    where
-        Self: Sized
     {
         self.layout_text_from_codepoints(
             Codepoint::from_unindexed_codepoints(unindexed_codepoints).as_slice(),
@@ -633,8 +629,6 @@ pub trait TextLayout
         scale: f32,
         options: TextOptions
     ) -> Rc<FormattedTextBlock>
-    where
-        Self: Sized
     {
         layout_multiple_lines_internal(self, codepoints, scale, options)
     }
