@@ -191,74 +191,80 @@ where
     }
 }
 
-impl<T: Copy + std::ops::Add<Output = T>> std::ops::Add<Vector2<T>> for Vector2<T>
+impl<T> From<&(T, T)> for Vector2<T>
+where
+    T: Copy
+{
+    #[inline]
+    #[must_use]
+    fn from(value: &(T, T)) -> Self
+    {
+        Vector2::new(value.0, value.1)
+    }
+}
+
+impl<T> From<&Self> for Vector2<T>
+where
+    T: Copy
+{
+    #[inline]
+    #[must_use]
+    fn from(value: &Self) -> Self
+    {
+        *value
+    }
+}
+
+impl<T: Copy + std::ops::Add<Output = T>, R: Into<Self>> std::ops::Add<R> for Vector2<T>
 {
     type Output = Vector2<T>;
 
     #[inline]
     #[must_use]
-    fn add(self, rhs: Self) -> Self::Output
+    fn add(self, rhs: R) -> Self::Output
     {
+        let rhs = rhs.into();
         Vector2::new(self.x + rhs.x, self.y + rhs.y)
     }
 }
 
-impl<T: Copy + std::ops::Add<Output = T>> std::ops::Add<&Vector2<T>> for Vector2<T>
+impl<T: Copy + std::ops::Add<Output = T>, R: Into<Vector2<T>>> std::ops::Add<R>
+    for &Vector2<T>
 {
     type Output = Vector2<T>;
 
     #[inline]
     #[must_use]
-    fn add(self, rhs: &Self) -> Self::Output
+    fn add(self, rhs: R) -> Self::Output
     {
+        let rhs = rhs.into();
         Vector2::new(self.x + rhs.x, self.y + rhs.y)
     }
 }
 
-impl<T: Copy + std::ops::Add<Output = T>> std::ops::Add<Vector2<T>> for &Vector2<T>
+impl<T: Copy + std::ops::Sub<Output = T>, R: Into<Self>> std::ops::Sub<R> for Vector2<T>
 {
     type Output = Vector2<T>;
 
     #[inline]
     #[must_use]
-    fn add(self, rhs: Vector2<T>) -> Self::Output
+    fn sub(self, rhs: R) -> Self::Output
     {
-        Vector2::new(self.x + rhs.x, self.y + rhs.y)
-    }
-}
-
-impl<T: Copy + std::ops::Sub<Output = T>> std::ops::Sub<Vector2<T>> for Vector2<T>
-{
-    type Output = Vector2<T>;
-
-    #[inline]
-    #[must_use]
-    fn sub(self, rhs: Self) -> Self::Output
-    {
+        let rhs = rhs.into();
         Vector2::new(self.x - rhs.x, self.y - rhs.y)
     }
 }
 
-impl<T: Copy + std::ops::Sub<Output = T>> std::ops::Sub<&Vector2<T>> for Vector2<T>
+impl<T: Copy + std::ops::Sub<Output = T>, R: Into<Vector2<T>>> std::ops::Sub<R>
+    for &Vector2<T>
 {
     type Output = Vector2<T>;
 
     #[inline]
     #[must_use]
-    fn sub(self, rhs: &Self) -> Self::Output
+    fn sub(self, rhs: R) -> Self::Output
     {
-        Vector2::new(self.x - rhs.x, self.y - rhs.y)
-    }
-}
-
-impl<T: Copy + std::ops::Sub<Output = T>> std::ops::Sub<Vector2<T>> for &Vector2<T>
-{
-    type Output = Vector2<T>;
-
-    #[inline]
-    #[must_use]
-    fn sub(self, rhs: Vector2<T>) -> Self::Output
-    {
+        let rhs = rhs.into();
         Vector2::new(self.x - rhs.x, self.y - rhs.y)
     }
 }
@@ -350,5 +356,59 @@ mod test
         assert_eq!(IVec2::new(-5, 10), IVec2::new(3, 10) - IVec2::new_x(8));
 
         assert_eq!(IVec2::new(-5, 17), IVec2::new(-5, 10) + IVec2::new_y(7));
+    }
+
+    #[test]
+    fn test_arithmetic_ref()
+    {
+        assert_eq!(
+            Vector2::new(15, 20),
+            Vector2::new(10, 4) + &Vector2::new(5, 16)
+        );
+
+        assert_eq!(
+            Vector2::new(5, -12),
+            Vector2::new(10, 4) - &Vector2::new(5, 16)
+        );
+
+        assert_eq!(
+            Vector2::new(15, 20),
+            &Vector2::new(10, 4) + Vector2::new(5, 16)
+        );
+
+        assert_eq!(
+            Vector2::new(5, -12),
+            &Vector2::new(10, 4) - Vector2::new(5, 16)
+        );
+
+        assert_eq!(
+            Vector2::new(15, 20),
+            &Vector2::new(10, 4) + &Vector2::new(5, 16)
+        );
+
+        assert_eq!(
+            Vector2::new(5, -12),
+            &Vector2::new(10, 4) - &Vector2::new(5, 16)
+        );
+    }
+
+    #[test]
+    fn test_arithmetic_tuples()
+    {
+        assert_eq!(Vector2::new(15, 20), Vector2::new(10, 4) + (5, 16));
+
+        assert_eq!(Vector2::new(15, 20), Vector2::new(10, 4) + &(5, 16));
+
+        assert_eq!(Vector2::new(15, 20), &Vector2::new(10, 4) + (5, 16));
+
+        assert_eq!(Vector2::new(15, 20), &Vector2::new(10, 4) + &(5, 16));
+
+        assert_eq!(Vector2::new(5, -12), Vector2::new(10, 4) - (5, 16));
+
+        assert_eq!(Vector2::new(5, -12), Vector2::new(10, 4) - &(5, 16));
+
+        assert_eq!(Vector2::new(5, -12), &Vector2::new(10, 4) - (5, 16));
+
+        assert_eq!(Vector2::new(5, -12), &Vector2::new(10, 4) - &(5, 16));
     }
 }

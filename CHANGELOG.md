@@ -118,6 +118,7 @@ Thanks to [UdHo](https://github.com/UdHo)
 ## 1.8.0
 
 * Added convenient type aliases for `Vector2` types: `Vec2`, `IVec2`, and `UVec2`
+* Allow adding tuples to vectors, for example `my_vec + (1.0, 2.0)`
 
 ### New APIs
 
