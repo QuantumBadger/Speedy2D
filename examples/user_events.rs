@@ -19,7 +19,7 @@
 use std::time::Duration;
 
 use speedy2d::color::Color;
-use speedy2d::dimen::Vector2;
+use speedy2d::dimen::UVec2;
 use speedy2d::window::{
     UserEventSender,
     WindowCreationOptions,
@@ -38,7 +38,7 @@ fn main()
     let window: Window<String> = Window::new_with_user_events(
         "Speedy2D: User Events Example",
         WindowCreationOptions::new_windowed(
-            WindowSize::PhysicalPixels(Vector2::new(640, 480)),
+            WindowSize::PhysicalPixels(UVec2::new(640, 480)),
             None
         )
     )

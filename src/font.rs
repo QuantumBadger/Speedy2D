@@ -28,7 +28,7 @@ use std::vec::IntoIter;
 use rusttype::Scale;
 use unicode_normalization::UnicodeNormalization;
 
-use crate::dimen::Vector2;
+use crate::dimen::{Vec2, Vector2};
 use crate::error::{BacktraceError, ErrorMessage};
 use crate::shape::Rectangle;
 
@@ -974,9 +974,9 @@ impl FormattedTextBlock
     /// The size (in pixels) of this text block.
     #[inline]
     #[must_use]
-    pub fn size(&self) -> Vector2<f32>
+    pub fn size(&self) -> Vec2
     {
-        Vector2::new(self.width, self.height)
+        Vec2::new(self.width, self.height)
     }
 }
 

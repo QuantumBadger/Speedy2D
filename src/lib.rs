@@ -304,7 +304,7 @@ use {
 };
 
 use crate::color::Color;
-use crate::dimen::Vector2;
+use crate::dimen::{UVec2, Vec2};
 use crate::error::{BacktraceError, ErrorMessage};
 use crate::font::FormattedTextBlock;
 use crate::glbackend::GLBackend;
@@ -463,7 +463,7 @@ impl GLRenderer
     /// advised not to use any other OpenGL libraries in the same thread
     /// as `GLRenderer`.
     #[cfg(not(target_arch = "wasm32"))]
-    pub unsafe fn new_for_current_context<V: Into<Vector2<u32>>>(
+    pub unsafe fn new_for_current_context<V: Into<UVec2>>(
         viewport_size_pixels: V
     ) -> Result<Self, BacktraceError<GLRendererCreationError>>
     {
@@ -496,7 +496,7 @@ impl GLRenderer
         loader_function: F
     ) -> Result<Self, BacktraceError<GLRendererCreationError>>
     where
-        V: Into<Vector2<u32>>,
+        V: Into<UVec2>,
         F: FnMut(&str) -> *const std::os::raw::c_void
     {
         let backend =
@@ -521,7 +521,7 @@ impl GLRenderer
         element_id: S
     ) -> Result<Self, BacktraceError<GLRendererCreationError>>
     where
-        V: Into<Vector2<u32>>,
+        V: Into<UVec2>,
         S: AsRef<str>
     {
         WebCanvasElement::new_by_id(element_id.as_ref())
@@ -531,7 +531,7 @@ impl GLRenderer
             .get_webgl2_context(viewport_size_pixels)
     }
 
-    fn new_with_gl_backend<V: Into<Vector2<u32>>>(
+    fn new_with_gl_backend<V: Into<UVec2>>(
         viewport_size_pixels: V,
         gl_backend: Rc<dyn GLBackend>,
         gl_version: GLVersion
@@ -558,7 +558,7 @@ impl GLRenderer
 
     /// Sets the renderer viewport to the specified pixel size, in response to a
     /// change in the window size.
-    pub fn set_viewport_size_pixels(&mut self, viewport_size_pixels: Vector2<u32>)
+    pub fn set_viewport_size_pixels(&mut self, viewport_size_pixels: UVec2)
     {
         self.renderer
             .renderer
@@ -576,7 +576,7 @@ impl GLRenderer
         &mut self,
         data_type: ImageDataType,
         smoothing_mode: ImageSmoothingMode,
-        size: Vector2<u32>,
+        size: UVec2,
         data: &[u8]
     ) -> Result<ImageHandle, BacktraceError<ErrorMessage>>
     {
@@ -616,7 +616,6 @@ impl GLRenderer
     ///
     /// ```rust,no_run
     /// # use speedy2d::GLRenderer;
-    /// # use speedy2d::dimen::Vector2;
     /// # use speedy2d::color::Color;
     /// # use speedy2d::image::ImageSmoothingMode;
     /// use std::io::Cursor;
@@ -691,7 +690,7 @@ impl Graphics2D
     ///
     /// The returned [ImageHandle] is valid only for the current graphics
     /// context.
-    pub fn create_image_from_raw_pixels<S: Into<Vector2<u32>>>(
+    pub fn create_image_from_raw_pixels<S: Into<UVec2>>(
         &mut self,
         data_type: ImageDataType,
         smoothing_mode: ImageSmoothingMode,
@@ -739,7 +738,6 @@ impl Graphics2D
     ///
     /// ```rust,no_run
     /// # use speedy2d::GLRenderer;
-    /// # use speedy2d::dimen::Vector2;
     /// # use speedy2d::color::Color;
     /// # use speedy2d::image::ImageSmoothingMode;
     /// use std::io::Cursor;
@@ -795,7 +793,7 @@ impl Graphics2D
     /// text will need to be re-rendered and re-uploaded. To avoid this,
     /// call `round()` on the position coordinates, to ensure that
     /// the text is always located at an integer pixel position.
-    pub fn draw_text<V: Into<Vector2<f32>>>(
+    pub fn draw_text<V: Into<Vec2>>(
         &mut self,
         position: V,
         color: Color,
@@ -807,7 +805,7 @@ impl Graphics2D
 
     /// Draws a polygon with a single color, with the specified offset in
     /// pixels.
-    pub fn draw_polygon<V: Into<Vector2<f32>>>(
+    pub fn draw_polygon<V: Into<Vec2>>(
         &mut self,
         polygon: &Polygon,
         offset: V,
@@ -823,7 +821,7 @@ impl Graphics2D
     /// clockwise order.
     pub fn draw_triangle_three_color(
         &mut self,
-        vertex_positions_clockwise: [Vector2<f32>; 3],
+        vertex_positions_clockwise: [Vec2; 3],
         vertex_colors_clockwise: [Color; 3]
     )
     {
@@ -849,9 +847,9 @@ impl Graphics2D
     /// be provided in clockwise order.
     pub fn draw_triangle_image_tinted_three_color(
         &mut self,
-        vertex_positions_clockwise: [Vector2<f32>; 3],
+        vertex_positions_clockwise: [Vec2; 3],
         vertex_colors: [Color; 3],
-        image_coords_normalized: [Vector2<f32>; 3],
+        image_coords_normalized: [Vec2; 3],
         image: &ImageHandle
     )
     {
@@ -867,11 +865,7 @@ impl Graphics2D
     ///
     /// The vertex positions must be provided in clockwise order.
     #[inline]
-    pub fn draw_triangle(
-        &mut self,
-        vertex_positions_clockwise: [Vector2<f32>; 3],
-        color: Color
-    )
+    pub fn draw_triangle(&mut self, vertex_positions_clockwise: [Vec2; 3], color: Color)
     {
         self.draw_triangle_three_color(vertex_positions_clockwise, [color, color, color]);
     }
@@ -884,7 +878,7 @@ impl Graphics2D
     #[inline]
     pub fn draw_quad_four_color(
         &mut self,
-        vertex_positions_clockwise: [Vector2<f32>; 4],
+        vertex_positions_clockwise: [Vec2; 4],
         vertex_colors: [Color; 4]
     )
     {
@@ -900,11 +894,7 @@ impl Graphics2D
     ///
     /// The vertex positions must be provided in clockwise order.
     #[inline]
-    pub fn draw_quad(
-        &mut self,
-        vertex_positions_clockwise: [Vector2<f32>; 4],
-        color: Color
-    )
+    pub fn draw_quad(&mut self, vertex_positions_clockwise: [Vec2; 4], color: Color)
     {
         self.draw_quad_four_color(
             vertex_positions_clockwise,
@@ -930,9 +920,9 @@ impl Graphics2D
     #[inline]
     pub fn draw_quad_image_tinted_four_color(
         &mut self,
-        vertex_positions_clockwise: [Vector2<f32>; 4],
+        vertex_positions_clockwise: [Vec2; 4],
         vertex_colors: [Color; 4],
-        image_coords_normalized: [Vector2<f32>; 4],
+        image_coords_normalized: [Vec2; 4],
         image: &ImageHandle
     )
     {
@@ -1011,7 +1001,7 @@ impl Graphics2D
         self.draw_rectangle_image_subset_tinted(
             rect,
             color,
-            Rectangle::new(Vector2::ZERO, Vector2::new(1.0, 1.0)),
+            Rectangle::new(Vec2::ZERO, Vec2::new(1.0, 1.0)),
             image
         );
     }
@@ -1027,7 +1017,7 @@ impl Graphics2D
     /// Draws an image at the specified pixel location. The image will be
     /// drawn at its original size with no scaling.
     #[inline]
-    pub fn draw_image<P: Into<Vector2<f32>>>(&mut self, position: P, image: &ImageHandle)
+    pub fn draw_image<P: Into<Vec2>>(&mut self, position: P, image: &ImageHandle)
     {
         let position = position.into();
 
@@ -1075,7 +1065,7 @@ impl Graphics2D
     /// span two half-pixels. Drawing the same line between `(0.0, 10.5)`
     /// and `(100.0, 10.5)` will result in a pixel-aligned rectangle between
     /// `(0.0, 10.0)` and `(100.0, 11.0)`.
-    pub fn draw_line<VStart: Into<Vector2<f32>>, VEnd: Into<Vector2<f32>>>(
+    pub fn draw_line<VStart: Into<Vec2>, VEnd: Into<Vec2>>(
         &mut self,
         start_position: VStart,
         end_position: VEnd,
@@ -1115,7 +1105,7 @@ impl Graphics2D
 
     /// Draws a circle, filled with a single color, at the specified pixel
     /// location.
-    pub fn draw_circle<V: Into<Vector2<f32>>>(
+    pub fn draw_circle<V: Into<Vec2>>(
         &mut self,
         center_position: V,
         radius: f32,
@@ -1124,18 +1114,18 @@ impl Graphics2D
     {
         let center_position = center_position.into();
 
-        let top_left = center_position + Vector2::new(-radius, -radius);
-        let top_right = center_position + Vector2::new(radius, -radius);
-        let bottom_right = center_position + Vector2::new(radius, radius);
-        let bottom_left = center_position + Vector2::new(-radius, radius);
+        let top_left = center_position + Vec2::new(-radius, -radius);
+        let top_right = center_position + Vec2::new(radius, -radius);
+        let bottom_right = center_position + Vec2::new(radius, radius);
+        let bottom_left = center_position + Vec2::new(-radius, radius);
 
         self.renderer.draw_circle_section(
             [top_left, top_right, bottom_right],
             [color, color, color],
             [
-                Vector2::new(-1.0, -1.0),
-                Vector2::new(1.0, -1.0),
-                Vector2::new(1.0, 1.0)
+                Vec2::new(-1.0, -1.0),
+                Vec2::new(1.0, -1.0),
+                Vec2::new(1.0, 1.0)
             ]
         );
 
@@ -1143,9 +1133,9 @@ impl Graphics2D
             [bottom_right, bottom_left, top_left],
             [color, color, color],
             [
-                Vector2::new(1.0, 1.0),
-                Vector2::new(-1.0, 1.0),
-                Vector2::new(-1.0, -1.0)
+                Vec2::new(1.0, 1.0),
+                Vec2::new(-1.0, 1.0),
+                Vec2::new(-1.0, -1.0)
             ]
         );
     }
@@ -1163,28 +1153,28 @@ impl Graphics2D
     ///
     /// ```rust,no_run
     /// # use speedy2d::GLRenderer;
-    /// # use speedy2d::dimen::Vector2;
+    /// # use speedy2d::dimen::Vec2;
     /// # use speedy2d::color::Color;
     /// # let mut renderer = unsafe {GLRenderer::new_for_current_context((0,0))}.unwrap();
     /// # renderer.draw_frame(|graphics| {
     /// graphics.draw_circle_section_triangular_three_color(
     ///         [
-    ///                 Vector2::new(200.0, 200.0),
-    ///                 Vector2::new(300.0, 200.0),
-    ///                 Vector2::new(300.0, 300.0)],
+    ///                 Vec2::new(200.0, 200.0),
+    ///                 Vec2::new(300.0, 200.0),
+    ///                 Vec2::new(300.0, 300.0)],
     ///         [Color::MAGENTA; 3],
     ///         [
-    ///                 Vector2::new(-1.0, -1.0),
-    ///                 Vector2::new(1.0, -1.0),
-    ///                 Vector2::new(1.0, 1.0)]);
+    ///                 Vec2::new(-1.0, -1.0),
+    ///                 Vec2::new(1.0, -1.0),
+    ///                 Vec2::new(1.0, 1.0)]);
     /// # });
     /// ```
     #[inline]
     pub fn draw_circle_section_triangular_three_color(
         &mut self,
-        vertex_positions_clockwise: [Vector2<f32>; 3],
+        vertex_positions_clockwise: [Vec2; 3],
         vertex_colors: [Color; 3],
-        vertex_circle_coords_normalized: [Vector2<f32>; 3]
+        vertex_circle_coords_normalized: [Vec2; 3]
     )
     {
         self.renderer.draw_circle_section(
@@ -1223,7 +1213,7 @@ impl Window<()>
     ) -> Result<Window<()>, BacktraceError<WindowCreationError>>
     where
         Str: AsRef<str>,
-        Size: Into<Vector2<u32>>
+        Size: Into<UVec2>
     {
         let size = size.into();
 

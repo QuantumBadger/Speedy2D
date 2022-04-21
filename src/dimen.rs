@@ -20,6 +20,15 @@ use rusttype::Point;
 
 use crate::numeric::{PrimitiveZero, RoundFloat};
 
+/// A vector with two f32 values.
+pub type Vec2 = Vector2<f32>;
+
+/// A vector with two i32 values.
+pub type IVec2 = Vector2<i32>;
+
+/// A vector with two u32 values.
+pub type UVec2 = Vector2<u32>;
+
 /// A vector containing two numeric values. This may represent a size or
 /// position.
 #[repr(C)]
@@ -51,7 +60,7 @@ impl<T: PrimitiveZero> Vector2<T>
     pub const ZERO: Vector2<T> = Vector2::new(T::ZERO, T::ZERO);
 }
 
-impl Vector2<f32>
+impl Vec2
 {
     /// Returns the magnitude of the vector, squared.
     #[inline]
@@ -74,7 +83,7 @@ impl Vector2<f32>
     /// division by zero.
     #[inline]
     #[must_use]
-    pub fn normalize(&self) -> Option<Vector2<f32>>
+    pub fn normalize(&self) -> Option<Vec2>
     {
         let magnitude = self.magnitude();
 
@@ -111,7 +120,7 @@ impl<T: num_traits::AsPrimitive<f32>> Vector2<T>
     /// operator.
     #[inline]
     #[must_use]
-    pub fn into_f32(self) -> Vector2<f32>
+    pub fn into_f32(self) -> Vec2
     {
         Vector2::new(self.x.as_(), self.y.as_())
     }
@@ -123,7 +132,7 @@ impl<T: num_traits::AsPrimitive<i32>> Vector2<T>
     /// operator.
     #[inline]
     #[must_use]
-    pub fn into_i32(self) -> Vector2<i32>
+    pub fn into_i32(self) -> IVec2
     {
         Vector2::new(self.x.as_(), self.y.as_())
     }
@@ -135,7 +144,7 @@ impl<T: num_traits::AsPrimitive<u32>> Vector2<T>
     /// operator.
     #[inline]
     #[must_use]
-    pub fn into_u32(self) -> Vector2<u32>
+    pub fn into_u32(self) -> UVec2
     {
         Vector2::new(self.x.as_(), self.y.as_())
     }
@@ -146,7 +155,7 @@ impl<T: TryInto<i32>> Vector2<T>
     /// Attempts to convert each element of this vector to an `i32`, returning
     /// an error if this fails.
     #[inline]
-    pub fn try_into_i32(self) -> Result<Vector2<i32>, T::Error>
+    pub fn try_into_i32(self) -> Result<IVec2, T::Error>
     {
         Ok(Vector2::new(self.x.try_into()?, self.y.try_into()?))
     }

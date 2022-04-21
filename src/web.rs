@@ -32,6 +32,8 @@ use web_sys::{
 };
 use web_sys::{Document, Element, HtmlCanvasElement, HtmlElement, Performance, Window};
 
+use crate::dimen::UVec2;
+#[cfg(feature = "windowing")]
 use crate::dimen::Vector2;
 use crate::error::{BacktraceError, ErrorMessage};
 use crate::glbackend::GLBackendGlow;
@@ -454,7 +456,7 @@ impl WebCanvasElement
         viewport_size_pixels: V
     ) -> Result<GLRenderer, BacktraceError<GLRendererCreationError>>
     where
-        V: Into<Vector2<u32>>
+        V: Into<UVec2>
     {
         let viewport_size_pixels = viewport_size_pixels.into();
 
@@ -491,7 +493,7 @@ impl WebCanvasElement
     }
 
     #[cfg(feature = "windowing")]
-    pub fn set_buffer_dimensions(&self, size: &Vector2<u32>)
+    pub fn set_buffer_dimensions(&self, size: &UVec2)
     {
         self.canvas.set_width(size.x);
         self.canvas.set_height(size.y);

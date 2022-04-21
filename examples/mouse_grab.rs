@@ -19,7 +19,7 @@
 use std::rc::Rc;
 
 use speedy2d::color::Color;
-use speedy2d::dimen::Vector2;
+use speedy2d::dimen::{UVec2, Vec2};
 use speedy2d::font::{Font, FormattedTextBlock, TextLayout, TextOptions};
 use speedy2d::window::{MouseButton, WindowHandler, WindowHelper, WindowStartupInfo};
 use speedy2d::{Graphics2D, Window};
@@ -40,19 +40,19 @@ fn main()
     );
 
     window.run_loop(MyWindowHandler {
-        offset: Vector2::ZERO,
+        offset: Vec2::ZERO,
         text,
         grabbed: false,
-        window_size: Vector2::ZERO
+        window_size: UVec2::ZERO
     })
 }
 
 struct MyWindowHandler
 {
-    offset: Vector2<f32>,
+    offset: Vec2,
     text: Rc<FormattedTextBlock>,
     grabbed: bool,
-    window_size: Vector2<u32>
+    window_size: UVec2
 }
 
 impl WindowHandler for MyWindowHandler
@@ -63,7 +63,7 @@ impl WindowHandler for MyWindowHandler
         self.window_size = *info.viewport_size_pixels();
     }
 
-    fn on_resize(&mut self, _helper: &mut WindowHelper<()>, size_pixels: Vector2<u32>)
+    fn on_resize(&mut self, _helper: &mut WindowHelper<()>, size_pixels: UVec2)
     {
         self.window_size = size_pixels;
     }
@@ -98,7 +98,7 @@ impl WindowHandler for MyWindowHandler
         graphics.draw_text((20.0, 20.0), Color::BLACK, &self.text);
     }
 
-    fn on_mouse_move(&mut self, helper: &mut WindowHelper, position: Vector2<f32>)
+    fn on_mouse_move(&mut self, helper: &mut WindowHelper, position: Vec2)
     {
         log::info!(
             "Got on_mouse_move callback: ({:.1}, {:.1})",

@@ -18,7 +18,7 @@
 
 use buttons::*;
 use speedy2d::color::Color;
-use speedy2d::dimen::Vector2;
+use speedy2d::dimen::Vec2;
 use speedy2d::font::Font;
 use speedy2d::time::Stopwatch;
 use speedy2d::window::{
@@ -133,15 +133,15 @@ impl WindowHandler<UserEvent> for MyHandler
         graphics.clear_screen(Color::from_rgb(0.9, 0.95, 1.0));
 
         self.buttons
-            .draw(graphics, Vector2::new(20.0, 20.0), self.scale);
+            .draw(graphics, Vec2::new(20.0, 20.0), self.scale);
 
         let elapsed_secs = self.timer.secs_elapsed();
 
-        let center = Vector2::new(400.0, 400.0);
+        let center = Vec2::new(400.0, 400.0);
         let offset = 200.0;
 
         let position = center
-            + Vector2::new(elapsed_secs.cos() * offset, elapsed_secs.sin() * offset)
+            + Vec2::new(elapsed_secs.cos() * offset, elapsed_secs.sin() * offset)
                 .into_f32();
 
         graphics.draw_circle(
@@ -154,11 +154,7 @@ impl WindowHandler<UserEvent> for MyHandler
         helper.request_redraw();
     }
 
-    fn on_mouse_move(
-        &mut self,
-        _helper: &mut WindowHelper<UserEvent>,
-        position: Vector2<f32>
-    )
+    fn on_mouse_move(&mut self, _helper: &mut WindowHelper<UserEvent>, position: Vec2)
     {
         self.buttons.on_mouse_move(position);
     }

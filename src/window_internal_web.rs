@@ -24,7 +24,7 @@ use wasm_bindgen::closure::Closure;
 use wasm_bindgen::JsCast;
 use web_sys::{KeyboardEvent, MouseEvent, WheelEvent};
 
-use crate::dimen::Vector2;
+use crate::dimen::{IVec2, UVec2, Vec2};
 use crate::error::{BacktraceError, ErrorMessage};
 use crate::numeric::RoundFloat;
 use crate::web::{WebCanvasElement, WebCursorType, WebDocument, WebPending, WebWindow};
@@ -449,7 +449,7 @@ impl<UserEventType: 'static> WindowHelperWeb<UserEventType>
         _size: S
     ) -> Result<(), BacktraceError<ErrorMessage>>
     where
-        S: Into<Vector2<u32>>
+        S: Into<UVec2>
     {
         // Do nothing
         Err(ErrorMessage::msg("Cannot set icon for WebCanvas"))
@@ -518,22 +518,22 @@ impl<UserEventType: 'static> WindowHelperWeb<UserEventType>
         }
     }
 
-    pub fn set_size_pixels<S: Into<Vector2<u32>>>(&self, _size: S)
+    pub fn set_size_pixels<S: Into<UVec2>>(&self, _size: S)
     {
         // Do nothing
     }
 
-    pub fn set_position_pixels<P: Into<Vector2<i32>>>(&self, _position: P)
+    pub fn set_position_pixels<P: Into<IVec2>>(&self, _position: P)
     {
         // Do nothing
     }
 
-    pub fn set_size_scaled_pixels<S: Into<Vector2<f32>>>(&self, _size: S)
+    pub fn set_size_scaled_pixels<S: Into<Vec2>>(&self, _size: S)
     {
         // Do nothing
     }
 
-    pub fn set_position_scaled_pixels<P: Into<Vector2<f32>>>(&self, _position: P)
+    pub fn set_position_scaled_pixels<P: Into<Vec2>>(&self, _position: P)
     {
         // Do nothing
     }
@@ -865,11 +865,11 @@ impl WebCanvasImpl
                         let current_dpr = Cell::get(Rc::borrow(&current_dpr)) as f32;
 
                         let position = if is_pointer_locked.get() {
-                            Vector2::new(event.movement_x(), event.movement_y())
+                            IVec2::new(event.movement_x(), event.movement_y())
                                 .into_f32()
                                 .mul(current_dpr)
                         } else {
-                            Vector2::new(event.offset_x(), event.offset_y())
+                            IVec2::new(event.offset_x(), event.offset_y())
                                 .into_f32()
                                 .mul(current_dpr)
                         };

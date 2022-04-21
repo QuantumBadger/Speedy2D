@@ -25,7 +25,7 @@ use glutin::dpi::PhysicalSize;
 use glutin::event_loop::EventLoop;
 use image::{ColorType, GenericImageView, ImageFormat};
 use speedy2d::color::Color;
-use speedy2d::dimen::Vector2;
+use speedy2d::dimen::{Vec2, Vector2};
 use speedy2d::font::{Font, TextAlignment, TextLayout, TextOptions};
 use speedy2d::image::{ImageDataType, ImageSmoothingMode};
 use speedy2d::shape::{Polygon, Rectangle};
@@ -290,9 +290,9 @@ fn main()
 
                 graphics.draw_circle_section_triangular_three_color(
                     [
-                        Vector2::new(100.0, 100.0),
-                        Vector2::new(200.0, 100.0),
-                        Vector2::new(200.0, 200.0)
+                        Vec2::new(100.0, 100.0),
+                        Vec2::new(200.0, 100.0),
+                        Vec2::new(200.0, 200.0)
                     ],
                     [
                         Color::MAGENTA.clone(),
@@ -300,9 +300,9 @@ fn main()
                         Color::MAGENTA.clone()
                     ],
                     [
-                        Vector2::new(-1.0, -1.0),
-                        Vector2::new(1.0, -1.0),
-                        Vector2::new(1.0, 1.0)
+                        Vec2::new(-1.0, -1.0),
+                        Vec2::new(1.0, -1.0),
+                        Vec2::new(1.0, 1.0)
                     ]
                 );
             });
@@ -344,15 +344,15 @@ fn main()
                     Color::from_rgb(0.8, 0.8, 1.0)
                 );
 
-                graphics.draw_text(Vector2::new(0.0, 0.0), Color::BLACK, &text);
+                graphics.draw_text(Vec2::new(0.0, 0.0), Color::BLACK, &text);
 
-                graphics.draw_text(Vector2::new(0.0, 100.0), Color::RED, &text);
+                graphics.draw_text(Vec2::new(0.0, 100.0), Color::RED, &text);
 
-                graphics.draw_text(Vector2::new(0.0, 200.0), Color::GREEN, &text);
+                graphics.draw_text(Vec2::new(0.0, 200.0), Color::GREEN, &text);
 
-                graphics.draw_text(Vector2::new(0.0, 300.0), Color::BLUE, &text);
+                graphics.draw_text(Vec2::new(0.0, 300.0), Color::BLUE, &text);
 
-                graphics.draw_text(Vector2::new(0.0, 400.0), Color::WHITE, &text);
+                graphics.draw_text(Vec2::new(0.0, 400.0), Color::WHITE, &text);
             });
         })
     });
@@ -373,15 +373,15 @@ fn main()
             renderer.draw_frame(|graphics| {
                 graphics.clear_screen(Color::BLACK);
 
-                graphics.draw_text(Vector2::new(0.0, 0.0), Color::BLACK, &text);
+                graphics.draw_text(Vec2::new(0.0, 0.0), Color::BLACK, &text);
 
-                graphics.draw_text(Vector2::new(0.0, 100.0), Color::RED, &text);
+                graphics.draw_text(Vec2::new(0.0, 100.0), Color::RED, &text);
 
-                graphics.draw_text(Vector2::new(0.0, 200.0), Color::GREEN, &text);
+                graphics.draw_text(Vec2::new(0.0, 200.0), Color::GREEN, &text);
 
-                graphics.draw_text(Vector2::new(0.0, 300.0), Color::BLUE, &text);
+                graphics.draw_text(Vec2::new(0.0, 300.0), Color::BLUE, &text);
 
-                graphics.draw_text(Vector2::new(0.0, 400.0), Color::WHITE, &text);
+                graphics.draw_text(Vec2::new(0.0, 400.0), Color::WHITE, &text);
             });
         })
     });

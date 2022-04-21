@@ -23,7 +23,7 @@ use std::num::TryFromIntError;
 use std::rc::{Rc, Weak};
 
 use crate::color::Color;
-use crate::dimen::Vector2;
+use crate::dimen::UVec2;
 use crate::error::{BacktraceError, Context, ErrorMessage};
 use crate::glbackend::constants::*;
 use crate::glbackend::types::{
@@ -714,7 +714,7 @@ impl GLTexture
         context: &GLContextManager,
         format: GLTextureImageFormatU8,
         smoothing: GLTextureSmoothing,
-        size: &Vector2<u32>,
+        size: &UVec2,
         data: &[u8]
     ) -> Result<(), BacktraceError<ErrorMessage>>
     {
@@ -821,7 +821,7 @@ struct GLContextManagerState
     active_texture: Option<GLTexture>,
     active_program: Option<Rc<GLProgram>>,
     active_blend_mode: Option<GLBlendEnabled>,
-    viewport_size: Option<Vector2<u32>>,
+    viewport_size: Option<UVec2>,
     scissor_enabled: bool,
     gl_backend: Rc<dyn GLBackend + 'static>,
     gl_version: GLVersion,
@@ -921,7 +921,7 @@ impl GLContextManager
         GLTexture::new(self)
     }
 
-    pub fn set_viewport_size(&self, size: Vector2<u32>)
+    pub fn set_viewport_size(&self, size: UVec2)
     {
         if !self.is_valid() {
             log::warn!("Ignoring set_viewport_size: invalid GL context");

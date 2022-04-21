@@ -19,7 +19,7 @@
 use std::time::Instant;
 
 use speedy2d::color::Color;
-use speedy2d::dimen::Vector2;
+use speedy2d::dimen::Vec2;
 use speedy2d::window::{WindowHandler, WindowHelper};
 use speedy2d::{Graphics2D, Window};
 
@@ -47,11 +47,11 @@ impl WindowHandler for MyWindowHandler
 
         let elapsed_secs = self.start_time.elapsed().as_secs_f32();
 
-        let center = Vector2::new(400.0, 400.0);
+        let center = Vec2::new(400.0, 400.0);
         let offset = 200.0;
 
-        let position = center
-            + Vector2::new(elapsed_secs.cos() * offset, elapsed_secs.sin() * offset);
+        let position =
+            center + Vec2::new(elapsed_secs.cos() * offset, elapsed_secs.sin() * offset);
 
         graphics.draw_circle(position, 75.0, Color::from_rgb(0.8, 0.9, 1.0));
 

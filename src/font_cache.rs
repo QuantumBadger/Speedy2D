@@ -22,7 +22,7 @@ use std::ops::Div;
 use std::rc::Rc;
 
 use crate::color::Color;
-use crate::dimen::Vector2;
+use crate::dimen::{IVec2, UVec2, Vec2};
 use crate::error::{BacktraceError, Context, ErrorMessage};
 use crate::font;
 use crate::glwrapper::{
@@ -41,7 +41,7 @@ pub(crate) trait GlyphCacheInterface
     fn get_renderer2d_actions(
         &self,
         glyph: &font::FormattedGlyph,
-        position: Vector2<f32>,
+        position: Vec2,
         color: Color,
         output: &mut Vec<Renderer2DAction>
     );
@@ -99,8 +99,7 @@ impl GlyphCacheKey
         // Assuming scale is uniform
         let scale = QuantizedDimension::from_pixels(positioned_glyph.scale().y);
 
-        let pos =
-            Vector2::new(positioned_glyph.position().x, positioned_glyph.position().y);
+        let pos = Vec2::new(positioned_glyph.position().x, positioned_glyph.position().y);
 
         let subpixel_offset = (
             QuantizedDimension::from_pixels(pos.x - pos.x.round()),
@@ -131,7 +130,7 @@ impl GlyphCacheInterface for GlyphCache
     fn get_renderer2d_actions(
         &self,
         glyph: &font::FormattedGlyph,
-        position: Vector2<f32>,
+        position: Vec2,
         color: Color,
         output: &mut Vec<Renderer2DAction>
     )
@@ -164,7 +163,7 @@ impl GlyphCacheInterface for GlyphCache
                 .div(texture_size)
         );
 
-        let position = position + Vector2::from(positioned_glyph.position());
+        let position = position + Vec2::from(positioned_glyph.position());
 
         let screen_region_start = position.round().into_i32() + entry.bounding_box_offset;
 
@@ -263,10 +262,8 @@ impl GlyphCacheInterface for GlyphCache
                     Some(bounding_box) => bounding_box
                 };
 
-                let bounding_box_size = Vector2::new(
-                    bounding_box.width() as u32,
-                    bounding_box.height() as u32
-                );
+                let bounding_box_size =
+                    UVec2::new(bounding_box.width() as u32, bounding_box.height() as u32);
 
                 if bounding_box_size.x > GlyphCacheTexture::SIZE
                     || bounding_box_size.y > GlyphCacheTexture::SIZE
@@ -287,7 +284,7 @@ impl GlyphCacheInterface for GlyphCache
 
                 entry.insert(GlyphCacheEntry {
                     glyph_bitmap: Rc::new(bitmap),
-                    bounding_box_offset: Vector2::new(
+                    bounding_box_offset: IVec2::new(
                         bounding_box.min.x,
                         bounding_box.min.y
                     ),
@@ -479,13 +476,13 @@ impl GlyphCache
 struct BitmapRGBA
 {
     data: Vec<u8>,
-    size: Vector2<u32>
+    size: UVec2
 }
 
 impl BitmapRGBA
 {
     #[inline]
-    fn new(size: Vector2<u32>) -> Self
+    fn new(size: UVec2) -> Self
     {
         let data = vec![0; (size.x * size.y * 4).try_into().unwrap()];
         BitmapRGBA { data, size }
@@ -509,7 +506,7 @@ impl BitmapRGBA
     }
 
     #[inline]
-    fn draw_bitmap_at(&mut self, bitmap: &Self, position: &Vector2<u32>)
+    fn draw_bitmap_at(&mut self, bitmap: &Self, position: &UVec2)
     {
         let src_w_px: usize = bitmap.size.x.try_into().unwrap();
         let dest_w_px: usize = self.size.x.try_into().unwrap();
@@ -563,7 +560,7 @@ impl BitmapRGBA
 struct GlyphCacheEntry
 {
     glyph_bitmap: Rc<BitmapRGBA>,
-    bounding_box_offset: Vector2<i32>,
+    bounding_box_offset: IVec2,
     texture_id: Option<usize>
 }
 
@@ -622,7 +619,7 @@ impl GlyphCacheTexture
     fn new(context: &GLContextManager) -> Result<Self, BacktraceError<ErrorMessage>>
     {
         Ok(GlyphCacheTexture {
-            bitmap: BitmapRGBA::new(Vector2::new(
+            bitmap: BitmapRGBA::new(UVec2::new(
                 GlyphCacheTexture::SIZE,
                 GlyphCacheTexture::SIZE
             )),

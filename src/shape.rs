@@ -16,7 +16,7 @@
 
 use rusttype::Rect;
 
-use crate::dimen::Vector2;
+use crate::dimen::{Vec2, Vector2};
 
 /// A struct representing an axis-aligned rectangle. Two points are stored: the
 /// top left vertex, and the bottom right vertex.
@@ -172,7 +172,7 @@ impl<T: num_traits::AsPrimitive<f32>> Rectangle<T>
 #[derive(Debug, Clone)]
 pub struct Polygon
 {
-    pub(crate) triangles: Vec<[Vector2<f32>; 3]>
+    pub(crate) triangles: Vec<[Vec2; 3]>
 }
 
 impl Polygon
@@ -180,7 +180,7 @@ impl Polygon
     /// Generate a new polygon given points that describe it's outline.
     ///
     /// The points must be in either clockwise or couter-clockwise order.
-    pub fn new<Point: Into<Vector2<f32>> + Copy>(vertices: &[Point]) -> Self
+    pub fn new<Point: Into<Vec2> + Copy>(vertices: &[Point]) -> Self
     {
         // We have to flatten the vertices in order for
         // [earcutr](https://github.com/frewsxcv/earcutr/) to accept it.
@@ -189,7 +189,7 @@ impl Polygon
         let mut flattened = Vec::with_capacity(vertices.len() * 2);
 
         for vertex in vertices {
-            let vertex: Vector2<f32> = (*vertex).into();
+            let vertex: Vec2 = (*vertex).into();
 
             flattened.push(vertex.x);
             flattened.push(vertex.y);

@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-use crate::dimen::Vector2;
+use crate::dimen::UVec2;
 use crate::glwrapper::GLTexture;
 
 /// The data type of the pixels making up the raw image data.
@@ -37,14 +37,14 @@ pub enum ImageDataType
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct ImageHandle
 {
-    pub(crate) size: Vector2<u32>,
+    pub(crate) size: UVec2,
     pub(crate) texture: GLTexture
 }
 
 impl ImageHandle
 {
     /// Returns the size of the image in pixels.
-    pub fn size(&self) -> &Vector2<u32>
+    pub fn size(&self) -> &UVec2
     {
         &self.size
     }

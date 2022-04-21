@@ -17,7 +17,7 @@
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 
-use crate::dimen::Vector2;
+use crate::dimen::{IVec2, UVec2, Vec2};
 use crate::error::{BacktraceError, ErrorMessage};
 use crate::{GLRenderer, Graphics2D};
 
@@ -148,11 +148,7 @@ pub trait WindowHandler<UserEventType = ()>
     /// Invoked when the window is resized.
     #[allow(unused_variables)]
     #[inline]
-    fn on_resize(
-        &mut self,
-        helper: &mut WindowHelper<UserEventType>,
-        size_pixels: Vector2<u32>
-    )
+    fn on_resize(&mut self, helper: &mut WindowHelper<UserEventType>, size_pixels: UVec2)
     {
     }
 
@@ -218,11 +214,7 @@ pub trait WindowHandler<UserEventType = ()>
     /// See [WindowHandler::on_mouse_grab_status_changed].
     #[allow(unused_variables)]
     #[inline]
-    fn on_mouse_move(
-        &mut self,
-        helper: &mut WindowHelper<UserEventType>,
-        position: Vector2<f32>
-    )
+    fn on_mouse_move(&mut self, helper: &mut WindowHelper<UserEventType>, position: Vec2)
     {
     }
 
@@ -360,7 +352,7 @@ where
     pub fn on_resize(
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
-        size_pixels: Vector2<u32>
+        size_pixels: UVec2
     )
     {
         self.renderer.set_viewport_size_pixels(size_pixels);
@@ -413,7 +405,7 @@ where
     pub fn on_mouse_move(
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
-        position: Vector2<f32>
+        position: Vec2
     )
     {
         self.window_handler.on_mouse_move(helper, position)
@@ -548,7 +540,7 @@ impl<UserEventType> WindowHelper<UserEventType>
         size: S
     ) -> Result<(), BacktraceError<ErrorMessage>>
     where
-        S: Into<Vector2<u32>>
+        S: Into<UVec2>
     {
         self.inner.set_icon_from_rgba_pixels(data, size.into())
     }
@@ -607,7 +599,7 @@ impl<UserEventType> WindowHelper<UserEventType>
     /// excluding the border.
     ///
     /// For `WebCanvas`, this function has no effect.
-    pub fn set_size_pixels<S: Into<Vector2<u32>>>(&self, size: S)
+    pub fn set_size_pixels<S: Into<UVec2>>(&self, size: S)
     {
         self.inner.set_size_pixels(size)
     }
@@ -617,7 +609,7 @@ impl<UserEventType> WindowHelper<UserEventType>
     /// area, spanning all the monitors.
     ///
     /// For `WebCanvas`, this function has no effect.
-    pub fn set_position_pixels<P: Into<Vector2<i32>>>(&self, position: P)
+    pub fn set_position_pixels<P: Into<IVec2>>(&self, position: P)
     {
         self.inner.set_position_pixels(position)
     }
@@ -626,7 +618,7 @@ impl<UserEventType> WindowHelper<UserEventType>
     /// window's inner size, excluding the border.
     ///
     /// For `WebCanvas`, this function has no effect.
-    pub fn set_size_scaled_pixels<S: Into<Vector2<f32>>>(&self, size: S)
+    pub fn set_size_scaled_pixels<S: Into<Vec2>>(&self, size: S)
     {
         self.inner.set_size_scaled_pixels(size)
     }
@@ -636,7 +628,7 @@ impl<UserEventType> WindowHelper<UserEventType>
     /// left of the display area, spanning all the monitors.
     ///
     /// For `WebCanvas`, this function has no effect.
-    pub fn set_position_scaled_pixels<P: Into<Vector2<f32>>>(&self, position: P)
+    pub fn set_position_scaled_pixels<P: Into<Vec2>>(&self, position: P)
     {
         self.inner.set_position_scaled_pixels(position)
     }
@@ -679,13 +671,13 @@ pub(crate) enum WindowEventLoopAction
 #[derive(Debug, PartialEq, Clone)]
 pub struct WindowStartupInfo
 {
-    viewport_size_pixels: Vector2<u32>,
+    viewport_size_pixels: UVec2,
     scale_factor: f64
 }
 
 impl WindowStartupInfo
 {
-    pub(crate) fn new(viewport_size_pixels: Vector2<u32>, scale_factor: f64) -> Self
+    pub(crate) fn new(viewport_size_pixels: UVec2, scale_factor: f64) -> Self
     {
         WindowStartupInfo {
             viewport_size_pixels,
@@ -701,7 +693,7 @@ impl WindowStartupInfo
     }
 
     /// The size of the viewport in pixels.
-    pub fn viewport_size_pixels(&self) -> &Vector2<u32>
+    pub fn viewport_size_pixels(&self) -> &UVec2
     {
         &self.viewport_size_pixels
     }
@@ -1019,9 +1011,9 @@ pub(crate) enum WindowCreationMode
 pub enum WindowSize
 {
     /// Define the window size in pixels.
-    PhysicalPixels(Vector2<u32>),
+    PhysicalPixels(UVec2),
     /// Define the window size in device-independent scaled pixels.
-    ScaledPixels(Vector2<f32>),
+    ScaledPixels(Vec2),
     /// Make the window fill the screen, except for a margin around the outer
     /// edges.
     MarginPhysicalPixels(u32),
@@ -1038,7 +1030,7 @@ pub enum WindowPosition
     Center,
     /// Place the window at the specified pixel location from the top left of
     /// the primary monitor.
-    PrimaryMonitorPixelsFromTopLeft(Vector2<i32>)
+    PrimaryMonitorPixelsFromTopLeft(IVec2)
 }
 
 /// Whether or not the window is in fullscreen mode.

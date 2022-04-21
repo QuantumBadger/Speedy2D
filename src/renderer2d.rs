@@ -26,7 +26,7 @@ use {
 };
 
 use crate::color::Color;
-use crate::dimen::Vector2;
+use crate::dimen::{UVec2, Vec2};
 use crate::error::{BacktraceError, Context, ErrorMessage};
 use crate::font::FormattedTextBlock;
 use crate::font_cache::{GlyphCache, GlyphCacheInterface};
@@ -144,9 +144,9 @@ impl AttributeBuffers
     #[inline]
     pub fn append(
         &mut self,
-        position: &Vector2<f32>,
+        position: &Vec2,
         color: &Color,
-        texture_coord: &Vector2<f32>,
+        texture_coord: &Vec2,
         texture_mix: f32,
         circle_mix: f32
     )
@@ -159,7 +159,7 @@ impl AttributeBuffers
     }
 
     #[inline]
-    fn push_vec2(dest: &mut Vec<f32>, vertices: &Vector2<f32>)
+    fn push_vec2(dest: &mut Vec<f32>, vertices: &Vec2)
     {
         dest.push(vertices.x);
         dest.push(vertices.y);
@@ -205,7 +205,7 @@ impl Uniforms
     fn set_viewport_size_pixels(
         &self,
         context: &GLContextManager,
-        viewport_size_pixels: Vector2<u32>
+        viewport_size_pixels: UVec2
     )
     {
         self.scale_x
@@ -222,8 +222,8 @@ impl Uniforms
 
 pub(crate) struct Renderer2DVertex
 {
-    pub position: Vector2<f32>,
-    pub texture_coord: Vector2<f32>,
+    pub position: Vec2,
+    pub texture_coord: Vec2,
     pub color: Color,
     pub texture_mix: f32,
     pub circle_mix: f32
@@ -284,29 +284,29 @@ enum RenderQueueItem
 {
     FormattedTextBlock
     {
-        position: Vector2<f32>,
+        position: Vec2,
         color: Color,
         block: Rc<crate::font::FormattedTextBlock>
     },
 
     CircleSectionColored
     {
-        vertex_positions_clockwise: [Vector2<f32>; 3],
+        vertex_positions_clockwise: [Vec2; 3],
         vertex_colors_clockwise: [Color; 3],
-        vertex_normalized_circle_coords_clockwise: [Vector2<f32>; 3]
+        vertex_normalized_circle_coords_clockwise: [Vec2; 3]
     },
 
     TriangleColored
     {
-        vertex_positions_clockwise: [Vector2<f32>; 3],
+        vertex_positions_clockwise: [Vec2; 3],
         vertex_colors_clockwise: [Color; 3]
     },
 
     TriangleTextured
     {
-        vertex_positions_clockwise: [Vector2<f32>; 3],
+        vertex_positions_clockwise: [Vec2; 3],
         vertex_colors_clockwise: [Color; 3],
-        vertex_texture_coords_clockwise: [Vector2<f32>; 3],
+        vertex_texture_coords_clockwise: [Vec2; 3],
         texture: GLTexture
     }
 }
@@ -373,21 +373,21 @@ impl RenderQueueItem
                 vertices_clockwise: [
                     Renderer2DVertex {
                         position: vertex_positions_clockwise[0],
-                        texture_coord: Vector2::ZERO,
+                        texture_coord: Vec2::ZERO,
                         color: vertex_colors_clockwise[0],
                         texture_mix: 0.0,
                         circle_mix: 0.0
                     },
                     Renderer2DVertex {
                         position: vertex_positions_clockwise[1],
-                        texture_coord: Vector2::ZERO,
+                        texture_coord: Vec2::ZERO,
                         color: vertex_colors_clockwise[1],
                         texture_mix: 0.0,
                         circle_mix: 0.0
                     },
                     Renderer2DVertex {
                         position: vertex_positions_clockwise[2],
-                        texture_coord: Vector2::ZERO,
+                        texture_coord: Vec2::ZERO,
                         color: vertex_colors_clockwise[2],
                         texture_mix: 0.0,
                         circle_mix: 0.0
@@ -469,7 +469,7 @@ impl Renderer2D
 
     pub fn new(
         context: &GLContextManager,
-        viewport_size_pixels: Vector2<u32>
+        viewport_size_pixels: UVec2
     ) -> Result<Self, BacktraceError<ErrorMessage>>
     {
         log::info!("Creating vertex shader");
@@ -534,7 +534,7 @@ impl Renderer2D
         })
     }
 
-    pub fn set_viewport_size_pixels(&self, viewport_size_pixels: Vector2<u32>)
+    pub fn set_viewport_size_pixels(&self, viewport_size_pixels: UVec2)
     {
         self.uniforms
             .set_viewport_size_pixels(&self.context, viewport_size_pixels);
@@ -632,7 +632,7 @@ impl Renderer2D
         );
     }
 
-    pub(crate) fn create_image_from_raw_pixels<S: Into<Vector2<u32>>>(
+    pub(crate) fn create_image_from_raw_pixels<S: Into<UVec2>>(
         &self,
         data_type: ImageDataType,
         smoothing_mode: ImageSmoothingMode,
@@ -769,7 +769,7 @@ impl Renderer2D
     }
 
     #[inline]
-    pub(crate) fn draw_polygon<V: Into<Vector2<f32>>>(
+    pub(crate) fn draw_polygon<V: Into<Vec2>>(
         &mut self,
         polygon: &Polygon,
         offset: V,
@@ -789,7 +789,7 @@ impl Renderer2D
     #[inline]
     pub(crate) fn draw_triangle_three_color(
         &mut self,
-        vertex_positions_clockwise: [Vector2<f32>; 3],
+        vertex_positions_clockwise: [Vec2; 3],
         vertex_colors_clockwise: [Color; 3]
     )
     {
@@ -802,9 +802,9 @@ impl Renderer2D
     #[inline]
     pub(crate) fn draw_triangle_image_tinted(
         &mut self,
-        vertex_positions_clockwise: [Vector2<f32>; 3],
+        vertex_positions_clockwise: [Vec2; 3],
         vertex_colors_clockwise: [Color; 3],
-        vertex_texture_coords_clockwise: [Vector2<f32>; 3],
+        vertex_texture_coords_clockwise: [Vec2; 3],
         image: &ImageHandle
     )
     {
@@ -817,7 +817,7 @@ impl Renderer2D
     }
 
     #[inline]
-    pub(crate) fn draw_text<V: Into<Vector2<f32>>>(
+    pub(crate) fn draw_text<V: Into<Vec2>>(
         &mut self,
         position: V,
         color: Color,
@@ -834,9 +834,9 @@ impl Renderer2D
     #[inline]
     pub(crate) fn draw_circle_section(
         &mut self,
-        vertex_positions_clockwise: [Vector2<f32>; 3],
+        vertex_positions_clockwise: [Vec2; 3],
         vertex_colors_clockwise: [Color; 3],
-        vertex_normalized_circle_coords_clockwise: [Vector2<f32>; 3]
+        vertex_normalized_circle_coords_clockwise: [Vec2; 3]
     )
     {
         self.add_to_render_queue(RenderQueueItem::CircleSectionColored {

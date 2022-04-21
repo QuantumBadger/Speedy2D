@@ -34,7 +34,7 @@ use glutin::window::{
     WindowBuilder as GlutinWindowBuilder
 };
 
-use crate::dimen::Vector2;
+use crate::dimen::{IVec2, UVec2, Vec2, Vector2};
 use crate::error::{BacktraceError, ErrorMessage};
 use crate::glbackend::constants::GL_VERSION;
 use crate::glbackend::{GLBackend, GLBackendGlow};
@@ -65,7 +65,7 @@ pub(crate) struct WindowHelperGlutin<UserEventType: 'static>
     event_proxy: EventLoopProxy<UserEventGlutin<UserEventType>>,
     redraw_requested: Cell<bool>,
     terminate_requested: bool,
-    physical_size: Vector2<u32>,
+    physical_size: UVec2,
     is_mouse_grabbed: Cell<bool>
 }
 
@@ -75,7 +75,7 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
     pub fn new(
         context: &Rc<glutin::ContextWrapper<glutin::PossiblyCurrent, GlutinWindow>>,
         event_proxy: EventLoopProxy<UserEventGlutin<UserEventType>>,
-        initial_physical_size: Vector2<u32>
+        initial_physical_size: UVec2
     ) -> Self
     {
         WindowHelperGlutin {
@@ -118,7 +118,7 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
     pub fn set_icon_from_rgba_pixels(
         &self,
         data: Vec<u8>,
-        size: Vector2<u32>
+        size: UVec2
     ) -> Result<(), BacktraceError<ErrorMessage>>
     {
         self.window_context.window().set_window_icon(Some(
@@ -213,7 +213,7 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
         }
     }
 
-    pub fn set_size_pixels<S: Into<Vector2<u32>>>(&self, size: S)
+    pub fn set_size_pixels<S: Into<UVec2>>(&self, size: S)
     {
         let size = size.into();
 
@@ -222,7 +222,7 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
             .set_inner_size(glutin::dpi::PhysicalSize::new(size.x, size.y));
     }
 
-    pub fn set_size_scaled_pixels<S: Into<Vector2<f32>>>(&self, size: S)
+    pub fn set_size_scaled_pixels<S: Into<Vec2>>(&self, size: S)
     {
         let size = size.into();
 
@@ -231,7 +231,7 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
             .set_inner_size(glutin::dpi::LogicalSize::new(size.x, size.y));
     }
 
-    pub fn set_position_pixels<P: Into<Vector2<i32>>>(&self, position: P)
+    pub fn set_position_pixels<P: Into<IVec2>>(&self, position: P)
     {
         let position = position.into();
 
@@ -240,7 +240,7 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
         );
     }
 
-    pub fn set_position_scaled_pixels<P: Into<Vector2<f32>>>(&self, position: P)
+    pub fn set_position_scaled_pixels<P: Into<Vec2>>(&self, position: P)
     {
         let position = position.into();
 
@@ -401,7 +401,7 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
         UserEventSender::new(UserEventSenderGlutin::new(self.event_loop.create_proxy()))
     }
 
-    pub fn get_inner_size_pixels(&self) -> Vector2<u32>
+    pub fn get_inner_size_pixels(&self) -> UVec2
     {
         self.window_context.window().inner_size().into()
     }
@@ -931,7 +931,7 @@ impl From<glutin::event::ModifiersState> for ModifiersState
     }
 }
 
-impl From<PhysicalSize<u32>> for Vector2<u32>
+impl From<PhysicalSize<u32>> for UVec2
 {
     fn from(value: PhysicalSize<u32>) -> Self
     {

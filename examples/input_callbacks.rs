@@ -17,7 +17,7 @@
 #![deny(warnings)]
 
 use speedy2d::color::Color;
-use speedy2d::dimen::Vector2;
+use speedy2d::dimen::{UVec2, Vec2};
 use speedy2d::window::{
     KeyScancode,
     ModifiersState,
@@ -38,14 +38,14 @@ fn main()
         Window::new_centered("Speedy2D: Input Callbacks Example", (640, 480)).unwrap();
 
     window.run_loop(MyWindowHandler {
-        mouse_pos: Vector2::ZERO,
+        mouse_pos: Vec2::ZERO,
         mouse_button_down: false
     })
 }
 
 struct MyWindowHandler
 {
-    mouse_pos: Vector2<f32>,
+    mouse_pos: Vec2,
     mouse_button_down: bool
 }
 
@@ -58,7 +58,7 @@ impl WindowHandler for MyWindowHandler
         helper.set_resizable(false);
     }
 
-    fn on_resize(&mut self, _helper: &mut WindowHelper, size_pixels: Vector2<u32>)
+    fn on_resize(&mut self, _helper: &mut WindowHelper, size_pixels: UVec2)
     {
         log::info!("Got on_resize callback: {:?}", size_pixels);
     }
@@ -83,7 +83,7 @@ impl WindowHandler for MyWindowHandler
         graphics.draw_circle(self.mouse_pos, 20.0, color);
     }
 
-    fn on_mouse_move(&mut self, helper: &mut WindowHelper, position: Vector2<f32>)
+    fn on_mouse_move(&mut self, helper: &mut WindowHelper, position: Vec2)
     {
         log::info!(
             "Got on_mouse_move callback: ({:.1}, {:.1})",

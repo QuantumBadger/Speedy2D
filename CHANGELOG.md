@@ -114,3 +114,7 @@ Thanks to [UdHo](https://github.com/UdHo)
 ## 1.7.0
 
 * Remove `Sized` requirement from `TextLayout` functions (allowing them to be called on `&dyn TextLayout`)
+
+## 1.8.0
+
+* Added convenient type aliases for `Vector2` types: `Vec2`, `IVec2`, and `UVec2`

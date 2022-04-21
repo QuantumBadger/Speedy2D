@@ -19,7 +19,7 @@
 use std::rc::Rc;
 
 use speedy2d::color::Color;
-use speedy2d::dimen::Vector2;
+use speedy2d::dimen::Vec2;
 use speedy2d::font::{Font, FormattedTextBlock, TextLayout, TextOptions};
 use speedy2d::numeric::RoundFloat;
 use speedy2d::shape::Rectangle;
@@ -61,7 +61,7 @@ pub struct Button<UserEventType: Clone + 'static>
     text: String,
     font: Font,
     text_formatted: Option<Rc<FormattedTextBlock>>,
-    text_position: Vector2<f32>,
+    text_position: Vec2,
     position: Rectangle,
     currently_hovering: bool,
     mouse_state: ButtonMouseState,
@@ -88,15 +88,15 @@ impl<UserEventType: Clone + 'static> Button<UserEventType>
             text: String::from(text.as_ref()),
             font,
             text_formatted: None,
-            text_position: Vector2::ZERO,
-            position: Rectangle::new(Vector2::ZERO, Vector2::ZERO),
+            text_position: Vec2::ZERO,
+            position: Rectangle::new(Vec2::ZERO, Vec2::ZERO),
             currently_hovering: false,
             mouse_state: ButtonMouseState::None,
             action
         }
     }
 
-    pub fn on_mouse_move(&mut self, position: Vector2<f32>)
+    pub fn on_mouse_move(&mut self, position: Vec2)
     {
         self.currently_hovering = self.position.contains(position);
     }
@@ -121,7 +121,7 @@ impl<UserEventType: Clone + 'static> Button<UserEventType>
         self.mouse_state = ButtonMouseState::None;
     }
 
-    pub fn layout(&mut self, top_left: Vector2<f32>, scale: f32)
+    pub fn layout(&mut self, top_left: Vec2, scale: f32)
     {
         let text_formatted = self.font.layout_text(
             self.text.as_str(),
@@ -135,12 +135,11 @@ impl<UserEventType: Clone + 'static> Button<UserEventType>
             top_left.round(),
             (top_left
                 + text_formatted.size()
-                + Vector2::new(Self::PADDING, Self::PADDING) * 2.0 * scale)
+                + Vec2::new(Self::PADDING, Self::PADDING) * 2.0 * scale)
                 .round()
         );
 
-        self.text_position =
-            top_left + Vector2::new(Self::PADDING, Self::PADDING) * scale;
+        self.text_position = top_left + Vec2::new(Self::PADDING, Self::PADDING) * scale;
     }
 
     pub fn draw(&mut self, graphics: &mut Graphics2D)
@@ -176,7 +175,7 @@ impl<UserEventType: Clone + 'static> Button<UserEventType>
 pub struct ButtonGroup<UserEventType: Clone + 'static>
 {
     buttons: Vec<Button<UserEventType>>,
-    layout_position: Option<Vector2<f32>>,
+    layout_position: Option<Vec2>,
     layout_scale: Option<f32>
 }
 
@@ -199,13 +198,13 @@ impl<UserEventType: Clone + 'static> ButtonGroup<UserEventType>
         self.layout_position = None;
     }
 
-    pub fn draw(&mut self, graphics: &mut Graphics2D, top_left: Vector2<f32>, scale: f32)
+    pub fn draw(&mut self, graphics: &mut Graphics2D, top_left: Vec2, scale: f32)
     {
         if self.layout_position != Some(top_left) || self.layout_scale != Some(scale) {
             let mut x_pos = 0.0;
 
             for button in &mut self.buttons {
-                button.layout(top_left + Vector2::new(x_pos, 0.0), scale);
+                button.layout(top_left + Vec2::new(x_pos, 0.0), scale);
                 x_pos += button.width() + Self::GAP * scale;
             }
 
@@ -218,7 +217,7 @@ impl<UserEventType: Clone + 'static> ButtonGroup<UserEventType>
         }
     }
 
-    pub fn on_mouse_move(&mut self, position: Vector2<f32>)
+    pub fn on_mouse_move(&mut self, position: Vec2)
     {
         for button in &mut self.buttons {
             button.on_mouse_move(position)

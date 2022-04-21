@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-use crate::dimen::Vector2;
+use crate::dimen::UVec2;
 use crate::shape::Rectangle;
 use crate::texture_packer::TexturePackerError::NotEnoughSpace;
 
@@ -35,10 +35,7 @@ impl FreeRegion
     #[inline]
     fn new(width: u32, height: u32) -> Self
     {
-        FreeRegion::from_rectangle(Rectangle::new(
-            Vector2::ZERO,
-            Vector2::new(width, height)
-        ))
+        FreeRegion::from_rectangle(Rectangle::new(UVec2::ZERO, UVec2::new(width, height)))
     }
 }
 
@@ -65,14 +62,14 @@ impl TexturePacker
 
     pub(crate) fn try_allocate(
         &mut self,
-        size: Vector2<u32>
+        size: UVec2
     ) -> Result<Rectangle<u32>, TexturePackerError>
     {
         if size.x == 0 || size.y == 0 {
-            return Ok(Rectangle::new(Vector2::ZERO, size));
+            return Ok(Rectangle::new(UVec2::ZERO, size));
         }
 
-        let size = size + Vector2::new(2, 2);
+        let size = size + UVec2::new(2, 2);
 
         // Add a one-pixel border around each texture
         let width = size.x;
@@ -106,7 +103,7 @@ impl TexturePacker
             Rectangle::new(*best_area.rect.top_left(), best_area.rect.top_left() + size);
 
         let space_underneath = Rectangle::new(
-            Vector2::new(
+            UVec2::new(
                 best_area.rect.top_left().x,
                 alloc_area_with_border.bottom_right().y
             ),
@@ -114,7 +111,7 @@ impl TexturePacker
         );
 
         let space_right = Rectangle::new(
-            Vector2::new(
+            UVec2::new(
                 alloc_area_with_border.bottom_right().x,
                 best_area.rect.top_left().y
             ),
@@ -133,8 +130,8 @@ impl TexturePacker
         }
 
         Ok(Rectangle::new(
-            alloc_area_with_border.top_left() + Vector2::new(1, 1),
-            alloc_area_with_border.bottom_right() - Vector2::new(1, 1)
+            alloc_area_with_border.top_left() + UVec2::new(1, 1),
+            alloc_area_with_border.bottom_right() - UVec2::new(1, 1)
         ))
     }
 }
@@ -152,28 +149,25 @@ mod test
 
         assert_eq!(
             Ok(Rectangle::from_tuples((1, 1), (31, 31))),
-            packer.try_allocate(Vector2::new(30, 30))
+            packer.try_allocate(UVec2::new(30, 30))
         );
 
         assert_eq!(
             Ok(Rectangle::from_tuples((33, 1), (63, 31))),
-            packer.try_allocate(Vector2::new(30, 30))
+            packer.try_allocate(UVec2::new(30, 30))
         );
 
         assert_eq!(
             Ok(Rectangle::from_tuples((1, 33), (31, 63))),
-            packer.try_allocate(Vector2::new(30, 30))
+            packer.try_allocate(UVec2::new(30, 30))
         );
 
         assert_eq!(
             Ok(Rectangle::from_tuples((33, 33), (63, 63))),
-            packer.try_allocate(Vector2::new(30, 30))
+            packer.try_allocate(UVec2::new(30, 30))
         );
 
-        assert_eq!(
-            Err(NotEnoughSpace),
-            packer.try_allocate(Vector2::new(30, 30))
-        );
+        assert_eq!(Err(NotEnoughSpace), packer.try_allocate(UVec2::new(30, 30)));
     }
 
     #[test]
@@ -183,28 +177,25 @@ mod test
 
         assert_eq!(
             Ok(Rectangle::from_tuples((1, 1), (29, 29))),
-            packer.try_allocate(Vector2::new(28, 28))
+            packer.try_allocate(UVec2::new(28, 28))
         );
 
         assert_eq!(
             Ok(Rectangle::from_tuples((31, 1), (59, 29))),
-            packer.try_allocate(Vector2::new(28, 28))
+            packer.try_allocate(UVec2::new(28, 28))
         );
 
         assert_eq!(
             Ok(Rectangle::from_tuples((1, 31), (29, 59))),
-            packer.try_allocate(Vector2::new(28, 28))
+            packer.try_allocate(UVec2::new(28, 28))
         );
 
         assert_eq!(
             Ok(Rectangle::from_tuples((31, 31), (59, 59))),
-            packer.try_allocate(Vector2::new(28, 28))
+            packer.try_allocate(UVec2::new(28, 28))
         );
 
-        assert_eq!(
-            Err(NotEnoughSpace),
-            packer.try_allocate(Vector2::new(30, 30))
-        );
+        assert_eq!(Err(NotEnoughSpace), packer.try_allocate(UVec2::new(30, 30)));
     }
 
     #[test]
@@ -214,22 +205,22 @@ mod test
 
         assert_eq!(
             Ok(Rectangle::from_tuples((1, 1), (15, 15))),
-            packer.try_allocate(Vector2::new(14, 14))
+            packer.try_allocate(UVec2::new(14, 14))
         );
 
         assert_eq!(
             Ok(Rectangle::from_tuples((1, 17), (15, 47))),
-            packer.try_allocate(Vector2::new(14, 30))
+            packer.try_allocate(UVec2::new(14, 30))
         );
 
         assert_eq!(
             Ok(Rectangle::from_tuples((17, 17), (47, 47))),
-            packer.try_allocate(Vector2::new(30, 30))
+            packer.try_allocate(UVec2::new(30, 30))
         );
 
         assert_eq!(
             Ok(Rectangle::from_tuples((17, 1), (31, 15))),
-            packer.try_allocate(Vector2::new(14, 14))
+            packer.try_allocate(UVec2::new(14, 14))
         );
     }
 }
