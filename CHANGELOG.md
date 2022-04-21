@@ -118,3 +118,8 @@ Thanks to [UdHo](https://github.com/UdHo)
 ## 1.8.0
 
 * Added convenient type aliases for `Vector2` types: `Vec2`, `IVec2`, and `UVec2`
+
+### New APIs
+
+* `Vector2::new_x()`
+* `Vector2::new_y()`

@@ -58,6 +58,24 @@ impl<T: PrimitiveZero> Vector2<T>
     /// A constant representing a vector of zero magnitude. Each component is
     /// set to zero.
     pub const ZERO: Vector2<T> = Vector2::new(T::ZERO, T::ZERO);
+
+    /// Instantiates a new `Vector2` from the specified horizontal component,
+    /// setting the vertical component to zero.
+    #[inline]
+    #[must_use]
+    pub fn new_x(x: T) -> Self
+    {
+        Vector2 { x, y: T::ZERO }
+    }
+
+    /// Instantiates a new `Vector2` from the specified vertical component,
+    /// setting the horizontal component to zero.
+    #[inline]
+    #[must_use]
+    pub fn new_y(y: T) -> Self
+    {
+        Vector2 { x: T::ZERO, y }
+    }
 }
 
 impl Vec2
@@ -328,5 +346,9 @@ mod test
             Vector2::new(5, -12),
             Vector2::new(10, 4) - Vector2::new(5, 16)
         );
+
+        assert_eq!(IVec2::new(-5, 10), IVec2::new(3, 10) - IVec2::new_x(8));
+
+        assert_eq!(IVec2::new(-5, 17), IVec2::new(-5, 10) + IVec2::new_y(7));
     }
 }
