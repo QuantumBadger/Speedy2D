@@ -215,6 +215,18 @@ where
     }
 }
 
+impl<T> From<&mut Self> for Vector2<T>
+where
+    T: Copy
+{
+    #[inline]
+    #[must_use]
+    fn from(value: &mut Self) -> Self
+    {
+        *value
+    }
+}
+
 impl<T: Copy + std::ops::Add<Output = T>, R: Into<Self>> std::ops::Add<R> for Vector2<T>
 {
     type Output = Vector2<T>;
