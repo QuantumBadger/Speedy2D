@@ -14,9 +14,25 @@
  *  limitations under the License.
  */
 
-use rusttype::Rect;
-
 use crate::dimen::{Vec2, Vector2};
+
+/// A struct representing an axis-aligned rectangle. Two points are stored: the
+/// top left vertex, and the bottom right vertex.
+///
+/// Alias for a rectangle with u32 coordinates.
+pub type URect = Rectangle<u32>;
+
+/// A struct representing an axis-aligned rectangle. Two points are stored: the
+/// top left vertex, and the bottom right vertex.
+///
+/// Alias for a rectangle with i32 coordinates.
+pub type IRect = Rectangle<i32>;
+
+/// A struct representing an axis-aligned rectangle. Two points are stored: the
+/// top left vertex, and the bottom right vertex.
+///
+/// Alias for a rectangle with f32 coordinates.
+pub type Rect = Rectangle<f32>;
 
 /// A struct representing an axis-aligned rectangle. Two points are stored: the
 /// top left vertex, and the bottom right vertex.
@@ -142,15 +158,16 @@ where
     /// current rectangle by the specified amount. This is equivalent to
     /// adding the specified vector to each vertex.
     #[inline]
-    pub fn with_offset(&self, offset: Vector2<T>) -> Self
+    pub fn with_offset(&self, offset: impl Into<Vector2<T>>) -> Self
     {
+        let offset = offset.into();
         Rectangle::new(self.top_left + offset, self.bottom_right + offset)
     }
 }
 
 impl<T> From<rusttype::Rect<T>> for Rectangle<T>
 {
-    fn from(rect: Rect<T>) -> Self
+    fn from(rect: rusttype::Rect<T>) -> Self
     {
         Rectangle::new(Vector2::from(rect.min), Vector2::from(rect.max))
     }
