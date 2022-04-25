@@ -126,4 +126,5 @@ Thanks to [UdHo](https://github.com/UdHo)
 
 * `Vector2::new_x()`
 * `Vector2::new_y()`
+* `Rectangle::with_negative_offset()`
 * `Color::from_gray()`

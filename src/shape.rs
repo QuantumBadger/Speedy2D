@@ -140,6 +140,38 @@ impl<T: PartialOrd<T> + Copy> Rectangle<T>
     }
 }
 
+impl<T: Ord + Copy> Rectangle<T>
+{
+    /// Finds the intersection of two rectangles -- in other words, the area
+    /// that is common to both of them.
+    ///
+    /// If there is no common area between the two rectangles, then this
+    /// function will return `None`.
+    #[inline]
+    #[must_use]
+    pub fn intersect(&self, other: &Self) -> Option<Self>
+    {
+        let result = Self {
+            top_left: Vector2::new(
+                self.top_left.x.max(other.top_left.x),
+                self.top_left.y.max(other.top_left.y)
+            ),
+            bottom_right: Vector2::new(
+                self.bottom_right.x.min(other.bottom_right.x),
+                self.bottom_right.y.min(other.bottom_right.y)
+            )
+        };
+
+        if result.top_left.x < result.bottom_right.x
+            && result.top_left.y < result.bottom_right.y
+        {
+            Some(result)
+        } else {
+            None
+        }
+    }
+}
+
 impl<T: PartialEq> Rectangle<T>
 {
     /// Returns `true` if the rectangle has zero area.
@@ -162,6 +194,21 @@ where
     {
         let offset = offset.into();
         Rectangle::new(self.top_left + offset, self.bottom_right + offset)
+    }
+}
+
+impl<T: Copy> Rectangle<T>
+where
+    Vector2<T>: std::ops::Sub<Output = Vector2<T>>
+{
+    /// Returns a new rectangle, whose vertices are negatively offset relative
+    /// to the current rectangle by the specified amount. This is equivalent
+    /// to subtracting the specified vector to each vertex.
+    #[inline]
+    pub fn with_negative_offset(&self, offset: impl Into<Vector2<T>>) -> Self
+    {
+        let offset = offset.into();
+        Rectangle::new(self.top_left - offset, self.bottom_right - offset)
     }
 }
 
@@ -224,5 +271,44 @@ impl Polygon
         }
 
         Polygon { triangles }
+    }
+}
+
+#[cfg(test)]
+mod test
+{
+    use crate::shape::URect;
+
+    #[test]
+    pub fn test_intersect_1()
+    {
+        let r1 = URect::from_tuples((100, 100), (200, 200));
+        let r2 = URect::from_tuples((100, 300), (200, 400));
+        let r3 = URect::from_tuples((125, 50), (175, 500));
+
+        assert_eq!(None, r1.intersect(&r2));
+
+        assert_eq!(
+            Some(URect::from_tuples((125, 100), (175, 200))),
+            r1.intersect(&r3)
+        );
+
+        assert_eq!(
+            Some(URect::from_tuples((125, 300), (175, 400))),
+            r2.intersect(&r3)
+        );
+
+        assert_eq!(Some(r1.clone()), r1.intersect(&r1));
+        assert_eq!(Some(r2.clone()), r2.intersect(&r2));
+        assert_eq!(Some(r3.clone()), r3.intersect(&r3));
+    }
+
+    #[test]
+    pub fn test_intersect_2()
+    {
+        let r1 = URect::from_tuples((100, 100), (200, 200));
+        let r2 = URect::from_tuples((100, 200), (200, 300));
+
+        assert_eq!(None, r1.intersect(&r2));
     }
 }
