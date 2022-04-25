@@ -124,3 +124,4 @@ Thanks to [UdHo](https://github.com/UdHo)
 
 * `Vector2::new_x()`
 * `Vector2::new_y()`
+* `Color::from_gray()`

@@ -149,6 +149,14 @@ impl Color
         Color::from_int_rgb((rgb >> 16) as u8, (rgb >> 8) as u8, rgb as u8)
     }
 
+    /// Creates a shade of gray from the specified float value, between `0.0`
+    /// and `1.0`. All three RGB components will be set to this value.
+    #[inline]
+    pub const fn from_gray(brightness: f32) -> Self
+    {
+        Self::from_rgb(brightness, brightness, brightness)
+    }
+
     /// Returns the red component of the color, as a value in the range `0.0` to
     /// `1.0`.
     #[inline]
