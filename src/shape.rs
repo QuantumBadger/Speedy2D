@@ -15,6 +15,7 @@
  */
 
 use crate::dimen::{Vec2, Vector2};
+use crate::numeric::PrimitiveZero;
 
 /// A struct representing an axis-aligned rectangle. Two points are stored: the
 /// top left vertex, and the bottom right vertex.
@@ -170,6 +171,13 @@ impl<T: Ord + Copy> Rectangle<T>
             None
         }
     }
+}
+
+impl<T: PrimitiveZero> Rectangle<T>
+{
+    /// A constant representing a rectangle with position (0, 0) and zero area.
+    /// Each component is set to zero.
+    pub const ZERO: Rectangle<T> = Rectangle::new(Vector2::ZERO, Vector2::ZERO);
 }
 
 impl<T: PartialEq> Rectangle<T>
