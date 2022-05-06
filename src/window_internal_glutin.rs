@@ -15,6 +15,7 @@
  */
 
 use std::cell::Cell;
+use std::path::PathBuf;
 use std::rc::Rc;
 
 use glutin::dpi::{LogicalSize, PhysicalPosition, PhysicalSize};
@@ -59,6 +60,17 @@ use crate::window::{
 };
 use crate::GLRenderer;
 
+#[derive(Clone, Debug)]
+pub enum DragFileState { Hover, Dropped, Cancelled }
+
+#[allow(dead_code)]
+#[derive(Clone, Debug)]
+pub struct DragFile
+{
+    path: PathBuf,
+    state: DragFileState
+}
+
 pub(crate) struct WindowHelperGlutin<UserEventType: 'static>
 {
     window_context: Rc<glutin::ContextWrapper<glutin::PossiblyCurrent, GlutinWindow>>,
@@ -66,7 +78,8 @@ pub(crate) struct WindowHelperGlutin<UserEventType: 'static>
     redraw_requested: Cell<bool>,
     terminate_requested: bool,
     physical_size: UVec2,
-    is_mouse_grabbed: Cell<bool>
+    is_mouse_grabbed: Cell<bool>,
+    drag_file: Cell<Option<DragFile>>
 }
 
 impl<UserEventType> WindowHelperGlutin<UserEventType>
@@ -84,7 +97,8 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
             redraw_requested: Cell::new(false),
             terminate_requested: false,
             physical_size: initial_physical_size,
-            is_mouse_grabbed: Cell::new(false)
+            is_mouse_grabbed: Cell::new(false),
+            drag_file: Cell::new(None)
         }
     }
 
@@ -255,6 +269,35 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
     {
         self.window_context.window().scale_factor()
     }
+
+    #[inline]
+    pub fn set_drag_file(&self, path: PathBuf, state: DragFileState)
+    {
+        self.drag_file.set(
+            Some(DragFile { path, state })
+        );
+    }
+
+    #[inline]
+    pub fn set_drag_file_state(&self,state: DragFileState)
+    {
+        if let Some(drag_file) = &self.drag_file.take()
+        {
+            self.drag_file.set(
+                Some(DragFile {
+                    path: drag_file.path.clone(),
+                    state
+                })
+            );
+        }
+    }
+
+    #[inline]
+    pub fn get_drag_file(&self) -> Option<DragFile>
+    {
+        self.drag_file.take()
+    }
+
 
     pub fn create_user_event_sender(&self) -> UserEventSender<UserEventType>
     {
@@ -520,6 +563,21 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
 
                 GlutinWindowEvent::ModifiersChanged(state) => {
                     handler.on_keyboard_modifiers_changed(helper, state.into())
+                }
+
+                GlutinWindowEvent::HoveredFile(path) => {
+                    helper.set_drag_file(path, DragFileState::Hover);
+                    handler.on_file_drag(helper, helper.get_drag_file());
+                }
+
+                GlutinWindowEvent::DroppedFile(path) => {
+                    helper.set_drag_file(path, DragFileState::Dropped);
+                    handler.on_file_drag(helper, helper.get_drag_file());
+                }
+
+                GlutinWindowEvent::HoveredFileCancelled => {
+                    helper.set_drag_file_state(DragFileState::Cancelled);
+                    handler.on_file_drag(helper, helper.get_drag_file());
                 }
 
                 _ => {}
