@@ -22,11 +22,6 @@ use crate::dimen::{IVec2, UVec2, Vec2};
 use crate::error::{BacktraceError, ErrorMessage};
 use crate::{GLRenderer, Graphics2D};
 
-/// Define the state and the path of a file that the user drag (or not) to the window
-pub type DragFile = crate::window_internal_glutin::DragFile;
-/// Define the state file that the user drag (or not) to the window
-pub type DragFileState = crate::window_internal_glutin::DragFileState;
-
 #[cfg(all(not(target_arch = "wasm32"), not(any(doc, doctest))))]
 type WindowHelperInnerType<UserEventType> =
     crate::window_internal_glutin::WindowHelperGlutin<UserEventType>;
@@ -34,7 +29,6 @@ type WindowHelperInnerType<UserEventType> =
 #[cfg(all(not(target_arch = "wasm32"), not(any(doc, doctest))))]
 type UserEventSenderInnerType<UserEventType> =
     crate::window_internal_glutin::UserEventSenderGlutin<UserEventType>;
-
 
 #[cfg(all(target_arch = "wasm32", not(any(doc, doctest))))]
 type WindowHelperInnerType<UserEventType> =
@@ -311,12 +305,14 @@ pub trait WindowHandler<UserEventType = ()>
     }
 
     /// Invoked when the user drag a file over the window
+    /// The file drag state contains the state of the drag (hover, dropped,
+    /// cancelled) and the filepath
     #[allow(unused_variables)]
     #[inline]
     fn on_file_drag(
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
-        drag_file: Option<DragFile>
+        file_drag_state: FileDragState
     )
     {
     }
@@ -509,10 +505,10 @@ where
     pub fn on_file_drag(
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
-        drag_file: Option<DragFile>,
+        file_drag_state: FileDragState
     )
     {
-        self.window_handler.on_file_drag(helper, drag_file);
+        self.window_handler.on_file_drag(helper, file_drag_state);
     }
 }
 
@@ -668,18 +664,6 @@ impl<UserEventType> WindowHelper<UserEventType>
     {
         self.inner.get_scale_factor()
     }
-
-    #[inline]
-    /// Set the dragged file information
-    pub fn set_drag_file(&self, path: PathBuf, state: DragFileState) { self.inner.set_drag_file(path, state) }
-
-    #[inline]
-    /// Set the dragged file state without changing the path
-    pub fn set_drag_file_state(&self, state: DragFileState) { self.inner.set_drag_file_state(state) }
-
-    #[inline]
-    /// Set the dragged file information
-    pub fn get_drag_file(&self) -> Option<DragFile> { self.inner.get_drag_file() }
 
     /// Creates a [UserEventSender], which can be used to post custom events to
     /// this event loop from another thread.
@@ -1213,3 +1197,15 @@ impl WindowCreationOptions
 
 /// Type representing a keyboard scancode.
 pub type KeyScancode = u32;
+
+#[derive(Clone, Debug)]
+/// The Glutin File State Enum
+pub enum FileDragState
+{
+    /// When the user hovers a file above the window
+    Hover(PathBuf),
+    /// When the user drop a file into the window
+    Dropped(PathBuf),
+    /// When the user cancel a drop
+    Cancelled
+}
