@@ -501,7 +501,9 @@ where
             .on_keyboard_modifiers_changed(helper, state)
     }
 
+    // Regarding dead_code: This function is never called for WASM
     #[inline]
+    #[allow(dead_code)]
     pub fn on_file_drag(
         &mut self,
         helper: &mut WindowHelper<UserEventType>,
