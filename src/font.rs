@@ -949,7 +949,6 @@ impl FormattedTextBlock
 {
     /// Iterate over the lines of text in this block.
     #[inline]
-    #[must_use]
     pub fn iter_lines(&self) -> Iter<'_, Rc<FormattedTextLine>>
     {
         self.lines.iter()
@@ -996,7 +995,6 @@ impl FormattedTextLine
 {
     /// Iterate over the glyphs in this line.
     #[inline]
-    #[must_use]
     pub fn iter_glyphs(&self) -> Iter<'_, FormattedGlyph>
     {
         self.glyphs.iter()
