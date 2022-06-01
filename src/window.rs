@@ -304,9 +304,10 @@ pub trait WindowHandler<UserEventType = ()>
     {
     }
 
-    /// Invoked when the user drag a file over the window
+    /// Invoked when the user drags a file over the window.
+    ///
     /// The file drag state contains the state of the drag (hover, dropped,
-    /// cancelled) and the filepath
+    /// cancelled) and the file path.
     #[allow(unused_variables)]
     #[inline]
     fn on_file_drag(
