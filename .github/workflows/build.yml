@@ -95,6 +95,12 @@ jobs:
       - name: Clippy
         run: cargo clippy --target=wasm32-unknown-unknown
 
+      - name: Install utilities
+        run: cargo install just wasm-bindgen-cli
+
+      - name: Build WebGL example
+        run: just build-example-webgl
+
   build_features_disabled:
     name: Build (features disabled)
     runs-on: ${{ matrix.os }}
