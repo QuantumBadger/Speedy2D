@@ -14,7 +14,8 @@
  *  limitations under the License.
  */
 
-#[deny(warnings)]
+#![deny(warnings)]
+
 #[cfg(not(all(target_arch = "x86_64", target_os = "linux")))]
 compile_error!("The automated tests currently support Linux x86_64 only");
 
