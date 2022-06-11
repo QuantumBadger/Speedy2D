@@ -141,8 +141,11 @@ impl WindowHandler<UserEvent> for MyHandler
         let offset = 200.0;
 
         let position = center
-            + Vector2::<f64>::new(elapsed_secs.cos() * offset, elapsed_secs.sin() * offset)
-                .into_f32();
+            + Vector2::<f64>::new(
+                elapsed_secs.cos() * offset,
+                elapsed_secs.sin() * offset
+            )
+            .into_f32();
 
         graphics.draw_circle(
             position * self.scale,
