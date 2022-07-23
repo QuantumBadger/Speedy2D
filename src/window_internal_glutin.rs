@@ -532,9 +532,8 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
             GlutinEvent::RedrawEventsCleared => {
                 if helper.inner().is_redraw_requested() {
                     helper.inner().set_redraw_requested(false);
-                    let result = handler.on_draw(helper);
+                    handler.on_draw(helper);
                     window_context.swap_buffers().unwrap();
-                    result
                 }
             }
 
