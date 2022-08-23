@@ -37,7 +37,7 @@ pub type Rect = Rectangle<f32>;
 
 /// A struct representing an axis-aligned rectangle. Two points are stored: the
 /// top left vertex, and the bottom right vertex.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[repr(C)]
 pub struct Rectangle<T = f32>
 {
