@@ -81,6 +81,10 @@ name = "hello_world"
 required-features = ["windowing"]
 
 [[example]]
+name = "managing_context"
+required-features = ["windowing"]
+
+[[example]]
 name = "user_events"
 required-features = ["windowing"]
 
