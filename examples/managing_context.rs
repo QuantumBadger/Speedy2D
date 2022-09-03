@@ -14,8 +14,9 @@
  *  limitations under the License.
  */
 
-// Minimal example on how to use Speedy2D while managing the GL context yourself.
-// Uses glutin for cross-platform window creation and does not do any error handling.
+// Minimal example on how to use Speedy2D while managing the GL context
+// yourself. Uses glutin for cross-platform window creation and does not do any
+// error handling.
 
 use glutin::dpi::PhysicalSize;
 use glutin::event::{Event, WindowEvent};
