@@ -369,7 +369,6 @@ impl<T: Copy + std::ops::DivAssign> std::ops::DivAssign<T> for &mut Vector2<T>
     }
 }
 
-
 impl<T: Copy + std::ops::Mul<Output = T>> std::ops::Mul<T> for &Vector2<T>
 {
     type Output = Vector2<T>;
