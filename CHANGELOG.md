@@ -121,6 +121,7 @@ Thanks to [UdHo](https://github.com/UdHo)
   * `Vector2` types: `Vec2`, `IVec2`, and `UVec2`
   * `Rectangle` types: `Rect`, `IRect`, and `URect`
 * Allow adding tuples to vectors, for example `my_vec + (1.0, 2.0)`
+* Added example code for managing GL context with glutin (thanks to [btbaggin](https://github.com/btbaggin))
 
 ### New APIs
 
