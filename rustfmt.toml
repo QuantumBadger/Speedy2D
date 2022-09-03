@@ -14,5 +14,3 @@ group_imports = "StdExternalCrate"
 wrap_comments = true
 trailing_comma = "Never"
 brace_style = "AlwaysNextLine"
-report_fixme = "Always"
-report_todo = "Always"
