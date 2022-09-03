@@ -293,8 +293,32 @@ impl<T: Copy + std::ops::AddAssign, R: Into<Vector2<T>>> std::ops::AddAssign<R>
     }
 }
 
+impl<T: Copy + std::ops::AddAssign, R: Into<Vector2<T>>> std::ops::AddAssign<R>
+    for &mut Vector2<T>
+{
+    #[inline]
+    fn add_assign(&mut self, rhs: R)
+    {
+        let rhs = rhs.into();
+        self.x += rhs.x;
+        self.y += rhs.y;
+    }
+}
+
 impl<T: Copy + std::ops::SubAssign, R: Into<Vector2<T>>> std::ops::SubAssign<R>
     for Vector2<T>
+{
+    #[inline]
+    fn sub_assign(&mut self, rhs: R)
+    {
+        let rhs = rhs.into();
+        self.x -= rhs.x;
+        self.y -= rhs.y;
+    }
+}
+
+impl<T: Copy + std::ops::SubAssign, R: Into<Vector2<T>>> std::ops::SubAssign<R>
+    for &mut Vector2<T>
 {
     #[inline]
     fn sub_assign(&mut self, rhs: R)
@@ -315,6 +339,16 @@ impl<T: Copy + std::ops::MulAssign> std::ops::MulAssign<T> for Vector2<T>
     }
 }
 
+impl<T: Copy + std::ops::MulAssign> std::ops::MulAssign<T> for &mut Vector2<T>
+{
+    #[inline]
+    fn mul_assign(&mut self, factor: T)
+    {
+        self.x *= factor;
+        self.y *= factor;
+    }
+}
+
 impl<T: Copy + std::ops::DivAssign> std::ops::DivAssign<T> for Vector2<T>
 {
     #[inline]
@@ -324,6 +358,17 @@ impl<T: Copy + std::ops::DivAssign> std::ops::DivAssign<T> for Vector2<T>
         self.y /= divisor;
     }
 }
+
+impl<T: Copy + std::ops::DivAssign> std::ops::DivAssign<T> for &mut Vector2<T>
+{
+    #[inline]
+    fn div_assign(&mut self, divisor: T)
+    {
+        self.x /= divisor;
+        self.y /= divisor;
+    }
+}
+
 
 impl<T: Copy + std::ops::Mul<Output = T>> std::ops::Mul<T> for &Vector2<T>
 {
@@ -476,6 +521,16 @@ mod test
         assert_eq!(left, Vector2::new(4, 6));
         left += &right;
         assert_eq!(left, Vector2::new(7, 10));
+        {
+            let mut ref_left = &mut left;
+            ref_left += right;
+        }
+        assert_eq!(left, Vector2::new(10, 14));
+        {
+            let mut ref_left = &mut left;
+            ref_left += right;
+        }
+        assert_eq!(left, Vector2::new(13, 18));
     }
 
     #[test]
@@ -487,6 +542,16 @@ mod test
         assert_eq!(left, Vector2::new(8, 6));
         left -= &right;
         assert_eq!(left, Vector2::new(7, 4));
+        {
+            let mut ref_left = &mut left;
+            ref_left -= right;
+        }
+        assert_eq!(left, Vector2::new(6, 2));
+        {
+            let mut ref_left = &mut left;
+            ref_left -= right;
+        }
+        assert_eq!(left, Vector2::new(5, 0));
     }
 
     #[test]
@@ -495,13 +560,23 @@ mod test
         let mut left = Vector2::new(2, 3);
         left *= 5;
         assert_eq!(left, Vector2::new(10, 15));
+        {
+            let mut ref_left = &mut left;
+            ref_left *= 2;
+        }
+        assert_eq!(left, Vector2::new(20, 30));
     }
 
     #[test]
     fn test_div_assign()
     {
-        let mut left = Vector2::new(6, 4);
+        let mut left = Vector2::new(12, 8);
         left /= 2;
+        assert_eq!(left, Vector2::new(6, 4));
+        {
+            let mut ref_left = &mut left;
+            ref_left /= 2;
+        }
         assert_eq!(left, Vector2::new(3, 2));
     }
 }
