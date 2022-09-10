@@ -130,3 +130,7 @@ Thanks to [UdHo](https://github.com/UdHo)
 * `Rectangle::with_negative_offset()`
 * `Rectangle::ZERO`
 * `Color::from_gray()`
+
+## 1.9.0
+
+* Added assignment operators (`+=`, `-=`, `*=`, `/=`) to `Vector2` (thanks to [amarao](https://github.com/amarao))
