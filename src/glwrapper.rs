@@ -130,9 +130,9 @@ impl<HandleType: GLHandleId> Debug for GLHandle<HandleType>
     }
 }
 
-impl<HandleType: GLHandleId> std::hash::Hash for GLHandle<HandleType>
+impl<HandleType: GLHandleId> Hash for GLHandle<HandleType>
 {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H)
+    fn hash<H: Hasher>(&self, state: &mut H)
     {
         self.handle.hash(state);
         self.handle_type.hash(state);
@@ -276,7 +276,7 @@ impl PartialEq for GLProgram
 {
     fn eq(&self, other: &Self) -> bool
     {
-        std::ptr::eq(self, other)
+        ptr::eq(self, other)
     }
 }
 
@@ -845,7 +845,7 @@ impl PartialEq for GLContextManagerState
 {
     fn eq(&self, other: &Self) -> bool
     {
-        std::ptr::eq(self, other)
+        ptr::eq(self, other)
     }
 }
 
@@ -964,7 +964,7 @@ impl GLContextManager
 
         // Drop separately to avoid a duplicate borrow of `state`.
         let old_active_texture = RefCell::borrow_mut(&self.state).active_texture.take();
-        std::mem::drop(old_active_texture);
+        drop(old_active_texture);
 
         RefCell::borrow_mut(&self.state).active_texture = Some(texture.clone());
 
@@ -1127,7 +1127,6 @@ impl GLContextManager
 
         let bytes = width * height * bpp;
 
-        #[allow(clippy::uninit_vec)]
         let mut buf: Vec<u8> = Vec::with_capacity(bytes);
 
         self.with_gl_backend(|backend| unsafe {
@@ -1143,7 +1142,6 @@ impl GLContextManager
         });
 
         unsafe {
-            #[allow(clippy::uninit_vec)]
             buf.set_len(bytes);
         }
 

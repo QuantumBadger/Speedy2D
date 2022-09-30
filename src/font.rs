@@ -267,7 +267,7 @@ impl LineLayoutMetrics
         &mut self,
         glyph: &rusttype::ScaledGlyph,
         font_id: FontId,
-        scale: &rusttype::Scale,
+        scale: &Scale,
         options: &TextOptions
     ) -> f32
     {
@@ -334,7 +334,7 @@ fn try_layout_word_internal<T: TextLayout + ?Sized>(
     layout_helper: &T,
     word: RenderableWord,
     remaining_words: &mut WordsIterator,
-    scale: &rusttype::Scale,
+    scale: &Scale,
     options: &TextOptions,
     pos_y_baseline: f32,
     first_word_on_line: bool,
@@ -388,7 +388,7 @@ fn try_layout_word_internal<T: TextLayout + ?Sized>(
 
         if let Some(pos_x_max) = pos_x_max {
             if new_glyph_metrics.x_pos > pos_x_max {
-                if first_word_on_line {
+                return if first_word_on_line {
                     if i == 0 {
                         // First glyph in word, we should render it even though it goes
                         // over the boundary
@@ -412,11 +412,11 @@ fn try_layout_word_internal<T: TextLayout + ?Sized>(
                     });
 
                     output.append(&mut glyphs);
-                    return WordLayoutResult::PartialWord(new_word_metrics);
+                    WordLayoutResult::PartialWord(new_word_metrics)
                 } else {
                     remaining_words.add_pending(Word::Renderable(word));
-                    return WordLayoutResult::NotEnoughSpace;
-                }
+                    WordLayoutResult::NotEnoughSpace
+                };
             }
         }
 
@@ -436,7 +436,7 @@ fn try_layout_word_internal<T: TextLayout + ?Sized>(
 fn layout_line_internal<T: TextLayout + ?Sized>(
     layout_helper: &T,
     words: &mut WordsIterator,
-    scale: &rusttype::Scale,
+    scale: &Scale,
     options: &TextOptions,
     pos_y_baseline: f32
 ) -> FormattedTextLine
@@ -504,7 +504,7 @@ fn layout_multiple_lines_internal<T: TextLayout + ?Sized>(
     options: TextOptions
 ) -> Rc<FormattedTextBlock>
 {
-    let scale = rusttype::Scale::uniform(scale);
+    let scale = Scale::uniform(scale);
 
     let mut iterator = WordsIterator::from(Word::split_words(codepoints));
 

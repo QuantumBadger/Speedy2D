@@ -286,7 +286,7 @@ enum RenderQueueItem
     {
         position: Vec2,
         color: Color,
-        block: Rc<crate::font::FormattedTextBlock>
+        block: Rc<FormattedTextBlock>
     },
 
     CircleSectionColored
@@ -439,7 +439,7 @@ pub struct Renderer2D
     render_queue: Vec<RenderQueueItem>,
     render_action_queue: Vec<Renderer2DAction>,
 
-    glyph_cache: crate::font_cache::GlyphCache,
+    glyph_cache: GlyphCache,
     attribute_buffers: AttributeBuffers,
     current_texture: Option<GLTexture>,
 

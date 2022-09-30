@@ -1040,7 +1040,7 @@ impl WebCanvasImpl
 
             let callback_inner = callback.clone();
 
-            std::mem::drop(RefCell::replace(
+            drop(RefCell::replace(
                 Rc::borrow(&callback),
                 Box::new(move || {
                     let new_dpr = window.device_pixel_ratio();

@@ -425,7 +425,7 @@ impl<T: RoundFloat> RoundFloat for Vector2<T>
     }
 }
 
-impl<T> From<rusttype::Point<T>> for Vector2<T>
+impl<T> From<Point<T>> for Vector2<T>
 {
     #[inline]
     #[must_use]

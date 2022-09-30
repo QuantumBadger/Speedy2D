@@ -219,7 +219,7 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
 
         self.window_context
             .window()
-            .set_inner_size(glutin::dpi::PhysicalSize::new(size.x, size.y));
+            .set_inner_size(PhysicalSize::new(size.x, size.y));
     }
 
     pub fn set_size_scaled_pixels<S: Into<Vec2>>(&self, size: S)
@@ -228,16 +228,16 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
 
         self.window_context
             .window()
-            .set_inner_size(glutin::dpi::LogicalSize::new(size.x, size.y));
+            .set_inner_size(LogicalSize::new(size.x, size.y));
     }
 
     pub fn set_position_pixels<P: Into<IVec2>>(&self, position: P)
     {
         let position = position.into();
 
-        self.window_context.window().set_outer_position(
-            glutin::dpi::PhysicalPosition::new(position.x, position.y)
-        );
+        self.window_context
+            .window()
+            .set_outer_position(PhysicalPosition::new(position.x, position.y));
     }
 
     pub fn set_position_scaled_pixels<P: Into<Vec2>>(&self, position: P)
@@ -323,10 +323,8 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
             }
 
             WindowCreationMode::FullscreenBorderless => {
-                window_builder = window_builder.with_fullscreen(Option::Some(
-                    glutin::window::Fullscreen::Borderless(Option::Some(
-                        primary_monitor.clone()
-                    ))
+                window_builder = window_builder.with_fullscreen(Some(
+                    glutin::window::Fullscreen::Borderless(Some(primary_monitor.clone()))
                 ));
             }
         }
@@ -389,7 +387,7 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
             gl_backend.gl_enable_debug_message_callback();
         };
 
-        Result::Ok(WindowGlutin {
+        Ok(WindowGlutin {
             event_loop,
             window_context,
             gl_backend
@@ -574,12 +572,12 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
             }
             WindowEventLoopAction::Exit => {
                 log::info!("Start callback requested exit!");
-                std::mem::drop(handler);
+                drop(handler);
                 std::process::exit(0);
             }
         }
 
-        let mut handler = Option::Some(handler);
+        let mut handler = Some(handler);
 
         event_loop.run(
             move |event: GlutinEvent<UserEventGlutin<UserEventType>>,
@@ -605,7 +603,7 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
                                 }
                             }
                             WindowEventLoopAction::Exit => {
-                                handler = Option::None;
+                                handler = None;
                                 ControlFlow::Exit
                             }
                         }
@@ -647,7 +645,7 @@ fn create_best_context<UserEventType>(
             match result {
                 Ok(context) => {
                     log::info!("Context created");
-                    return Option::Some(context);
+                    return Some(context);
                 }
                 Err(err) => {
                     log::info!("Failed with error: {:?}", err);
@@ -657,7 +655,7 @@ fn create_best_context<UserEventType>(
     }
 
     log::error!("Failed to create any context.");
-    Option::None
+    None
 }
 
 fn position_window(

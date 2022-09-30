@@ -857,13 +857,11 @@ impl GLBackend for GLBackendGLRS
             severity: GLenum,
             length: GLsizei,
             message: *const GLchar,
-            _user_param: *mut std::os::raw::c_void
+            _user_param: *mut c_void
         )
         {
             let msg = if length < 0 {
-                unsafe {
-                    String::from_utf8_lossy(std::ffi::CStr::from_ptr(message).to_bytes())
-                }
+                unsafe { String::from_utf8_lossy(CStr::from_ptr(message).to_bytes()) }
             } else {
                 unsafe {
                     String::from_utf8_lossy(std::slice::from_raw_parts(
@@ -927,7 +925,7 @@ impl GLBackend for GLBackendGLRS
             data_type,
             if normalized { GL_TRUE } else { GL_FALSE },
             stride,
-            offset as *const std::os::raw::c_void
+            offset as *const c_void
         );
     }
 
@@ -955,7 +953,7 @@ impl GLBackend for GLBackendGLRS
             data_type,
             match pixels {
                 None => std::ptr::null(),
-                Some(pixels) => pixels.as_ptr() as *const std::os::raw::c_void
+                Some(pixels) => pixels.as_ptr() as *const c_void
             }
         );
     }
@@ -982,7 +980,7 @@ impl GLBackend for GLBackendGLRS
             height,
             format,
             data_type,
-            pixels.as_ptr() as *const std::os::raw::c_void
+            pixels.as_ptr() as *const c_void
         )
     }
 
