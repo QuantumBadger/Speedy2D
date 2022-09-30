@@ -133,4 +133,5 @@ Thanks to [UdHo](https://github.com/UdHo)
 
 ## 1.9.0
 
+* Added `Graphics2D::capture()` API, for capturing the current contents of the window
 * Added assignment operators (`+=`, `-=`, `*=`, `/=`) to `Vector2` (thanks to [amarao](https://github.com/amarao))

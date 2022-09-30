@@ -20,6 +20,7 @@ use std::convert::TryInto;
 use std::fmt::{Debug, Formatter};
 use std::hash::{Hash, Hasher};
 use std::num::TryFromIntError;
+use std::ptr;
 use std::rc::{Rc, Weak};
 
 use crate::color::Color;
@@ -37,6 +38,7 @@ use crate::glbackend::types::{
     GLuint
 };
 use crate::glbackend::GLBackend;
+use crate::{ImageDataType, RawBitmapData};
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
 #[allow(dead_code)]
@@ -648,6 +650,17 @@ pub enum GLTextureImageFormatU8
     RGBA
 }
 
+impl From<ImageDataType> for GLTextureImageFormatU8
+{
+    fn from(value: ImageDataType) -> Self
+    {
+        match value {
+            ImageDataType::RGB => Self::RGB,
+            ImageDataType::RGBA => Self::RGBA
+        }
+    }
+}
+
 impl GLTextureImageFormatU8
 {
     fn get_internal_format(&self) -> GLenum
@@ -1095,6 +1108,65 @@ impl GLContextManager
     pub fn version(&self) -> GLVersion
     {
         self.state.borrow().gl_version
+    }
+
+    pub fn capture(&mut self, format: ImageDataType) -> RawBitmapData
+    {
+        let viewport_size = match self.state.borrow().viewport_size {
+            None => return RawBitmapData::new(vec![], (0, 0), format),
+            Some(value) => value
+        };
+
+        let width: usize = viewport_size.x.try_into().unwrap();
+        let height: usize = viewport_size.y.try_into().unwrap();
+
+        let gl_format = GLTextureImageFormatU8::from(format);
+
+        let bpp = gl_format.get_bytes_per_pixel();
+        let gl_format = gl_format.get_format();
+
+        let bytes = width * height * bpp;
+
+        #[allow(clippy::uninit_vec)]
+        let mut buf: Vec<u8> = Vec::with_capacity(bytes);
+
+        self.with_gl_backend(|backend| unsafe {
+            backend.gl_read_pixels(
+                0,
+                0,
+                width.try_into().unwrap(),
+                height.try_into().unwrap(),
+                gl_format,
+                GL_UNSIGNED_BYTE,
+                buf.spare_capacity_mut()
+            );
+        });
+
+        unsafe {
+            #[allow(clippy::uninit_vec)]
+            buf.set_len(bytes);
+        }
+
+        let row_bytes = width * bpp;
+
+        let buf_ptr = buf.as_mut_ptr();
+
+        for row in 0..(height / 2) {
+            let bottom_row = height - row - 1;
+
+            let top_start = row * row_bytes;
+            let bottom_start = bottom_row * row_bytes;
+
+            unsafe {
+                ptr::swap_nonoverlapping(
+                    buf_ptr.add(top_start),
+                    buf_ptr.add(bottom_start),
+                    row_bytes
+                );
+            }
+        }
+
+        RawBitmapData::new(buf, viewport_size, format)
     }
 }
 

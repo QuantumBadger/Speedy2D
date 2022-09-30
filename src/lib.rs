@@ -311,7 +311,7 @@ use crate::glbackend::GLBackend;
 #[cfg(not(target_arch = "wasm32"))]
 use crate::glbackend::{GLBackendGLRS, GLBackendGlow};
 use crate::glwrapper::{GLContextManager, GLVersion};
-use crate::image::{ImageDataType, ImageHandle, ImageSmoothingMode};
+use crate::image::{ImageDataType, ImageHandle, ImageSmoothingMode, RawBitmapData};
 use crate::renderer2d::Renderer2D;
 use crate::shape::{Polygon, Rectangle};
 #[cfg(target_arch = "wasm32")]
@@ -1190,6 +1190,15 @@ impl Graphics2D
     pub fn set_clip(&mut self, rect: Option<Rectangle<i32>>)
     {
         self.renderer.set_clip(rect);
+    }
+
+    /// Captures a screenshot of the render window. The returned data contains
+    /// the color of each pixel. Pixels are represented using a `u8` for each
+    /// component (red, green, blue, and alpha). Use the `format` parameter to
+    /// specify the byte layout (and size) of each pixel.
+    pub fn capture(&mut self, format: ImageDataType) -> RawBitmapData
+    {
+        self.renderer.capture(format)
     }
 }
 

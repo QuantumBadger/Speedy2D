@@ -14,7 +14,9 @@
  *  limitations under the License.
  */
 
-use glow::HasContext;
+use std::mem::MaybeUninit;
+
+use glow::{HasContext, PixelPackData};
 #[cfg(not(target_arch = "wasm32"))]
 use {std::convert::TryInto, std::ffi::CStr, std::os::raw::c_void};
 
@@ -314,6 +316,18 @@ pub trait GLBackend
 
         self.gl_buffer_data(target, data, usage)
     }
+
+    #[allow(clippy::too_many_arguments)]
+    unsafe fn gl_read_pixels(
+        &self,
+        x: GLint,
+        y: GLint,
+        width: GLsizei,
+        height: GLsizei,
+        format: GLenum,
+        data_type: GLenum,
+        data: &mut [MaybeUninit<u8>]
+    );
 }
 
 pub struct GLBackendGlow
@@ -657,6 +671,31 @@ impl GLBackend for GLBackendGlow
     ) -> Result<String, BacktraceError<ErrorMessage>>
     {
         Ok(self.context.get_shader_info_log(shader))
+    }
+
+    unsafe fn gl_read_pixels(
+        &self,
+        x: GLint,
+        y: GLint,
+        width: GLsizei,
+        height: GLsizei,
+        format: GLenum,
+        data_type: GLenum,
+        data: &mut [MaybeUninit<u8>]
+    )
+    {
+        let data =
+            std::slice::from_raw_parts_mut(data.as_mut_ptr() as *mut u8, data.len());
+
+        self.context.read_pixels(
+            x,
+            y,
+            width,
+            height,
+            format,
+            data_type,
+            PixelPackData::Slice(data)
+        )
     }
 }
 
@@ -1069,6 +1108,28 @@ impl GLBackend for GLBackendGLRS
             gl::GetShaderInfoLog(shader, buf_capacity, out_buf_len, buf);
             self.gl_check_error_always()
         })
+    }
+
+    unsafe fn gl_read_pixels(
+        &self,
+        x: GLint,
+        y: GLint,
+        width: GLsizei,
+        height: GLsizei,
+        format: GLenum,
+        data_type: GLenum,
+        data: &mut [MaybeUninit<u8>]
+    )
+    {
+        gl::ReadPixels(
+            x,
+            y,
+            width,
+            height,
+            format,
+            data_type,
+            data.as_mut_ptr() as *mut c_void
+        )
     }
 }
 

@@ -20,7 +20,6 @@
 compile_error!("The automated tests currently support Linux x86_64 only");
 
 use std::convert::TryInto;
-use std::os::raw::c_void;
 
 use glutin::dpi::PhysicalSize;
 use glutin::event_loop::EventLoop;
@@ -61,42 +60,9 @@ fn read_png_argb8<S: AsRef<str>>(name: S) -> Option<Vec<u8>>
         .map(|image| image.into_rgba8().into_raw())
 }
 
-fn read_framebuffer_argb(width: u32, height: u32) -> Vec<u8>
+fn write_framebuffer_to_png<S: AsRef<str>>(name: S, width: u32, height: u32, data: &[u8])
 {
-    let mut buf: Vec<u8> = vec![0; (width * height * 4).try_into().unwrap()];
-
-    unsafe {
-        gl::ReadPixels(
-            0,
-            0,
-            width.try_into().unwrap(),
-            height.try_into().unwrap(),
-            gl::RGBA,
-            gl::UNSIGNED_BYTE,
-            buf.as_mut_ptr() as *mut c_void
-        );
-    }
-
-    let mut flipped_buf: Vec<u8> = Vec::new();
-
-    for y in 0..height {
-        let in_start = ((height - y - 1) * width * 4).try_into().unwrap();
-        let in_slice = &buf[in_start..(in_start + (width * 4) as usize)];
-
-        flipped_buf.extend_from_slice(in_slice);
-    }
-
-    flipped_buf
-}
-
-fn write_framebuffer_to_png<S: AsRef<str>>(name: S, width: u32, height: u32)
-{
-    write_rgba_to_png(
-        name,
-        width,
-        height,
-        read_framebuffer_argb(width, height).as_slice()
-    );
+    write_rgba_to_png(name, width, height, data);
 }
 
 fn create_context_and_run<R, F>(
@@ -130,9 +96,6 @@ where
 
     let context = unsafe { context.make_current().unwrap() };
 
-    // Used for glReadPixels/etc
-    gl::load_with(|ptr| context.get_proc_address(ptr) as *const _);
-
     let mut renderer = unsafe {
         GLRenderer::new_for_gl_context((width, height), |name| {
             context.get_proc_address(name) as *const _
@@ -156,15 +119,17 @@ fn run_test_with_new_context<S: AsRef<str>, F: FnOnce(&mut GLRenderer)>(
     let actual_image = create_context_and_run(event_loop, width, height, |renderer| {
         action(renderer);
 
-        let actual_image = read_framebuffer_argb(width, height);
+        let actual_image =
+            renderer.draw_frame(|graphics| graphics.capture(ImageDataType::RGBA));
 
         if expected_image.is_none()
-            || (&expected_image).as_ref().unwrap() != &actual_image
+            || (&expected_image).as_ref().unwrap() != actual_image.data()
         {
             write_framebuffer_to_png(
                 format!("{}_ACTUAL", expected_image_name.as_ref()),
                 width,
-                height
+                height,
+                actual_image.data().as_slice()
             );
         }
 
@@ -183,13 +148,13 @@ fn run_test_with_new_context<S: AsRef<str>, F: FnOnce(&mut GLRenderer)>(
 
     assert_eq!(
         width * height * 4,
-        actual_image.len().try_into().unwrap(),
+        actual_image.data().len().try_into().unwrap(),
         "Actual image size mismatch"
     );
 
     assert_eq!(
         expected_image,
-        actual_image,
+        actual_image.into_data(),
         "Generated image did not match expected ({})",
         expected_image_name.as_ref()
     );
@@ -944,6 +909,43 @@ fn main()
                     (250.0, 350.0)
                 ]);
                 graphics.draw_polygon(&poly, (0.0, 0.0), Color::RED);
+            });
+        })
+    });
+
+    tests.push(GLTest {
+        width: 640,
+        height: 479,
+        name: "capture_1".to_string(),
+        action: Box::new(|renderer| {
+            let typeface = Font::new(NOTO_SANS_REGULAR_BYTES).unwrap(); // TODO dedupe
+
+            let text = typeface.layout_text(
+                "The quick brown föx jumped over the lazy dog!",
+                30.0,
+                TextOptions::default()
+            );
+
+            renderer.draw_frame(|graphics| {
+                graphics.clear_screen(Color::WHITE);
+
+                graphics.draw_text((10.0, 10.0), Color::BLACK, &text);
+
+                let capture = graphics.capture(ImageDataType::RGBA);
+
+                assert_eq!(capture.size().x, 640);
+                assert_eq!(capture.size().y, 479);
+
+                let texture = graphics
+                    .create_image_from_raw_pixels(
+                        capture.format(),
+                        ImageSmoothingMode::NearestNeighbor,
+                        capture.size(),
+                        capture.data().as_slice()
+                    )
+                    .unwrap();
+
+                graphics.draw_image((50.0, 25.0), &texture);
             });
         })
     });

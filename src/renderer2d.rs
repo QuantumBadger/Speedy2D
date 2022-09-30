@@ -32,7 +32,7 @@ use crate::font::FormattedTextBlock;
 use crate::font_cache::{GlyphCache, GlyphCacheInterface};
 use crate::glwrapper::*;
 use crate::image::{ImageDataType, ImageHandle, ImageSmoothingMode};
-use crate::{Polygon, Rectangle};
+use crate::{Polygon, RawBitmapData, Rectangle};
 
 struct AttributeBuffers
 {
@@ -662,10 +662,7 @@ impl Renderer2D
             }
         }
 
-        let gl_format = match data_type {
-            ImageDataType::RGB => GLTextureImageFormatU8::RGB,
-            ImageDataType::RGBA => GLTextureImageFormatU8::RGBA
-        };
+        let gl_format = data_type.into();
 
         let gl_smoothing = match smoothing_mode {
             ImageSmoothingMode::NearestNeighbor => GLTextureSmoothing::NearestNeighbour,
@@ -864,5 +861,11 @@ impl Renderer2D
                 )
             }
         }
+    }
+
+    pub(crate) fn capture(&mut self, format: ImageDataType) -> RawBitmapData
+    {
+        self.flush_render_queue();
+        self.context.capture(format)
     }
 }

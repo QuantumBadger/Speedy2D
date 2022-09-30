@@ -18,7 +18,7 @@ use crate::dimen::UVec2;
 use crate::glwrapper::GLTexture;
 
 /// The data type of the pixels making up the raw image data.
-#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
 pub enum ImageDataType
 {
     /// Each pixel in the image is represented by three `u8` values: red, green,
@@ -101,4 +101,54 @@ pub enum ImageFileFormat
     DDS,
     TGA,
     Farbfeld
+}
+
+/// A type to represent some raw pixel data, with an associated width and height
+/// in pixels.
+#[derive(Clone)]
+pub struct RawBitmapData
+{
+    data: Vec<u8>,
+    size: UVec2,
+    format: ImageDataType
+}
+
+impl RawBitmapData
+{
+    pub(crate) fn new(
+        data: Vec<u8>,
+        size: impl Into<UVec2>,
+        format: ImageDataType
+    ) -> Self
+    {
+        Self {
+            data,
+            size: size.into(),
+            format
+        }
+    }
+
+    /// Returns a reference to the raw pixel data.
+    pub fn data(&self) -> &Vec<u8>
+    {
+        &self.data
+    }
+
+    /// Returns the width and height of this data in pixels.
+    pub fn size(&self) -> UVec2
+    {
+        self.size
+    }
+
+    /// Returns the format of this data.
+    pub fn format(&self) -> ImageDataType
+    {
+        self.format
+    }
+
+    /// Transfers ownership of the raw pixel data to the caller.
+    pub fn into_data(self) -> Vec<u8>
+    {
+        self.data
+    }
 }
