@@ -113,6 +113,9 @@ impl Display for WindowCreationError
             WindowCreationError::RendererCreationFailed => {
                 f.write_str("Failed to create the renderer")
             }
+            WindowCreationError::SetMousePassthroughFailed => {
+                f.write_str("Failed to set mouse passthrough")
+            }
         }
     }
 }
