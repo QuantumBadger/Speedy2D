@@ -1054,7 +1054,8 @@ pub struct WindowCreationOptions
     pub(crate) resizable: bool,
     pub(crate) maximized: bool,
     pub(crate) transparent: bool,
-    pub(crate) decorations: bool
+    pub(crate) decorations: bool,
+    pub(crate) mouse_passthrough: bool,
 }
 
 impl WindowCreationOptions
@@ -1087,7 +1088,8 @@ impl WindowCreationOptions
             resizable: true,
             maximized: false,
             decorations: true,
-            transparent: false
+            transparent: false,
+            mouse_passthrough: false
         }
     }
 
@@ -1167,6 +1169,19 @@ impl WindowCreationOptions
     pub fn with_transparent(mut self, transparent: bool) -> Self
     {
         self.transparent = transparent;
+        self
+    }
+
+    /// Sets whether mouse clicks should passthrough the window
+    /// default is `false`.
+    ///
+    /// Note that this depends on platform support, and setting this may have no
+    /// effect.
+    #[inline]
+    #[must_use]
+    pub fn with_mouse_passthrough(mut self, mouse_passthrough: bool) -> Self
+    {
+        self.mouse_passthrough = mouse_passthrough;
         self
     }
 }

@@ -26,12 +26,12 @@ use glutin::event::{
     VirtualKeyCode as GlutinVirtualKeyCode,
     WindowEvent as GlutinWindowEvent
 };
-use glutin::event_loop::{ControlFlow, EventLoop, EventLoopClosed, EventLoopProxy};
+use glutin::event_loop::{ControlFlow, EventLoop, EventLoopClosed, EventLoopProxy, EventLoopBuilder};
 use glutin::monitor::MonitorHandle;
 use glutin::window::{
     Icon,
     Window as GlutinWindow,
-    WindowBuilder as GlutinWindowBuilder
+    WindowBuilder as GlutinWindowBuilder, CursorGrabMode
 };
 
 use crate::dimen::{IVec2, UVec2, Vec2, Vector2};
@@ -153,8 +153,8 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
                     err
                 )
             })?;
-
-        match self.window_context.window().set_cursor_grab(grabbed) {
+        let grabbed_enum = if grabbed { CursorGrabMode::None } else { CursorGrabMode::Confined };
+        match self.window_context.window().set_cursor_grab(grabbed_enum) {
             Ok(_) => {
                 self.is_mouse_grabbed.set(grabbed);
                 if self
@@ -277,7 +277,7 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
     ) -> Result<WindowGlutin<UserEventType>, BacktraceError<WindowCreationError>>
     {
         let event_loop: EventLoop<UserEventGlutin<UserEventType>> =
-            EventLoop::with_user_event();
+            EventLoopBuilder::with_user_event().build();
 
         let primary_monitor = event_loop
             .primary_monitor()
@@ -354,6 +354,8 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
 
         // Show window after positioning to avoid the window jumping around
         window_context.window().set_visible(true);
+
+        window_context.window().set_cursor_hittest(!options.mouse_passthrough).unwrap();
 
         // Set the position again to work around an issue on Linux
         if let WindowCreationMode::Windowed {
