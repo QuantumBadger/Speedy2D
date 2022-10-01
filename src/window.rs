@@ -91,7 +91,9 @@ pub enum WindowCreationError
     /// Failed to make the graphics context current.
     MakeContextCurrentFailed,
     /// Failed to instantiate the renderer.
-    RendererCreationFailed
+    RendererCreationFailed,
+    /// Failed to set mouse passthrough on window
+    SetMousePassthroughFailed
 }
 
 impl Display for WindowCreationError

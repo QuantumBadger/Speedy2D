@@ -355,7 +355,15 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
         // Show window after positioning to avoid the window jumping around
         window_context.window().set_visible(true);
 
-        window_context.window().set_cursor_hittest(!options.mouse_passthrough).unwrap();
+        match window_context.window().set_cursor_hittest(!options.mouse_passthrough) {
+            Ok(_) => (),
+            Err(err) => {
+                return Err(BacktraceError::new_with_cause(
+                    WindowCreationError::SetMousePassthroughFailed,
+                    err
+                ));
+            }
+        };
 
         // Set the position again to work around an issue on Linux
         if let WindowCreationMode::Windowed {
