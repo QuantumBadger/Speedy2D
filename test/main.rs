@@ -324,6 +324,35 @@ fn main()
     });
 
     tests.push(GLTest {
+        width: 500,
+        height: 500,
+        name: "basic_text_subpixel".to_string(),
+        action: Box::new(|renderer| {
+            let typeface = Font::new(NOTO_SANS_REGULAR_BYTES).unwrap();
+
+            let text =
+                typeface.layout_text("The quick brown föx", 36.0, TextOptions::new());
+
+            renderer.draw_frame(|graphics| {
+                graphics.clear_screen(Color::WHITE);
+
+                for i in 0..10 {
+                    graphics.draw_text(
+                        Vec2::new(0.0, 40.0 * i as f32),
+                        Color::RED,
+                        &text
+                    );
+                    graphics.draw_text(
+                        Vec2::new(0.1 * i as f32, 40.1 * i as f32),
+                        Color::BLACK,
+                        &text
+                    );
+                }
+            });
+        })
+    });
+
+    tests.push(GLTest {
         width: 1400,
         height: 500,
         name: "basic_text_black_background".to_string(),

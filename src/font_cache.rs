@@ -74,12 +74,20 @@ struct GlyphCacheKey
 
 impl GlyphCacheKey
 {
-    fn from(font_id: usize, positioned_glyph: &rusttype::PositionedGlyph) -> Self
+    #[inline]
+    fn from(
+        font_id: usize,
+        positioned_glyph: &rusttype::PositionedGlyph,
+        screen_offset: Vec2
+    ) -> Self
     {
         // Assuming scale is uniform
         let scale = QuantizedDimension::from_pixels(positioned_glyph.scale().y);
 
-        let pos = Vec2::new(positioned_glyph.position().x, positioned_glyph.position().y);
+        let pos = Vec2::new(
+            positioned_glyph.position().x + screen_offset.x,
+            positioned_glyph.position().y + screen_offset.y
+        );
 
         let subpixel_offset = (
             QuantizedDimension::from_pixels(pos.x - pos.x.round()),
@@ -117,7 +125,7 @@ impl GlyphCache
     {
         let positioned_glyph = glyph.glyph();
 
-        let key = GlyphCacheKey::from(glyph.font_id(), positioned_glyph);
+        let key = GlyphCacheKey::from(glyph.font_id(), positioned_glyph, position);
 
         let entry = match self.cache_entries.get(&key) {
             None => return, // This is valid for many glyphs, e.g. space
@@ -145,6 +153,7 @@ impl GlyphCache
 
         let position = position + Vec2::from(positioned_glyph.position());
 
+        // We round the position here as the offset is between -0.5 and 0.5
         let screen_region_start = position.round().into_i32() + entry.bounding_box_offset;
 
         let screen_region = Rectangle::new(
@@ -211,10 +220,15 @@ impl GlyphCache
     pub(crate) fn add_to_cache(
         &mut self,
         _context: &GLContextManager,
-        formatted_glyph: &font::FormattedGlyph
+        formatted_glyph: &font::FormattedGlyph,
+        position: Vec2
     )
     {
-        let key = GlyphCacheKey::from(formatted_glyph.font_id(), formatted_glyph.glyph());
+        let key = GlyphCacheKey::from(
+            formatted_glyph.font_id(),
+            formatted_glyph.glyph(),
+            position
+        );
 
         self.this_frame.insert(key.clone());
 

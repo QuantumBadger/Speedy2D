@@ -560,10 +560,14 @@ impl Renderer2D
         let mut has_text = false;
 
         for item in &self.render_queue {
-            if let RenderQueueItem::FormattedTextBlock { block, .. } = item {
+            if let RenderQueueItem::FormattedTextBlock {
+                block, position, ..
+            } = item
+            {
                 for line in block.iter_lines() {
                     for glyph in line.iter_glyphs() {
-                        self.glyph_cache.add_to_cache(&self.context, glyph);
+                        self.glyph_cache
+                            .add_to_cache(&self.context, glyph, *position);
                     }
                 }
 
