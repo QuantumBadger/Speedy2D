@@ -36,26 +36,6 @@ use crate::renderer2d::{Renderer2DAction, Renderer2DVertex};
 use crate::shape::Rectangle;
 use crate::texture_packer::{TexturePacker, TexturePackerError};
 
-pub(crate) trait GlyphCacheInterface
-{
-    fn get_renderer2d_actions(
-        &self,
-        glyph: &font::FormattedGlyph,
-        position: Vec2,
-        color: Color,
-        output: &mut Vec<Renderer2DAction>
-    );
-
-    fn add_to_cache(&mut self, context: &GLContextManager, glyph: &font::FormattedGlyph);
-
-    fn on_new_frame_start(&mut self);
-
-    fn prepare_for_draw(
-        &mut self,
-        context: &GLContextManager
-    ) -> Result<(), BacktraceError<ErrorMessage>>;
-}
-
 #[repr(transparent)]
 #[derive(Debug, Hash, Eq, PartialEq, Clone)]
 struct QuantizedDimension
@@ -124,10 +104,10 @@ pub(crate) struct GlyphCache
     textures: Vec<GlyphCacheTexture>
 }
 
-impl GlyphCacheInterface for GlyphCache
+impl GlyphCache
 {
     #[inline]
-    fn get_renderer2d_actions(
+    pub(crate) fn get_renderer2d_actions(
         &self,
         glyph: &font::FormattedGlyph,
         position: Vec2,
@@ -228,7 +208,7 @@ impl GlyphCacheInterface for GlyphCache
         });
     }
 
-    fn add_to_cache(
+    pub(crate) fn add_to_cache(
         &mut self,
         _context: &GLContextManager,
         formatted_glyph: &font::FormattedGlyph
@@ -294,13 +274,13 @@ impl GlyphCacheInterface for GlyphCache
         }
     }
 
-    fn on_new_frame_start(&mut self)
+    pub(crate) fn on_new_frame_start(&mut self)
     {
         self.last_frame.clear();
         std::mem::swap(&mut self.last_frame, &mut self.this_frame);
     }
 
-    fn prepare_for_draw(
+    pub(crate) fn prepare_for_draw(
         &mut self,
         context: &GLContextManager
     ) -> Result<(), BacktraceError<ErrorMessage>>
@@ -367,10 +347,7 @@ impl GlyphCacheInterface for GlyphCache
 
         Ok(())
     }
-}
 
-impl GlyphCache
-{
     pub(crate) fn new() -> Self
     {
         Self {

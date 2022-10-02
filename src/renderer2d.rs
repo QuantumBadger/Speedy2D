@@ -29,7 +29,7 @@ use crate::color::Color;
 use crate::dimen::{UVec2, Vec2};
 use crate::error::{BacktraceError, Context, ErrorMessage};
 use crate::font::FormattedTextBlock;
-use crate::font_cache::{GlyphCache, GlyphCacheInterface};
+use crate::font_cache::GlyphCache;
 use crate::glwrapper::*;
 use crate::image::{ImageDataType, ImageHandle, ImageSmoothingMode};
 use crate::{Polygon, RawBitmapData, Rectangle};
@@ -314,10 +314,10 @@ enum RenderQueueItem
 impl RenderQueueItem
 {
     #[inline]
-    fn generate_actions<T: GlyphCacheInterface>(
+    fn generate_actions(
         &self,
         output: &mut Vec<Renderer2DAction>,
-        glyph_cache: &T
+        glyph_cache: &GlyphCache
     )
     {
         match self {
@@ -542,7 +542,13 @@ impl Renderer2D
         self.context.set_viewport_size(viewport_size_pixels);
     }
 
-    pub fn flush_render_queue(&mut self)
+    pub fn finish_frame(&mut self)
+    {
+        self.flush_render_queue();
+        self.glyph_cache.on_new_frame_start();
+    }
+
+    fn flush_render_queue(&mut self)
     {
         if self.render_queue.is_empty() {
             return;

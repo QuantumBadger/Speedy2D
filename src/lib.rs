@@ -656,7 +656,7 @@ impl GLRenderer
     {
         self.renderer.set_clip(None);
         let result = callback(&mut self.renderer);
-        self.renderer.renderer.flush_render_queue();
+        self.renderer.renderer.finish_frame();
         result
     }
 }
