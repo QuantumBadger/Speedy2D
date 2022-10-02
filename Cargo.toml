@@ -29,6 +29,7 @@ rusttype = { version = "0.9" }
 unicode-normalization = "0.1"
 num-traits = "0.2"
 earcutr = "0.2.0"
+smallvec = "1.9.0"
 
 # For image_loading feature
 image = { version = "0.23", optional = true }

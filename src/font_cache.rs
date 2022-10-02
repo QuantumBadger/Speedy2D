@@ -36,6 +36,7 @@ use crate::renderer2d::{Renderer2DAction, Renderer2DVertex};
 use crate::shape::Rectangle;
 use crate::texture_packer::{TexturePacker, TexturePackerError};
 
+// TODO unnecessary?
 #[repr(transparent)]
 #[derive(Debug, Hash, Eq, PartialEq, Clone)]
 struct QuantizedDimension

@@ -313,7 +313,7 @@ use crate::glbackend::{GLBackendGLRS, GLBackendGlow};
 use crate::glwrapper::{GLContextManager, GLVersion};
 use crate::image::{ImageDataType, ImageHandle, ImageSmoothingMode, RawBitmapData};
 use crate::renderer2d::Renderer2D;
-use crate::shape::{Polygon, Rectangle};
+use crate::shape::{Polygon, Rect, Rectangle};
 #[cfg(target_arch = "wasm32")]
 use crate::web::WebCanvasElement;
 #[cfg(any(doc, doctest, feature = "windowing"))]
@@ -801,6 +801,26 @@ impl Graphics2D
     )
     {
         self.renderer.draw_text(position, color, text);
+    }
+
+    /// Draws the provided line of text at the specified position, cropped to
+    /// the specified window. Characters outside this window will not be
+    /// rendered. Characters partially inside the window will be cropped.
+    ///
+    /// Both `position` and `crop_window` are relative to the overall render
+    /// window.
+    ///
+    /// See the documentation for [draw_text] for more details.
+    pub fn draw_text_cropped<V: Into<Vec2>>(
+        &mut self,
+        position: V,
+        crop_window: Rect,
+        color: Color,
+        text: &Rc<FormattedTextBlock>
+    )
+    {
+        self.renderer
+            .draw_text_cropped(position, crop_window, color, text);
     }
 
     /// Draws a polygon with a single color, with the specified offset in

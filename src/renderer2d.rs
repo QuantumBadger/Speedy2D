@@ -28,11 +28,11 @@ use {
 use crate::color::Color;
 use crate::dimen::{UVec2, Vec2};
 use crate::error::{BacktraceError, Context, ErrorMessage};
-use crate::font::FormattedTextBlock;
+use crate::font::{FormattedGlyph, FormattedTextBlock};
 use crate::font_cache::GlyphCache;
 use crate::glwrapper::*;
 use crate::image::{ImageDataType, ImageHandle, ImageSmoothingMode};
-use crate::{Polygon, RawBitmapData, Rectangle};
+use crate::{Polygon, RawBitmapData, Rect, Rectangle};
 
 struct AttributeBuffers
 {
@@ -289,6 +289,15 @@ enum RenderQueueItem
         block: Rc<FormattedTextBlock>
     },
 
+    // TODO
+    #[allow(dead_code)]
+    FormattedTextGlyph
+    {
+        position: Vec2,
+        color: Color,
+        glyph: FormattedGlyph
+    },
+
     CircleSectionColored
     {
         vertex_positions_clockwise: [Vec2; 3],
@@ -332,6 +341,10 @@ impl RenderQueueItem
                             .get_renderer2d_actions(glyph, *position, *color, runner);
                     }
                 }
+            }
+
+            RenderQueueItem::FormattedTextGlyph { .. } => {
+                todo!()
             }
 
             RenderQueueItem::CircleSectionColored {
@@ -557,18 +570,23 @@ impl Renderer2D
         let mut has_text = false;
 
         for item in &self.render_queue {
-            if let RenderQueueItem::FormattedTextBlock {
-                block, position, ..
-            } = item
-            {
-                for line in block.iter_lines() {
-                    for glyph in line.iter_glyphs() {
-                        self.glyph_cache
-                            .add_to_cache(&self.context, glyph, *position);
+            match item {
+                RenderQueueItem::FormattedTextBlock { block, position, .. } => {
+                    for line in block.iter_lines() {
+                        for glyph in line.iter_glyphs() {
+                            self.glyph_cache.add_to_cache(&self.context, glyph, *position);
+                        }
                     }
-                }
 
-                has_text = true;
+                    has_text = true;
+                }
+                RenderQueueItem::FormattedTextGlyph { glyph, .. } => {
+                    self.glyph_cache.add_to_cache(&self.context, glyph);
+                    has_text = true;
+                }
+                RenderQueueItem::CircleSectionColored { .. }
+                | RenderQueueItem::TriangleColored { .. }
+                | RenderQueueItem::TriangleTextured { .. } => {}
             }
         }
 
@@ -578,6 +596,8 @@ impl Renderer2D
             }
         }
 
+        // TODO can get rid of `render_action_queue`? Could just iterate
+        //      Benchmark in debug mode
         {
             let current_texture = &mut self.current_texture;
             let context = &self.context;
@@ -827,6 +847,22 @@ impl Renderer2D
     pub(crate) fn draw_text<V: Into<Vec2>>(
         &mut self,
         position: V,
+        color: Color,
+        text: &Rc<FormattedTextBlock>
+    )
+    {
+        self.add_to_render_queue(RenderQueueItem::FormattedTextBlock {
+            position: position.into(),
+            color,
+            block: text.clone()
+        })
+    }
+
+    #[inline]
+    pub(crate) fn draw_text_cropped<V: Into<Vec2>>(
+        &mut self,
+        position: V,
+        _crop_window: Rect,
         color: Color,
         text: &Rc<FormattedTextBlock>
     )
