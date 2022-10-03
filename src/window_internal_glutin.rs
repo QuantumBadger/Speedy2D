@@ -153,7 +153,15 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
                     err
                 )
             })?;
-        let grabbed_enum = if grabbed { CursorGrabMode::None } else { CursorGrabMode::Confined };
+            
+        let grabbed_enum: CursorGrabMode = if grabbed { 
+            if cfg!(target_os = "linux") | cfg!(target_os = "windows") {
+                CursorGrabMode::Confined 
+            } else {
+                CursorGrabMode::Locked
+            }
+        } else { CursorGrabMode::None };
+        
         match self.window_context.window().set_cursor_grab(grabbed_enum) {
             Ok(_) => {
                 self.is_mouse_grabbed.set(grabbed);
