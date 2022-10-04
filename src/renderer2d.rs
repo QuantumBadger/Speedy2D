@@ -316,8 +316,8 @@ impl RenderQueueItem
     #[inline]
     fn generate_actions(
         &self,
-        output: &mut Vec<Renderer2DAction>,
-        glyph_cache: &GlyphCache
+        glyph_cache: &GlyphCache,
+        runner: &mut impl FnMut(Renderer2DAction)
     )
     {
         match self {
@@ -329,7 +329,7 @@ impl RenderQueueItem
                 for line in block.iter_lines() {
                     for glyph in line.iter_glyphs() {
                         glyph_cache
-                            .get_renderer2d_actions(glyph, *position, *color, output);
+                            .get_renderer2d_actions(glyph, *position, *color, runner);
                     }
                 }
             }
@@ -338,7 +338,7 @@ impl RenderQueueItem
                 vertex_positions_clockwise,
                 vertex_colors_clockwise,
                 vertex_normalized_circle_coords_clockwise
-            } => output.push(Renderer2DAction {
+            } => runner(Renderer2DAction {
                 texture: None,
                 vertices_clockwise: [
                     Renderer2DVertex {
@@ -368,7 +368,7 @@ impl RenderQueueItem
             RenderQueueItem::TriangleColored {
                 vertex_positions_clockwise,
                 vertex_colors_clockwise
-            } => output.push(Renderer2DAction {
+            } => runner(Renderer2DAction {
                 texture: None,
                 vertices_clockwise: [
                     Renderer2DVertex {
@@ -400,7 +400,7 @@ impl RenderQueueItem
                 vertex_colors_clockwise,
                 vertex_texture_coords_clockwise,
                 texture
-            } => output.push(Renderer2DAction {
+            } => runner(Renderer2DAction {
                 texture: Some(texture.clone()),
                 vertices_clockwise: [
                     Renderer2DVertex {
@@ -437,7 +437,6 @@ pub struct Renderer2D
     program: Rc<GLProgram>,
 
     render_queue: Vec<RenderQueueItem>,
-    render_action_queue: Vec<Renderer2DAction>,
 
     glyph_cache: GlyphCache,
     attribute_buffers: AttributeBuffers,
@@ -526,7 +525,6 @@ impl Renderer2D
             context: context.clone(),
             program,
             render_queue: Vec::new(),
-            render_action_queue: Vec::new(),
             glyph_cache: GlyphCache::new(),
             attribute_buffers,
             current_texture: None,
@@ -554,7 +552,6 @@ impl Renderer2D
             return;
         }
 
-        self.render_action_queue.clear();
         self.attribute_buffers.clear();
 
         let mut has_text = false;
@@ -581,28 +578,31 @@ impl Renderer2D
             }
         }
 
-        for item in &self.render_queue {
-            item.generate_actions(&mut self.render_action_queue, &self.glyph_cache);
+        {
+            let current_texture = &mut self.current_texture;
+            let context = &self.context;
+            let program = &self.program;
+            let attribute_buffers = &mut self.attribute_buffers;
+
+            for item in &self.render_queue {
+                item.generate_actions(&self.glyph_cache, &mut |action| {
+                    if !action.update_current_texture_if_empty(current_texture) {
+                        Renderer2D::draw_buffers(
+                            context,
+                            program,
+                            attribute_buffers,
+                            current_texture
+                        );
+
+                        *current_texture = action.texture.clone();
+                    }
+
+                    action.append_to_attribute_buffers(attribute_buffers);
+                });
+            }
         }
 
         self.render_queue.clear();
-
-        for action in &self.render_action_queue {
-            if !action.update_current_texture_if_empty(&mut self.current_texture) {
-                Renderer2D::draw_buffers(
-                    &self.context,
-                    &self.program,
-                    &mut self.attribute_buffers,
-                    &mut self.current_texture
-                );
-
-                self.current_texture = action.texture.clone();
-            }
-
-            action.append_to_attribute_buffers(&mut self.attribute_buffers);
-        }
-
-        self.render_action_queue.clear();
 
         Renderer2D::draw_buffers(
             &self.context,

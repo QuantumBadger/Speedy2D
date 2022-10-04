@@ -120,7 +120,7 @@ impl GlyphCache
         glyph: &font::FormattedGlyph,
         position: Vec2,
         color: Color,
-        output: &mut Vec<Renderer2DAction>
+        runner: &mut impl FnMut(Renderer2DAction)
     )
     {
         let positioned_glyph = glyph.glyph();
@@ -162,7 +162,7 @@ impl GlyphCache
         )
         .into_f32();
 
-        output.push(Renderer2DAction {
+        runner(Renderer2DAction {
             texture: Some(texture_cache.texture.clone()),
             vertices_clockwise: [
                 Renderer2DVertex {
@@ -189,7 +189,7 @@ impl GlyphCache
             ]
         });
 
-        output.push(Renderer2DAction {
+        runner(Renderer2DAction {
             texture: Some(texture_cache.texture.clone()),
             vertices_clockwise: [
                 Renderer2DVertex {

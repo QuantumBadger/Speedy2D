@@ -104,6 +104,10 @@ required-features = ["windowing", "image-loading"]
 name = "mouse_grab"
 required-features = ["windowing"]
 
+[[example]]
+name = "moving_text"
+required-features = ["windowing"]
+
 [workspace]
 members = [
     "examples/webgl",
