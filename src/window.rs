@@ -1060,7 +1060,7 @@ pub struct WindowCreationOptions
     pub(crate) maximized: bool,
     pub(crate) transparent: bool,
     pub(crate) decorations: bool,
-    pub(crate) mouse_passthrough: bool,
+    pub(crate) mouse_passthrough: bool
 }
 
 impl WindowCreationOptions
