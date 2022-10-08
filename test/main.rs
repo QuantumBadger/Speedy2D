@@ -28,7 +28,7 @@ use speedy2d::color::Color;
 use speedy2d::dimen::{Vec2, Vector2};
 use speedy2d::font::{Font, TextAlignment, TextLayout, TextOptions};
 use speedy2d::image::{ImageDataType, ImageSmoothingMode};
-use speedy2d::shape::{Polygon, Rectangle};
+use speedy2d::shape::{Polygon, Rect, Rectangle};
 use speedy2d::GLRenderer;
 
 const NOTO_SANS_REGULAR_BYTES: &[u8] =
@@ -377,6 +377,48 @@ fn main()
                 graphics.draw_text(Vec2::new(0.0, 300.0), Color::BLUE, &text);
 
                 graphics.draw_text(Vec2::new(0.0, 400.0), Color::WHITE, &text);
+            });
+        })
+    });
+
+    tests.push(GLTest {
+        width: 800,
+        height: 800,
+        name: "cropped_text".to_string(),
+        action: Box::new(|renderer| {
+            let typeface = Font::new(NOTO_SANS_REGULAR_BYTES).unwrap();
+
+            let lorem = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed \
+                         do eiusmod tempor incididunt ut labore et dolore magna aliqua. \
+                         Ut enim ad minim veniam, quis nostrud exercitation ullamco \
+                         laboris nisi ut aliquip ex ea commodo consequat. Duis aute \
+                         irure dolor in reprehenderit in voluptate velit esse cillum \
+                         dolore eu fugiat nulla pariatur. Excepteur sint occaecat \
+                         cupidatat non proident, sunt in culpa qui officia deserunt \
+                         mollit anim id est laborum.";
+
+            let text = typeface.layout_text(
+                lorem,
+                40.0,
+                TextOptions::new().with_wrap_to_width(300.0, TextAlignment::Left)
+            );
+
+            renderer.draw_frame(|graphics| {
+                graphics.clear_screen(Color::WHITE);
+
+                graphics.draw_text_cropped(
+                    (20.0, 20.0),
+                    Rect::from_tuples((100.0, 100.0), (150.0, 250.0)),
+                    Color::BLUE,
+                    &text
+                );
+
+                graphics.draw_text_cropped(
+                    (20.0, 20.0),
+                    Rect::from_tuples((150.0, 100.0), (280.0, 250.0)),
+                    Color::RED,
+                    &text
+                );
             });
         })
     });

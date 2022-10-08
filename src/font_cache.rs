@@ -24,7 +24,6 @@ use std::rc::Rc;
 use crate::color::Color;
 use crate::dimen::{IVec2, UVec2, Vec2};
 use crate::error::{BacktraceError, Context, ErrorMessage};
-use crate::font;
 use crate::glwrapper::{
     GLContextManager,
     GLTexture,
@@ -35,6 +34,7 @@ use crate::numeric::RoundFloat;
 use crate::renderer2d::{Renderer2DAction, Renderer2DVertex};
 use crate::shape::Rectangle;
 use crate::texture_packer::{TexturePacker, TexturePackerError};
+use crate::{font, Rect};
 
 #[repr(transparent)]
 #[derive(Debug, Hash, Eq, PartialEq, Clone)]
@@ -120,6 +120,7 @@ impl GlyphCache
         glyph: &font::FormattedGlyph,
         position: Vec2,
         color: Color,
+        crop_window: Option<&Rect>,
         runner: &mut impl FnMut(Renderer2DAction)
     )
     {
@@ -138,7 +139,7 @@ impl GlyphCache
 
         let texture_size = GlyphCacheTexture::SIZE as f32;
 
-        let texture_region = Rectangle::new(
+        let mut texture_region = Rectangle::new(
             texture_entry
                 .texture_area
                 .top_left()
@@ -156,11 +157,46 @@ impl GlyphCache
         // We round the position here as the offset is between -0.5 and 0.5
         let screen_region_start = position.round().into_i32() + entry.bounding_box_offset;
 
-        let screen_region = Rectangle::new(
+        let mut screen_region = Rectangle::new(
             screen_region_start,
             screen_region_start + texture_entry.texture_area.size().into_i32()
         )
         .into_f32();
+
+        if let Some(crop_window) = crop_window {
+            if let Some(screen_intersection) = screen_region.intersect(crop_window) {
+                let left_diff = (screen_intersection.top_left().x
+                    - screen_region.top_left().x)
+                    / screen_region.width();
+                let right_diff = (screen_region.bottom_right().x
+                    - screen_intersection.bottom_right().x)
+                    / screen_region.width();
+
+                let top_diff = (screen_intersection.top_left().y
+                    - screen_region.top_left().y)
+                    / screen_region.height();
+                let bottom_diff = (screen_region.bottom_right().y
+                    - screen_intersection.bottom_right().y)
+                    / screen_region.height();
+
+                texture_region = Rectangle::new(
+                    texture_region.top_left()
+                        + Vec2::new(
+                            texture_region.width() * left_diff,
+                            texture_region.height() * top_diff
+                        ),
+                    texture_region.bottom_right()
+                        - Vec2::new(
+                            texture_region.width() * right_diff,
+                            texture_region.height() * bottom_diff
+                        )
+                );
+
+                screen_region = screen_intersection;
+            } else {
+                return;
+            }
+        }
 
         runner(Renderer2DAction {
             texture: Some(texture_cache.texture.clone()),

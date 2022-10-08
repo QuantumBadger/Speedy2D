@@ -26,11 +26,12 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::vec::IntoIter;
 
 use rusttype::Scale;
+use smallvec::{smallvec, SmallVec};
 use unicode_normalization::UnicodeNormalization;
 
 use crate::dimen::{Vec2, Vector2};
 use crate::error::{BacktraceError, ErrorMessage};
-use crate::shape::Rectangle;
+use crate::shape::{Rect, Rectangle};
 
 static FONT_ID_GENERATOR: AtomicUsize = AtomicUsize::new(10000);
 
@@ -43,6 +44,9 @@ pub type UserGlyphIndex = u32;
 /// An internal identifier for a font. Each font which is loaded receives a
 /// unique ID.
 pub type FontId = usize;
+
+type FormattedGlyphVec = SmallVec<[FormattedGlyph; 8]>;
+type FormattedTextLineVec = SmallVec<[Rc<FormattedTextLine>; 1]>;
 
 /// A struct representing a Unicode codepoint, for the purposes of text layout.
 /// The `user_index` field allows you to determine which output glyph
@@ -339,13 +343,13 @@ fn try_layout_word_internal<T: TextLayout + ?Sized>(
     pos_y_baseline: f32,
     first_word_on_line: bool,
     previous_metrics: &LineLayoutMetrics,
-    output: &mut Vec<FormattedGlyph>
+    output: &mut FormattedGlyphVec
 ) -> WordLayoutResult
 {
     let mut new_word_metrics = previous_metrics.clone();
     let pos_x_max = options.wrap_words_after_width;
 
-    let mut glyphs = Vec::new();
+    let mut glyphs = FormattedGlyphVec::new();
 
     for (
         i,
@@ -442,7 +446,7 @@ fn layout_line_internal<T: TextLayout + ?Sized>(
 ) -> FormattedTextLine
 {
     let mut line_metrics = LineLayoutMetrics::new();
-    let mut glyphs = Vec::new();
+    let mut glyphs = SmallVec::new();
 
     let mut first_word_on_line = true;
 
@@ -509,7 +513,7 @@ fn layout_multiple_lines_internal<T: TextLayout + ?Sized>(
     let mut iterator = WordsIterator::from(Word::split_words(codepoints));
 
     let mut pos_y = 0.0;
-    let mut lines = Vec::new();
+    let mut lines = SmallVec::new();
 
     let mut width = 0.0;
 
@@ -920,6 +924,42 @@ impl FormattedGlyph
         self.user_index
     }
 
+    /// The `x` coordinate of this glyph, relative to the start of the line
+    #[inline]
+    #[must_use]
+    pub fn position_x(&self) -> f32
+    {
+        self.glyph.position().x
+    }
+
+    /// The character's advance width. In the absence of any kerning
+    /// information, this would represent the horizontal distance between
+    /// the position of this character, and the position of the next
+    /// character.
+    #[inline]
+    #[must_use]
+    pub fn advance_width(&self) -> f32
+    {
+        self.glyph.unpositioned().h_metrics().advance_width
+    }
+
+    /// The bounding box of this glyph in pixels. This encloses the
+    /// total renderable area of the glyph.
+    ///
+    /// Some glyphs, such as a space, might not render anything at all -- in
+    /// this case, this function will return `None`.
+    #[inline]
+    #[must_use]
+    pub fn pixel_bounding_box(&self) -> Option<Rect>
+    {
+        self.glyph.pixel_bounding_box().map(|r| {
+            Rect::from_tuples(
+                (r.min.x as f32, r.min.y as f32),
+                (r.max.x as f32, r.max.y as f32)
+            )
+        })
+    }
+
     #[inline]
     fn reposition_y(&mut self, y_pos: f32)
     {
@@ -940,7 +980,7 @@ impl FormattedGlyph
 /// Represents a block of text which has been laid out.
 pub struct FormattedTextBlock
 {
-    lines: Vec<Rc<FormattedTextLine>>,
+    lines: FormattedTextLineVec,
     width: f32,
     height: f32
 }
@@ -982,7 +1022,7 @@ impl FormattedTextBlock
 /// Represents a line of text which has been laid out as part of a block.
 pub struct FormattedTextLine
 {
-    glyphs: Vec<FormattedGlyph>,
+    glyphs: FormattedGlyphVec,
     baseline_vertical_position: f32,
     width: f32,
     height: f32,
@@ -998,6 +1038,19 @@ impl FormattedTextLine
     pub fn iter_glyphs(&self) -> Iter<'_, FormattedGlyph>
     {
         self.glyphs.iter()
+    }
+
+    /// Convert this line of text into an individually-renderable block (while
+    /// maintaining the same vertical offset).
+    #[inline]
+    #[must_use]
+    pub fn as_block(self: &Rc<Self>) -> FormattedTextBlock
+    {
+        FormattedTextBlock {
+            lines: smallvec![self.clone()],
+            width: self.width,
+            height: self.height
+        }
     }
 
     /// The width (in pixels) of this text line.

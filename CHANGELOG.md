@@ -133,6 +133,12 @@ Thanks to [UdHo](https://github.com/UdHo)
 
 ## 1.9.0
 
-* Added `Graphics2D::capture()` API, for capturing the current contents of the window
+### New APIs
+
+* `Graphics2D::draw_text_cropped()`, for efficiently drawing a block of text cropped to the specified area
+* `Graphics2D::capture()`, for capturing the current contents of the window
 * Added assignment operators (`+=`, `-=`, `*=`, `/=`) to `Vector2` (thanks to [amarao](https://github.com/amarao))
+
+### Fixes
+
 * Text drawn at a non-pixel-aligned position was getting snapped to the nearest pixel -- this is now fixed.
