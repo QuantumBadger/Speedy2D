@@ -21,7 +21,8 @@ use std::time::Instant;
 
 use speedy2d::color::Color;
 use speedy2d::dimen::Vec2;
-use speedy2d::font::{Font, FormattedTextBlock, TextLayout, TextOptions};
+use speedy2d::font::{Font, FormattedTextBlock, TextAlignment, TextLayout, TextOptions};
+use speedy2d::shape::Rect;
 use speedy2d::window::{WindowHandler, WindowHelper};
 use speedy2d::{Graphics2D, Window};
 
@@ -32,8 +33,19 @@ fn main()
     let window = Window::new_centered("Speedy2D: Moving Text", (800, 800)).unwrap();
 
     let font = Font::new(include_bytes!("../assets/fonts/NotoSans-Regular.ttf")).unwrap();
+    let lorem = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do \
+                 eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad \
+                 minim veniam, quis nostrud exercitation ullamco laboris nisi ut \
+                 aliquip ex ea commodo consequat. Duis aute irure dolor in \
+                 reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla \
+                 pariatur. Excepteur sint occaecat cupidatat non proident, sunt in \
+                 culpa qui officia deserunt mollit anim id est laborum.";
 
-    let text = font.layout_text("Hello world!", 64.0, TextOptions::new());
+    let text = font.layout_text(
+        lorem,
+        48.0,
+        TextOptions::new().with_wrap_to_width(500.0, TextAlignment::Left)
+    );
 
     window.run_loop(MyWindowHandler {
         text,
@@ -61,7 +73,11 @@ impl WindowHandler for MyWindowHandler
         let position =
             center + Vec2::new(elapsed_secs.cos() * offset, elapsed_secs.sin() * offset);
 
-        graphics.draw_text(position, Color::BLACK, &self.text);
+        let crop_window = Rect::from_tuples((250.0, 250.0), (400.0, 400.0));
+
+        graphics.draw_rectangle(crop_window.clone(), Color::from_rgb(0.9, 0.9, 0.8));
+
+        graphics.draw_text_cropped(position, crop_window, Color::BLACK, &self.text);
 
         // Request that we draw another frame once this one has finished
         helper.request_redraw();

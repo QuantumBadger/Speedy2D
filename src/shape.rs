@@ -15,7 +15,7 @@
  */
 
 use crate::dimen::{Vec2, Vector2};
-use crate::numeric::PrimitiveZero;
+use crate::numeric::{max, min, PrimitiveZero};
 
 /// A struct representing an axis-aligned rectangle. Two points are stored: the
 /// top left vertex, and the bottom right vertex.
@@ -141,7 +141,7 @@ impl<T: PartialOrd<T> + Copy> Rectangle<T>
     }
 }
 
-impl<T: Ord + Copy> Rectangle<T>
+impl<T: PartialOrd + Copy> Rectangle<T>
 {
     /// Finds the intersection of two rectangles -- in other words, the area
     /// that is common to both of them.
@@ -154,18 +154,16 @@ impl<T: Ord + Copy> Rectangle<T>
     {
         let result = Self {
             top_left: Vector2::new(
-                self.top_left.x.max(other.top_left.x),
-                self.top_left.y.max(other.top_left.y)
+                max(self.top_left.x, other.top_left.x),
+                max(self.top_left.y, other.top_left.y)
             ),
             bottom_right: Vector2::new(
-                self.bottom_right.x.min(other.bottom_right.x),
-                self.bottom_right.y.min(other.bottom_right.y)
+                min(self.bottom_right.x, other.bottom_right.x),
+                min(self.bottom_right.y, other.bottom_right.y)
             )
         };
 
-        if result.top_left.x < result.bottom_right.x
-            && result.top_left.y < result.bottom_right.y
-        {
+        if result.is_positive_area() {
             Some(result)
         } else {
             None
@@ -187,6 +185,16 @@ impl<T: PartialEq> Rectangle<T>
     pub fn is_zero_area(&self) -> bool
     {
         self.top_left.x == self.bottom_right.x || self.top_left.y == self.bottom_right.y
+    }
+}
+
+impl<T: PartialOrd> Rectangle<T>
+{
+    /// Returns `true` if the rectangle has an area greater than zero.
+    #[inline]
+    pub fn is_positive_area(&self) -> bool
+    {
+        self.top_left.x < self.bottom_right.x && self.top_left.y < self.bottom_right.y
     }
 }
 

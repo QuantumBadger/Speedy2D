@@ -295,7 +295,8 @@ enum RenderQueueItem
     {
         position: Vec2,
         color: Color,
-        glyph: FormattedGlyph
+        glyph: FormattedGlyph,
+        crop_window: Rect
     },
 
     CircleSectionColored
@@ -337,14 +338,26 @@ impl RenderQueueItem
             } => {
                 for line in block.iter_lines() {
                     for glyph in line.iter_glyphs() {
-                        glyph_cache
-                            .get_renderer2d_actions(glyph, *position, *color, runner);
+                        glyph_cache.get_renderer2d_actions(
+                            glyph, *position, *color, None, runner
+                        );
                     }
                 }
             }
 
-            RenderQueueItem::FormattedTextGlyph { .. } => {
-                todo!()
+            RenderQueueItem::FormattedTextGlyph {
+                glyph,
+                position,
+                color,
+                crop_window
+            } => {
+                glyph_cache.get_renderer2d_actions(
+                    glyph,
+                    *position,
+                    *color,
+                    Some(crop_window),
+                    runner
+                );
             }
 
             RenderQueueItem::CircleSectionColored {
@@ -571,17 +584,26 @@ impl Renderer2D
 
         for item in &self.render_queue {
             match item {
-                RenderQueueItem::FormattedTextBlock { block, position, .. } => {
+                RenderQueueItem::FormattedTextBlock {
+                    block, position, ..
+                } => {
                     for line in block.iter_lines() {
                         for glyph in line.iter_glyphs() {
-                            self.glyph_cache.add_to_cache(&self.context, glyph, *position);
+                            self.glyph_cache.add_to_cache(
+                                &self.context,
+                                glyph,
+                                *position
+                            );
                         }
                     }
 
                     has_text = true;
                 }
-                RenderQueueItem::FormattedTextGlyph { glyph, .. } => {
-                    self.glyph_cache.add_to_cache(&self.context, glyph);
+                RenderQueueItem::FormattedTextGlyph {
+                    glyph, position, ..
+                } => {
+                    self.glyph_cache
+                        .add_to_cache(&self.context, glyph, *position);
                     has_text = true;
                 }
                 RenderQueueItem::CircleSectionColored { .. }
@@ -596,8 +618,6 @@ impl Renderer2D
             }
         }
 
-        // TODO can get rid of `render_action_queue`? Could just iterate
-        //      Benchmark in debug mode
         {
             let current_texture = &mut self.current_texture;
             let context = &self.context;
@@ -858,20 +878,35 @@ impl Renderer2D
         })
     }
 
+    // TODO add tests for cropped text
+    // TODO go through remaining TODOs
+
     #[inline]
     pub(crate) fn draw_text_cropped<V: Into<Vec2>>(
         &mut self,
         position: V,
-        _crop_window: Rect,
+        crop_window: Rect,
         color: Color,
         text: &Rc<FormattedTextBlock>
     )
     {
-        self.add_to_render_queue(RenderQueueItem::FormattedTextBlock {
-            position: position.into(),
-            color,
-            block: text.clone()
-        })
+        let position = position.into();
+
+        for line in text.iter_lines() {
+            for glyph in line.iter_glyphs() {
+                if let Some(glyph_outline) = glyph.pixel_bounding_box() {
+                    let glyph_outline = glyph_outline.with_offset(position);
+                    if glyph_outline.intersect(&crop_window).is_some() {
+                        self.add_to_render_queue(RenderQueueItem::FormattedTextGlyph {
+                            position,
+                            color,
+                            glyph: glyph.clone(),
+                            crop_window: crop_window.clone()
+                        })
+                    }
+                }
+            }
+        }
     }
 
     #[inline]

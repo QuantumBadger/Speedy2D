@@ -810,7 +810,7 @@ impl Graphics2D
     /// Both `position` and `crop_window` are relative to the overall render
     /// window.
     ///
-    /// See the documentation for [draw_text] for more details.
+    /// See the documentation for [Graphics2D::draw_text] for more details.
     pub fn draw_text_cropped<V: Into<Vec2>>(
         &mut self,
         position: V,
