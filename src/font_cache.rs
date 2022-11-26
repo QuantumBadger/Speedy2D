@@ -411,7 +411,7 @@ impl GlyphCache
     fn try_insert_pending(&mut self) -> Result<(), GlyphCacheTextureAppendError>
     {
         for (key, entry) in &mut self.cache_entries {
-            if entry.texture_id == None {
+            if entry.texture_id.is_none() {
                 let texture_id = Self::try_append_to_existing_texture(
                     &mut self.textures,
                     key,
