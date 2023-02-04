@@ -148,3 +148,7 @@ Thanks to [UdHo](https://github.com/UdHo)
 ### New APIs
 
 * `Rectangle::as_f32()`
+
+### Fixes
+
+* Fix for issue #55 (text appearing as solid rectangles due to texture not being unbound correctly)
