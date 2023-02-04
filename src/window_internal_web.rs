@@ -1060,9 +1060,7 @@ impl WebCanvasImpl
                         Some(
                             window
                                 .clone()
-                                .match_media(
-                                    format!("(resolution: {}dppx", new_dpr).as_str()
-                                )
+                                .match_media(&format!("(resolution: {new_dpr}dppx"))
                                 .unwrap()
                                 .register_event_listener_media_event_list_once(
                                     "change",

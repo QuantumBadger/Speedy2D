@@ -154,7 +154,7 @@ impl WebWindow
             self.window
                 .match_media(query)
                 .map_err(|original| {
-                    ErrorMessage::msg(format!("matchMedia() failed: {:?}", original))
+                    ErrorMessage::msg(format!("matchMedia() failed: {original:?}"))
                 })?
                 .ok_or_else(|| ErrorMessage::msg("matchMedia() returned null"))?
         )
@@ -170,7 +170,7 @@ impl WebWindow
             .window
             .request_animation_frame(callback.borrow_mut().as_ref().unchecked_ref())
             .map_err(|err| {
-                ErrorMessage::msg(format!("Failed to request animation frame: {:?}", err))
+                ErrorMessage::msg(format!("Failed to request animation frame: {err:?}"))
             })?;
 
         let window = self.window.clone();
@@ -178,9 +178,9 @@ impl WebWindow
         Ok(WebPending::new_with_status(move |status| {
             if status == Active {
                 if let Err(err) = window.cancel_animation_frame(frame_id) {
-                    log::error!("Failed to cancel animation frame: {:?}", err)
+                    log::error!("Failed to cancel animation frame: {err:?}")
                 } else {
-                    log::info!("Cancelled animation frame {}", frame_id)
+                    log::info!("Cancelled animation frame {frame_id}")
                 }
             }
         }))
@@ -196,7 +196,7 @@ impl WebWindow
             .window
             .set_timeout_with_callback(callback.borrow_mut().as_ref().unchecked_ref())
             .map_err(|err| {
-                ErrorMessage::msg(format!("Failed to request animation frame: {:?}", err))
+                ErrorMessage::msg(format!("Failed to request animation frame: {err:?}"))
             })?;
 
         let window = self.window.clone();
@@ -335,8 +335,7 @@ impl WebElement
             element,
             html_element: self.element.dyn_into::<HtmlElement>().map_err(|err| {
                 ErrorMessage::msg(format!(
-                    "Failed to convert Element to HtmlElement: '{:?}'",
-                    err
+                    "Failed to convert Element to HtmlElement: '{err:?}'"
                 ))
             })?
         })
@@ -405,8 +404,7 @@ impl WebHtmlElement
             .dyn_into::<HtmlCanvasElement>()
             .map_err(|err| {
                 ErrorMessage::msg(format!(
-                    "Failed to convert element to canvas: '{:?}'",
-                    err
+                    "Failed to convert element to canvas: '{err:?}'"
                 ))
             })?;
 
@@ -470,16 +468,14 @@ impl WebCanvasElement
             .get_context("webgl2")
             .map_err(|err| {
                 GLRendererCreationError::msg(format!(
-                    "Failed to get WebGL2 context: '{:?}'",
-                    err
+                    "Failed to get WebGL2 context: '{err:?}'"
                 ))
             })?
             .ok_or_else(|| GLRendererCreationError::msg("WebGL2 context not available"))?
             .dyn_into::<web_sys::WebGl2RenderingContext>()
             .map_err(|err| {
                 GLRendererCreationError::msg(format!(
-                    "Failed to convert object to rendering context: '{:?}'",
-                    err
+                    "Failed to convert object to rendering context: '{err:?}'"
                 ))
             })?;
 
@@ -616,10 +612,7 @@ impl WebEventTarget
     {
         Ok(WebEventTarget {
             target: element.dyn_into().map_err(|original| {
-                ErrorMessage::msg(format!(
-                    "Failed to cast to EventTarget: {:?}",
-                    original
-                ))
+                ErrorMessage::msg(format!("Failed to cast to EventTarget: {original:?}"))
             })?
         })
     }
@@ -695,8 +688,7 @@ impl WebEventTarget
             )
             .map_err(|err| {
                 ErrorMessage::msg(format!(
-                    "Failed to register {} callback: '{:?}'",
-                    listener_type, err
+                    "Failed to register {listener_type} callback: '{err:?}'"
                 ))
             })?;
 
