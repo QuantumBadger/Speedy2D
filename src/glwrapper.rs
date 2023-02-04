@@ -980,10 +980,21 @@ impl GLContextManager
                 return;
             }
 
+            if RefCell::borrow(&self.state)
+                .active_texture
+                .as_ref()
+                .is_none()
+            {
+                // Already unbound
+                return;
+            }
+
             self.with_gl_backend(|backend| unsafe {
                 backend.gl_active_texture(GL_TEXTURE0);
                 backend.gl_bind_texture(GL_TEXTURE_2D, 0);
             });
+
+            RefCell::borrow_mut(&self.state).active_texture = None;
         }
     }
 

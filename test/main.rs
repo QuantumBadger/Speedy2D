@@ -177,6 +177,36 @@ fn main()
     let mut tests = Vec::new();
 
     tests.push(GLTest {
+        width: 500,
+        height: 500,
+        name: "issue_55_text_cache_empty".to_string(),
+        action: Box::new(|renderer| {
+            let typeface = Font::new(NOTO_SANS_REGULAR_BYTES).unwrap();
+
+            let text = typeface.layout_text(
+                "The quick brown föx jumped over the lazy dog!",
+                14.0,
+                TextOptions::new()
+            );
+
+            for i in 0..10 {
+                renderer.draw_frame(|graphics| {
+                    graphics.clear_screen(Color::WHITE);
+
+                    graphics.draw_rectangle(
+                        Rectangle::from_tuples((10.0, 20.0), (30.0, 40.0)),
+                        Color::MAGENTA
+                    );
+
+                    if i == 0 || i == 9 {
+                        graphics.draw_text(Vec2::new(0.0, 0.0), Color::BLACK, &text);
+                    }
+                });
+            }
+        })
+    });
+
+    tests.push(GLTest {
         width: 50,
         height: 50,
         name: "basic_rectangles".to_string(),
