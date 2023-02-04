@@ -347,8 +347,7 @@ impl GLProgram
             } else {
                 let msg = backend.gl_get_program_info_log(program.get_handle())?;
                 Err(ErrorMessage::msg(format!(
-                    "Program linking failed: '{}'",
-                    msg
+                    "Program linking failed: '{msg}'"
                 )))
             }
         })?;
@@ -409,8 +408,7 @@ impl GLProgram
 
         match handle {
             None => Err(ErrorMessage::msg(format!(
-                "Attribute handle {} is invalid",
-                name
+                "Attribute handle {name} is invalid"
             ))),
             Some(handle) => Ok(GLAttributeHandle { handle })
         }
@@ -434,8 +432,7 @@ impl GLProgram
 
         match handle {
             None => Err(ErrorMessage::msg(format!(
-                "Uniform handle {} is invalid",
-                name
+                "Uniform handle {name} is invalid"
             ))),
             Some(handle) => Ok(GLUniformHandle { handle })
         }

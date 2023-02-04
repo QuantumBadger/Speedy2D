@@ -156,7 +156,7 @@ impl From<GLErrorCode> for BacktraceError<ErrorMessage>
 {
     fn from(err: GLErrorCode) -> Self
     {
-        ErrorMessage::msg(format!("Got GL error code {:?}", err))
+        ErrorMessage::msg(format!("Got GL error code {err:?}"))
     }
 }
 
@@ -587,7 +587,7 @@ impl GLBackend for GLBackendGlow
     ) -> Result<GLTypeProgram, BacktraceError<ErrorMessage>>
     {
         let handle = self.context.create_program().map_err(|err| {
-            ErrorMessage::msg(format!("Failed to create program: {}", err))
+            ErrorMessage::msg(format!("Failed to create program: {err}"))
         })?;
 
         Ok(handle)
@@ -599,7 +599,7 @@ impl GLBackend for GLBackendGlow
     ) -> Result<GLTypeShader, BacktraceError<ErrorMessage>>
     {
         let handle = self.context.create_shader(shader_type).map_err(|err| {
-            ErrorMessage::msg(format!("Failed to create shader: {}", err))
+            ErrorMessage::msg(format!("Failed to create shader: {err}"))
         })?;
 
         Ok(handle)
@@ -608,7 +608,7 @@ impl GLBackend for GLBackendGlow
     unsafe fn gl_gen_buffer(&self) -> Result<GLTypeBuffer, BacktraceError<ErrorMessage>>
     {
         let handle = self.context.create_buffer().map_err(|err| {
-            ErrorMessage::msg(format!("Failed to create buffer: {}", err))
+            ErrorMessage::msg(format!("Failed to create buffer: {err}"))
         })?;
 
         Ok(handle)
@@ -618,7 +618,7 @@ impl GLBackend for GLBackendGlow
         -> Result<GLTypeTexture, BacktraceError<ErrorMessage>>
     {
         let handle = self.context.create_texture().map_err(|err| {
-            ErrorMessage::msg(format!("Failed to create texture: {}", err))
+            ErrorMessage::msg(format!("Failed to create texture: {err}"))
         })?;
 
         Ok(handle)
@@ -1162,8 +1162,7 @@ impl GLBackendGLRS
 
         if log_buf_length < 0 || log_buf_length > log_buf_capacity {
             return Err(ErrorMessage::msg(format!(
-                "GL info log failed, log had invalid length {}",
-                log_buf_length
+                "GL info log failed, log had invalid length {log_buf_length}"
             )));
         }
 
