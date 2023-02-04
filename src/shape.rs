@@ -248,6 +248,18 @@ impl<T: num_traits::AsPrimitive<f32>> Rectangle<T>
     }
 }
 
+impl<T: num_traits::AsPrimitive<f32> + Copy> Rectangle<T>
+{
+    /// Returns a new rectangle where the coordinates have been cast to `f32`
+    /// values, using the `as` operator.
+    #[inline]
+    #[must_use]
+    pub fn as_f32(&self) -> Rectangle<f32>
+    {
+        Rectangle::new(self.top_left.into_f32(), self.bottom_right.into_f32())
+    }
+}
+
 /// A struct representing a polygon.
 #[derive(Debug, Clone)]
 pub struct Polygon
