@@ -179,6 +179,32 @@ fn main()
     tests.push(GLTest {
         width: 500,
         height: 500,
+        name: "issue_74_image_handle_drop".to_string(),
+        action: Box::new(|renderer| {
+            for i in 0..4 {
+                renderer.draw_frame(|graphics| {
+                    if i == 0 {
+                        graphics
+                            .create_image_from_file_path(
+                                Some(speedy2d::image::ImageFileFormat::PNG),
+                                speedy2d::image::ImageSmoothingMode::Linear,
+                                "test/assets/expected_images/test_half_circle.png"
+                            )
+                            .unwrap();
+                    }
+                    graphics.draw_circle(
+                        Vec2::new(100.0, 150.0),
+                        50.0,
+                        Color::from_gray(0.0)
+                    );
+                });
+            }
+        })
+    });
+
+    tests.push(GLTest {
+        width: 500,
+        height: 500,
         name: "issue_55_text_cache_empty".to_string(),
         action: Box::new(|renderer| {
             let typeface = Font::new(NOTO_SANS_REGULAR_BYTES).unwrap();

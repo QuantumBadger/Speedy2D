@@ -994,7 +994,9 @@ impl GLContextManager
                 backend.gl_bind_texture(GL_TEXTURE_2D, 0);
             });
 
-            RefCell::borrow_mut(&self.state).active_texture = None;
+            // Drop separately to avoid a duplicate borrow of `state`.
+            let old_texture = RefCell::borrow_mut(&self.state).active_texture.take();
+            drop(old_texture);
         }
     }
 

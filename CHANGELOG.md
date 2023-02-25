@@ -152,3 +152,9 @@ Thanks to [UdHo](https://github.com/UdHo)
 ### Fixes
 
 * Fix for issue #55 (text appearing as solid rectangles due to texture not being unbound correctly)
+
+## 1.11.0
+
+## Fixes
+
+* Fix for issue #74 (in some cases, dropping an `ImageHandle` resulted in a panic)
