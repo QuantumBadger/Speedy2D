@@ -176,6 +176,7 @@ fn main()
 
     let mut tests = Vec::new();
 
+    #[cfg(feature = "image-loading")]
     tests.push(GLTest {
         width: 500,
         height: 500,
