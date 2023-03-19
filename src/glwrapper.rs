@@ -1032,7 +1032,12 @@ impl GLContextManager
             GLBlendEnabled::Enabled(mode) => match mode {
                 GLBlendMode::OneMinusSrcAlpha => self.with_gl_backend(|backend| unsafe {
                     backend.gl_enable(GL_BLEND);
-                    backend.gl_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                    backend.gl_blend_func_separate(
+                        GL_SRC_ALPHA,
+                        GL_ONE_MINUS_SRC_ALPHA,
+                        GL_ONE,
+                        GL_ONE_MINUS_SRC_ALPHA
+                    );
                 })
             },
 

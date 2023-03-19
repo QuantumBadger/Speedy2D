@@ -158,3 +158,9 @@ Thanks to [UdHo](https://github.com/UdHo)
 ## Fixes
 
 * Fix for issue #74 (in some cases, dropping an `ImageHandle` resulted in a panic)
+
+## 1.12.0
+
+### Fixes
+
+* Fix for issue #34 (incorrect alpha compositing on a transparent background)

@@ -234,6 +234,96 @@ fn main()
     });
 
     tests.push(GLTest {
+        width: 500,
+        height: 500,
+        name: "semitransparent_on_opaque".to_string(),
+        action: Box::new(|renderer| {
+            renderer.draw_frame(|graphics| {
+                graphics.clear_screen(Color::BLACK);
+                graphics.draw_rectangle(
+                    Rect::from_tuples((100.0, 100.0), (200.0, 200.0)),
+                    Color::from_hex_argb(0x77FFFFFF)
+                );
+
+                graphics.draw_rectangle(
+                    Rect::from_tuples((300.0, 100.0), (400.0, 200.0)),
+                    Color::from_hex_argb(0x77000000)
+                );
+
+                graphics.draw_rectangle(
+                    Rect::from_tuples((100.0, 300.0), (200.0, 400.0)),
+                    Color::from_hex_argb(0x00FFFFFF)
+                );
+
+                graphics.draw_rectangle(
+                    Rect::from_tuples((300.0, 300.0), (400.0, 400.0)),
+                    Color::from_hex_argb(0x00000000)
+                );
+            });
+        })
+    });
+
+    tests.push(GLTest {
+        width: 500,
+        height: 500,
+        name: "semitransparent_on_semitransparent".to_string(),
+        action: Box::new(|renderer| {
+            renderer.draw_frame(|graphics| {
+                graphics.clear_screen(Color::from_hex_argb(0x55888888));
+                graphics.draw_rectangle(
+                    Rect::from_tuples((100.0, 100.0), (200.0, 200.0)),
+                    Color::from_hex_argb(0x77FFFFFF)
+                );
+
+                graphics.draw_rectangle(
+                    Rect::from_tuples((300.0, 100.0), (400.0, 200.0)),
+                    Color::from_hex_argb(0x77000000)
+                );
+
+                graphics.draw_rectangle(
+                    Rect::from_tuples((100.0, 300.0), (200.0, 400.0)),
+                    Color::from_hex_argb(0x00FFFFFF)
+                );
+
+                graphics.draw_rectangle(
+                    Rect::from_tuples((300.0, 300.0), (400.0, 400.0)),
+                    Color::from_hex_argb(0x00000000)
+                );
+            });
+        })
+    });
+
+    tests.push(GLTest {
+        width: 500,
+        height: 500,
+        name: "opaque_on_semitransparent".to_string(),
+        action: Box::new(|renderer| {
+            renderer.draw_frame(|graphics| {
+                graphics.clear_screen(Color::from_hex_argb(0x55888888));
+                graphics.draw_rectangle(
+                    Rect::from_tuples((100.0, 100.0), (200.0, 200.0)),
+                    Color::WHITE
+                );
+
+                graphics.draw_rectangle(
+                    Rect::from_tuples((300.0, 100.0), (400.0, 200.0)),
+                    Color::BLACK
+                );
+
+                graphics.draw_rectangle(
+                    Rect::from_tuples((100.0, 300.0), (200.0, 400.0)),
+                    Color::BLUE
+                );
+
+                graphics.draw_rectangle(
+                    Rect::from_tuples((300.0, 300.0), (400.0, 400.0)),
+                    Color::RED
+                );
+            });
+        })
+    });
+
+    tests.push(GLTest {
         width: 50,
         height: 50,
         name: "basic_rectangles".to_string(),

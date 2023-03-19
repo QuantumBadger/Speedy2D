@@ -56,6 +56,7 @@ pub mod constants
 
     pub const GL_SCISSOR_TEST: GLenum = glow::SCISSOR_TEST;
 
+    pub const GL_ONE: GLenum = glow::ONE;
     pub const GL_SRC_ALPHA: GLenum = glow::SRC_ALPHA;
     pub const GL_ONE_MINUS_SRC_ALPHA: GLenum = glow::ONE_MINUS_SRC_ALPHA;
 
@@ -171,6 +172,13 @@ pub trait GLBackend
     unsafe fn gl_enable(&self, cap: GLenum);
     unsafe fn gl_disable(&self, cap: GLenum);
     unsafe fn gl_blend_func(&self, sfactor: GLenum, dfactor: GLenum);
+    unsafe fn gl_blend_func_separate(
+        &self,
+        sfactor: GLenum,
+        dfactor: GLenum,
+        sfactor_alpha: GLenum,
+        dfactor_alpha: GLenum
+    );
     unsafe fn gl_use_program(&self, handle: GLTypeProgram);
     unsafe fn gl_enable_vertex_attrib_array(&self, handle: GLuint);
     unsafe fn gl_disable_vertex_attrib_array(&self, handle: GLuint);
@@ -389,6 +397,18 @@ impl GLBackend for GLBackendGlow
     unsafe fn gl_blend_func(&self, sfactor: GLenum, dfactor: GLenum)
     {
         self.context.blend_func(sfactor, dfactor)
+    }
+
+    unsafe fn gl_blend_func_separate(
+        &self,
+        sfactor: GLenum,
+        dfactor: GLenum,
+        sfactor_alpha: GLenum,
+        dfactor_alpha: GLenum
+    )
+    {
+        self.context
+            .blend_func_separate(sfactor, dfactor, sfactor_alpha, dfactor_alpha)
     }
 
     unsafe fn gl_use_program(&self, handle: GLTypeProgram)
@@ -758,6 +778,17 @@ impl GLBackend for GLBackendGLRS
     unsafe fn gl_blend_func(&self, sfactor: u32, dfactor: u32)
     {
         gl::BlendFunc(sfactor, dfactor)
+    }
+
+    unsafe fn gl_blend_func_separate(
+        &self,
+        sfactor: GLenum,
+        dfactor: GLenum,
+        sfactor_alpha: GLenum,
+        dfactor_alpha: GLenum
+    )
+    {
+        gl::BlendFuncSeparate(sfactor, dfactor, sfactor_alpha, dfactor_alpha)
     }
 
     unsafe fn gl_use_program(&self, handle: u32)
