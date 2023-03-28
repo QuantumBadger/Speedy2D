@@ -522,6 +522,11 @@ impl<UserEventType: 'static> WindowHelperWeb<UserEventType>
     {
         // Do nothing
     }
+    pub fn get_size_pixels(&self) -> UVec2
+    {
+        let size = self.canvas.get_bounding_client_rect();
+    }
+
 
     pub fn set_position_pixels<P: Into<IVec2>>(&self, _position: P)
     {
