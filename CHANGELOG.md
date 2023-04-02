@@ -164,3 +164,9 @@ Thanks to [UdHo](https://github.com/UdHo)
 ### Fixes
 
 * Fix for issue #34 (incorrect alpha compositing on a transparent background)
+
+## 1.13.0
+
+* Functions which previously took a `Rectangle` now accept anything which implements
+  `AsRef<Rectangle>`. This allows you to either pass in a reference to a Rectangle,
+  or move the Rectangle as before.

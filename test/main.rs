@@ -331,13 +331,15 @@ fn main()
             renderer.draw_frame(|graphics| {
                 graphics.clear_screen(Color::BLUE);
 
+                // Moves the rectangle
                 graphics.draw_rectangle(
                     Rectangle::from_tuples((10.0, 20.0), (30.0, 40.0)),
                     Color::MAGENTA
                 );
 
+                // Passes a reference to the rectangle
                 graphics.draw_rectangle(
-                    Rectangle::from_tuples((15.0, 30.0), (49.0, 48.0)),
+                    &Rectangle::from_tuples((15.0, 30.0), (49.0, 48.0)),
                     Color::GREEN
                 );
             });

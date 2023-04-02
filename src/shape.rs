@@ -45,6 +45,14 @@ pub struct Rectangle<T = f32>
     bottom_right: Vector2<T>
 }
 
+impl<T> AsRef<Rectangle<T>> for Rectangle<T>
+{
+    fn as_ref(&self) -> &Self
+    {
+        self
+    }
+}
+
 impl<T> Rectangle<T>
 {
     /// Constructs a new `Rectangle`. The top left vertex must be above and to
