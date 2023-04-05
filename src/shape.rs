@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-use num_traits::real::Real;
+use num_traits::AsPrimitive;
 use crate::dimen::{Vec2, Vector2};
 use crate::numeric::{max, min, PrimitiveZero};
 
@@ -477,7 +477,8 @@ impl<T: Copy> RoundedRectangle<T>
     }
 
     /// Returns a `Rectangle` representing the rectangle that encloses this rounded rectangle.
-    fn as_rectangle(&self) -> Rectangle<T> {
+    #[inline]
+    pub fn as_rectangle(&self) -> Rectangle<T> {
         Rectangle::new(self.top_left, self.bottom_right)
     }
 }
@@ -508,7 +509,8 @@ impl<T: std::ops::Sub<Output = T> + Copy> RoundedRectangle<T>
 
 impl<T> RoundedRectangle<T>
 where
-    T: std::ops::Sub<Output = T> + PartialOrd<T> + Copy + std::ops::Add<Output = T> + std::ops::Neg<Output = T>
+    T: AsPrimitive<f32> + PartialOrd + std::ops::Add<Output = T> + std::ops::Sub<Output = T>
+       + std::ops::Mul<Output = T> + std::ops::Neg<Output = T> + std::ops::Div<Output = f32> + std::ops::Div<f32, Output = T>
 {
     /// Returns true if the specified point is inside this rounded rectangle. Note: this is
     /// always inclusive, in contrast to the `contains` method of `Rect` which is sometimes exclusive.
@@ -544,16 +546,16 @@ where
 
         //check if the point is inside the 4 circles on the corners by getting the center of the circles
         // and checking if the distance between the point and the center is smaller than the radius
-        if (self.top_left + Vector2::new(self.radius, self.radius)).magnitude() <= self.radius {
+        if (self.top_left + Vector2::new(self.radius, self.radius)).magnitude() <= self.radius.as_() {
             return true;
         }
-        if (self.top_right() + Vector2::new(-self.radius, self.radius)).magnitude() <= self.radius {
+        if (self.top_right() + Vector2::new(-self.radius, self.radius)).magnitude() <= self.radius.as_() {
             return true;
         }
-        if (self.bottom_left() + Vector2::new(self.radius, -self.radius)).magnitude() <= self.radius {
+        if (self.bottom_left() + Vector2::new(self.radius, -self.radius)).magnitude() <= self.radius.as_() {
             return true;
         }
-        if (self.bottom_right() + Vector2::new(-self.radius, -self.radius)).magnitude() <= self.radius {
+        if (self.bottom_right() + Vector2::new(-self.radius, -self.radius)).magnitude() <= self.radius.as_() {
             return true;
         }
 
@@ -622,7 +624,7 @@ impl<T: num_traits::AsPrimitive<f32>> RoundedRectangle<T>
     #[must_use]
     pub fn into_f32(self) -> RoundedRectangle<f32>
     {
-        RoundedRectangle::new(self.top_left.into_f32(), self.bottom_right.into_f32(), self.radius.into_f32())
+        RoundedRectangle::new(self.top_left.into_f32(), self.bottom_right.into_f32(), self.radius.as_())
     }
 }
 
@@ -634,7 +636,7 @@ impl<T: num_traits::AsPrimitive<f32> + Copy> RoundedRectangle<T>
     #[must_use]
     pub fn as_f32(&self) -> RoundedRectangle<f32>
     {
-        RoundedRectangle::new(self.top_left.into_f32(), self.bottom_right.into_f32(), self.radius.into_f32())
+        RoundedRectangle::new(self.top_left.into_f32(), self.bottom_right.into_f32(), self.radius.as_())
     }
 }
 

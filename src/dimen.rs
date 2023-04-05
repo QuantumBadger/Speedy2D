@@ -15,7 +15,7 @@
  */
 
 use std::convert::TryInto;
-use num_traits::real::Real;
+use num_traits::{AsPrimitive, Zero};
 
 use rusttype::Point;
 
@@ -82,7 +82,7 @@ impl<T: PrimitiveZero> Vector2<T>
 
 impl<T> Vector2<T>
 where
-    T: Copy
+    T: Copy + std::ops::Mul<Output = T> + std::ops::Add<Output = T>
 {
     /// Returns the magnitude of the vector, squared.
     #[inline]
@@ -91,13 +91,19 @@ where
     {
         self.x * self.x + self.y * self.y
     }
+}
+
+impl<T> Vector2<T>
+    where
+        T: AsPrimitive<f32> + Copy + std::ops::Mul<Output = T> + std::ops::Add<Output = T> + std::ops::Div<f32, Output = T>
+{
 
     /// Returns the magnitude of the vector.
     #[inline]
     #[must_use]
-    pub fn magnitude(&self) -> T
+    pub fn magnitude(&self) -> f32
     {
-        self.magnitude_squared().sqrt()
+        (self.magnitude_squared().as_()).sqrt()
     }
 
     /// Normalizes the vector so that the magnitude is `1.0`. If the current
@@ -105,15 +111,15 @@ where
     /// division by zero.
     #[inline]
     #[must_use]
-    pub fn normalize(&self) -> Option<Vec2>
+    pub fn normalize(&self) -> Option<Vector2<T>>
     {
         let magnitude = self.magnitude();
 
-        if magnitude == 0.0 {
+        if magnitude.is_zero() {
             return None;
         }
 
-        Some(self / magnitude)
+        Some(Vector2::new(self.x / magnitude, self.y / magnitude))
     }
 }
 
