@@ -508,19 +508,58 @@ impl<T: std::ops::Sub<Output = T> + Copy> RoundedRectangle<T>
 impl<T: PartialOrd<T> + Copy> RoundedRectangle<T>
 {
     /// Returns true if the specified point is inside this rounded rectangle. Note: this is
-    /// always inclusive, in contrast to the `contains` method of `Rect`.
+    /// always inclusive, in contrast to the `contains` method of `Rect` which is sometimes exclusive.
     #[inline]
     #[must_use]
     pub fn contains(&self, point: Vector2<T>) -> bool
     {
-        todo!();
-        point.x >= self.top_left.x
+
+        //if outside the enclosing rectangle then call it a win and don't proceed
+        if point.x >= self.top_left.x
             && point.y >= self.top_left.y
-            && point.x < self.bottom_right.x
-            && point.y < self.bottom_right.y
+            && point.x <= self.bottom_right.x
+            && point.y <= self.bottom_right.y {
+            return false;
+        }
+
+        //...by looking at the rounded rectangle as 2 rectangles in a cross and 4 circles (overlapping rectangles should be slightly better
+        // than 3 rectangles in this case (I think)):
+        //first rectangle:
+        if point.x >= self.top_left.x
+            && point.y >= self.top_left.y + self.radius
+            && point.x <= self.bottom_right.x
+            && point.y <= self.bottom_right.y - self.radius {
+            return true;
+        }
+        //second rectangle:
+        if point.x >= self.top_left.x + self.radius
+            && point.y >= self.top_left.y
+            && point.x <= self.bottom_right.x - self.radius
+            && point.y <= self.bottom_right.y {
+            return true;
+        }
+
+        //check if the point is inside the 4 circles on the corners by getting the center of the circles
+        // and checking if the distance between the point and the center is smaller than the radius
+        if (self.top_left + Vector2::new(self.radius, self.radius)).magnitude <= self.radius {
+            return true;
+        }
+        if (self.top_right() + Vector2::new(-self.radius, self.radius)).magnitude <= self.radius {
+            return true;
+        }
+        if (self.bottom_left() + Vector2::new(self.radius, -self.radius)).magnitude <= self.radius {
+            return true;
+        }
+        if (self.bottom_right() + Vector2::new(-self.radius, -self.radius)).magnitude <= self.radius {
+            return true;
+        }
+
+        false
+
     }
 }
 
+/*
 impl<T: PartialOrd + Copy> RoundedRectangle<T>
 {
     /// Finds the intersection of two rectangles -- in other words, the area
@@ -532,7 +571,6 @@ impl<T: PartialOrd + Copy> RoundedRectangle<T>
     #[must_use]
     pub fn intersect(&self, other: &Self) -> Option<Self>
     {
-        todo!();
         let result = Self {
             top_left: Vector2::new(
                 max(self.top_left.x, other.top_left.x),
@@ -550,7 +588,7 @@ impl<T: PartialOrd + Copy> RoundedRectangle<T>
             None
         }
     }
-}
+}*/
 
 impl<T: PrimitiveZero> RoundedRectangle<T>
 {
@@ -643,52 +681,11 @@ impl<T: num_traits::AsPrimitive<f32> + Copy> RoundedRectangle<T>
     }
 }
 
-/// A struct representing a polygon.
-#[derive(Debug, Clone)]
-pub struct Polygon
-{
-    pub(crate) triangles: Vec<[Vec2; 3]>
-}
-
-impl Polygon
-{
-    /// Generate a new polygon given points that describe it's outline.
-    ///
-    /// The points must be in either clockwise or couter-clockwise order.
-    pub fn new<Point: Into<Vec2> + Copy>(vertices: &[Point]) -> Self
-    {
-        // We have to flatten the vertices in order for
-        // [earcutr](https://github.com/frewsxcv/earcutr/) to accept it.
-        // In the future, we can add a triangulation algorithm directly into Speed2D if
-        // performance is an issue, but for now, this is simpler and easier
-        let mut flattened = Vec::with_capacity(vertices.len() * 2);
-
-        for vertex in vertices {
-            let vertex: Vec2 = (*vertex).into();
-
-            flattened.push(vertex.x);
-            flattened.push(vertex.y);
-        }
-
-        let mut triangulation = earcutr::earcut(&flattened, &Vec::new(), 2);
-        let mut triangles = Vec::with_capacity(triangulation.len() / 3);
-
-        while !triangulation.is_empty() {
-            triangles.push([
-                vertices[triangulation.pop().unwrap()].into(),
-                vertices[triangulation.pop().unwrap()].into(),
-                vertices[triangulation.pop().unwrap()].into()
-            ])
-        }
-
-        Polygon { triangles }
-    }
-}
 
 #[cfg(test)]
 mod test
 {
-    use crate::shape::URect;
+    use crate::shape::URoundRect;
 
     #[test]
     pub fn test_intersect_1()

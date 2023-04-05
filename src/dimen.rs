@@ -51,6 +51,7 @@ impl<T> Vector2<T>
     {
         Vector2 { x, y }
     }
+
 }
 
 impl<T: PrimitiveZero> Vector2<T>
@@ -253,6 +254,8 @@ impl<T: Copy + std::ops::Add<Output = T>, R: Into<Vector2<T>>> std::ops::Add<R>
         Vector2::new(self.x + rhs.x, self.y + rhs.y)
     }
 }
+
+
 
 impl<T: Copy + std::ops::Sub<Output = T>, R: Into<Self>> std::ops::Sub<R> for Vector2<T>
 {
