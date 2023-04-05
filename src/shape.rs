@@ -582,10 +582,10 @@ where
     pub fn contains(&self, point: Vector2<T>) -> bool
     {
         //if outside the enclosing rectangle then call it a win and don't proceed
-        if point.x >= self.top_left.x
-            && point.y >= self.top_left.y
-            && point.x <= self.bottom_right.x
-            && point.y <= self.bottom_right.y
+        if point.x <= self.left()
+            || point.x >= self.right()
+            || point.y >= self.bottom()
+            || point.y <= self.top()
         {
             return false;
         }
@@ -613,22 +613,22 @@ where
         //check if the point is inside the 4 circles on the corners by getting the
         // center of the circles and checking if the distance between the point
         // and the center is smaller than the radius
-        if (self.top_left + Vector2::new(self.radius, self.radius)).magnitude()
+        if (self.top_left + Vector2::new(self.radius, self.radius) - point).magnitude()
             <= self.radius.as_()
         {
             return true;
         }
-        if (self.top_right() + Vector2::new(-self.radius, self.radius)).magnitude()
+        if (self.top_right() + Vector2::new(-self.radius, self.radius) - point).magnitude()
             <= self.radius.as_()
         {
             return true;
         }
-        if (self.bottom_left() + Vector2::new(self.radius, -self.radius)).magnitude()
+        if (self.bottom_left() + Vector2::new(self.radius, -self.radius) - point).magnitude()
             <= self.radius.as_()
         {
             return true;
         }
-        if (self.bottom_right() + Vector2::new(-self.radius, -self.radius)).magnitude()
+        if (self.bottom_right() + Vector2::new(-self.radius, -self.radius) - point).magnitude()
             <= self.radius.as_()
         {
             return true;
