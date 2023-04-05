@@ -452,8 +452,8 @@ impl WebCanvasElement
     #[cfg(feature = "windowing")]
     pub fn get_canvas_size(&self) -> UVec2
     {
-        let width = self.canvas.width() as u32;
-        let height = self.canvas.height() as u32;
+        let width = self.canvas.width();
+        let height = self.canvas.height();
 
         UVec2::new(width, height)
     }
