@@ -15,6 +15,7 @@
  */
 
 use std::convert::TryInto;
+use num_traits::real::Real;
 
 use rusttype::Point;
 
@@ -79,12 +80,14 @@ impl<T: PrimitiveZero> Vector2<T>
     }
 }
 
-impl Vec2
+impl<T> Vector2<T>
+where
+    T: Copy
 {
     /// Returns the magnitude of the vector, squared.
     #[inline]
     #[must_use]
-    pub fn magnitude_squared(&self) -> f32
+    pub fn magnitude_squared(&self) -> T
     {
         self.x * self.x + self.y * self.y
     }
@@ -92,7 +95,7 @@ impl Vec2
     /// Returns the magnitude of the vector.
     #[inline]
     #[must_use]
-    pub fn magnitude(&self) -> f32
+    pub fn magnitude(&self) -> T
     {
         self.magnitude_squared().sqrt()
     }

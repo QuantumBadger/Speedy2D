@@ -379,7 +379,7 @@ pub type RoundRect = RoundedRectangle<f32>;
 /// top left vertex, the bottom right vertex and the radius of the rounded corners.
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[repr(C)]
-pub struct RoundRectangle<T = f32>
+pub struct RoundedRectangle<T = f32>
 {
     top_left: Vector2<T>,
     bottom_right: Vector2<T>,
@@ -451,10 +451,6 @@ impl<T> RoundedRectangle<T>
         &self.bottom_right
     }
 
-    fn as_rectangle(&self) -> Rectangle<T> {
-        Rectangle::new(self.top_left, self.bottom_right)
-    }
-
 }
 
 impl<T: Copy> RoundedRectangle<T>
@@ -478,6 +474,11 @@ impl<T: Copy> RoundedRectangle<T>
     pub fn radius(&self) -> T
     {
         self.radius
+    }
+
+    /// Returns a `Rectangle` representing the rectangle that encloses this rounded rectangle.
+    fn as_rectangle(&self) -> Rectangle<T> {
+        Rectangle::new(self.top_left, self.bottom_right)
     }
 }
 
@@ -505,7 +506,9 @@ impl<T: std::ops::Sub<Output = T> + Copy> RoundedRectangle<T>
     }
 }
 
-impl<T: PartialOrd<T> + Copy> RoundedRectangle<T>
+impl<T> RoundedRectangle<T>
+where
+    T: std::ops::Sub<Output = T> + PartialOrd<T> + Copy + std::ops::Add<Output = T> + std::ops::Neg<Output = T>
 {
     /// Returns true if the specified point is inside this rounded rectangle. Note: this is
     /// always inclusive, in contrast to the `contains` method of `Rect` which is sometimes exclusive.
@@ -541,29 +544,22 @@ impl<T: PartialOrd<T> + Copy> RoundedRectangle<T>
 
         //check if the point is inside the 4 circles on the corners by getting the center of the circles
         // and checking if the distance between the point and the center is smaller than the radius
-        if (self.top_left + Vector2::new(self.radius, self.radius)).magnitude <= self.radius {
+        if (self.top_left + Vector2::new(self.radius, self.radius)).magnitude() <= self.radius {
             return true;
         }
-        if (self.top_right() + Vector2::new(-self.radius, self.radius)).magnitude <= self.radius {
+        if (self.top_right() + Vector2::new(-self.radius, self.radius)).magnitude() <= self.radius {
             return true;
         }
-        if (self.bottom_left() + Vector2::new(self.radius, -self.radius)).magnitude <= self.radius {
+        if (self.bottom_left() + Vector2::new(self.radius, -self.radius)).magnitude() <= self.radius {
             return true;
         }
-        if (self.bottom_right() + Vector2::new(-self.radius, -self.radius)).magnitude <= self.radius {
+        if (self.bottom_right() + Vector2::new(-self.radius, -self.radius)).magnitude() <= self.radius {
             return true;
         }
 
         false
 
     }
-}
-
-impl<T: PrimitiveZero> RoundedRectangle<T>
-{
-    /// A constant representing a rounded rectangle with position (0, 0), zero area and zero radius.
-    /// Each component is set to zero.
-    pub const ZERO: Rectangle<T> = RoundRectangle::new(Vector2::ZERO, Vector2::ZERO, 0.0);
 }
 
 impl<T: PartialEq> RoundedRectangle<T>
@@ -615,14 +611,6 @@ impl<T: Copy> RoundedRectangle<T>
     {
         let offset = offset.into();
         RoundedRectangle::new(self.top_left - offset, self.bottom_right - offset, self.radius)
-    }
-}
-
-impl<T> From<rusttype::RoundRect<T>> for RoundedRectangle<T>
-{
-    fn from(rect: rusttype::RoundRect<T>) -> Self
-    {
-        RoundedRectangle::new(Vector2::from(rect.min), Vector2::from(rect.max))
     }
 }
 
