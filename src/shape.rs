@@ -559,37 +559,6 @@ impl<T: PartialOrd<T> + Copy> RoundedRectangle<T>
     }
 }
 
-/*
-impl<T: PartialOrd + Copy> RoundedRectangle<T>
-{
-    /// Finds the intersection of two rectangles -- in other words, the area
-    /// that is common to both of them.
-    ///
-    /// If there is no common area between the two rectangles, then this
-    /// function will return `None`.
-    #[inline]
-    #[must_use]
-    pub fn intersect(&self, other: &Self) -> Option<Self>
-    {
-        let result = Self {
-            top_left: Vector2::new(
-                max(self.top_left.x, other.top_left.x),
-                max(self.top_left.y, other.top_left.y)
-            ),
-            bottom_right: Vector2::new(
-                min(self.bottom_right.x, other.bottom_right.x),
-                min(self.bottom_right.y, other.bottom_right.y)
-            )
-        };
-
-        if result.is_positive_area() {
-            Some(result)
-        } else {
-            None
-        }
-    }
-}*/
-
 impl<T: PrimitiveZero> RoundedRectangle<T>
 {
     /// A constant representing a rounded rectangle with position (0, 0), zero area and zero radius.
