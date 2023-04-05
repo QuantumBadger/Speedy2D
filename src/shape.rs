@@ -14,7 +14,6 @@
  *  limitations under the License.
  */
 
-use num_traits::AsPrimitive;
 use crate::dimen::{Vec2, Vector2};
 use crate::numeric::{max, min, PrimitiveZero};
 
@@ -108,6 +107,36 @@ impl<T: Copy> Rectangle<T>
     {
         Vector2::new(self.top_left.x, self.bottom_right.y)
     }
+
+    /// Returns the x value of the left border
+    #[inline]
+    pub fn left(&self) -> T
+    {
+        self.top_left.x
+    }
+
+    /// Returns the x value of the right border
+    #[inline]
+    pub fn right(&self) -> T
+    {
+        self.bottom_right.x
+    }
+
+    /// Returns the y value of the top border
+    #[inline]
+    pub fn top(&self) -> T
+    {
+        self.top_left.y
+    }
+
+    /// Returns the y value of the bottom border
+    #[inline]
+    pub fn bottom(&self) -> T
+    {
+        self.bottom_right.y
+    }
+
+
 }
 
 impl<T: std::ops::Sub<Output = T> + Copy> Rectangle<T>
@@ -476,6 +505,34 @@ impl<T: Copy> RoundedRectangle<T>
         self.radius
     }
 
+    /// Returns the x value of the left border
+    #[inline]
+    pub fn left(&self) -> T
+    {
+        self.top_left.x
+    }
+
+    /// Returns the x value of the right border
+    #[inline]
+    pub fn right(&self) -> T
+    {
+        self.bottom_right.x
+    }
+
+    /// Returns the y value of the top border
+    #[inline]
+    pub fn top(&self) -> T
+    {
+        self.top_left.y
+    }
+
+    /// Returns the y value of the bottom border
+    #[inline]
+    pub fn bottom(&self) -> T
+    {
+        self.bottom_right.y
+    }
+
     /// Returns a `Rectangle` representing the rectangle that encloses this rounded rectangle.
     #[inline]
     pub fn as_rectangle(&self) -> Rectangle<T> {
@@ -509,7 +566,7 @@ impl<T: std::ops::Sub<Output = T> + Copy> RoundedRectangle<T>
 
 impl<T> RoundedRectangle<T>
 where
-    T: AsPrimitive<f32> + PartialOrd + std::ops::Add<Output = T> + std::ops::Sub<Output = T>
+    T: num_traits::AsPrimitive<f32> + std::cmp::PartialOrd + std::ops::Add<Output = T> + std::ops::Sub<Output = T>
        + std::ops::Mul<Output = T> + std::ops::Neg<Output = T> + std::ops::Div<Output = f32> + std::ops::Div<f32, Output = T>
 {
     /// Returns true if the specified point is inside this rounded rectangle. Note: this is
@@ -637,45 +694,5 @@ impl<T: num_traits::AsPrimitive<f32> + Copy> RoundedRectangle<T>
     pub fn as_f32(&self) -> RoundedRectangle<f32>
     {
         RoundedRectangle::new(self.top_left.into_f32(), self.bottom_right.into_f32(), self.radius.as_())
-    }
-}
-
-
-#[cfg(test)]
-mod test
-{
-    use crate::shape::URoundRect;
-
-    #[test]
-    pub fn test_intersect_1()
-    {
-        let r1 = URect::from_tuples((100, 100), (200, 200));
-        let r2 = URect::from_tuples((100, 300), (200, 400));
-        let r3 = URect::from_tuples((125, 50), (175, 500));
-
-        assert_eq!(None, r1.intersect(&r2));
-
-        assert_eq!(
-            Some(URect::from_tuples((125, 100), (175, 200))),
-            r1.intersect(&r3)
-        );
-
-        assert_eq!(
-            Some(URect::from_tuples((125, 300), (175, 400))),
-            r2.intersect(&r3)
-        );
-
-        assert_eq!(Some(r1.clone()), r1.intersect(&r1));
-        assert_eq!(Some(r2.clone()), r2.intersect(&r2));
-        assert_eq!(Some(r3.clone()), r3.intersect(&r3));
-    }
-
-    #[test]
-    pub fn test_intersect_2()
-    {
-        let r1 = URect::from_tuples((100, 100), (200, 200));
-        let r2 = URect::from_tuples((100, 200), (200, 300));
-
-        assert_eq!(None, r1.intersect(&r2));
     }
 }

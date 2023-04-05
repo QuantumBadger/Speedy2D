@@ -313,7 +313,7 @@ use crate::glbackend::{GLBackendGLRS, GLBackendGlow};
 use crate::glwrapper::{GLContextManager, GLVersion};
 use crate::image::{ImageDataType, ImageHandle, ImageSmoothingMode, RawBitmapData};
 use crate::renderer2d::Renderer2D;
-use crate::shape::{Polygon, Rect, Rectangle};
+use crate::shape::{Polygon, Rect, Rectangle, RoundedRectangle};
 #[cfg(target_arch = "wasm32")]
 use crate::web::WebCanvasElement;
 #[cfg(any(doc, doctest, feature = "windowing"))]
@@ -1070,6 +1070,58 @@ impl Graphics2D
             ],
             color
         );
+    }
+
+    /// Draws a single-color rounded rectangle at the specified location. The
+    /// coordinates of the rounded rectangle are specified in pixels.
+    #[inline]
+    pub fn draw_rounded_rectangle(&mut self, round_rect: impl AsRef<RoundedRectangle>, color: Color)
+    {
+        let round_rect = round_rect.as_ref();
+
+        //create polygon starting clockwise from top-left cornet
+        let polygon = Polygon::new([
+            Vec2::new(round_rect.top)
+        ])
+
+        //draw leftmost rectangle
+        self.draw_quad([
+            round_rect.top_left()+Vec2::new(0.0, round_rect.radius()),
+            round_rect.top_left()+Vec2::new(round_rect.radius(), round_rect.radius()),
+            round_rect.bottom_left()+Vec2::new(round_rect.radius(), -round_rect.radius()),
+            round_rect.bottom_left()+Vec2::new(0.0, -round_rect.radius()),
+        ], Color::RED);
+
+        //draw rightmost rectangle
+        self.draw_quad([
+            round_rect.top_right()+Vec2::new(-round_rect.radius(), round_rect.radius()),
+            round_rect.top_right()+Vec2::new(0.0, round_rect.radius()),
+            round_rect.bottom_right()+Vec2::new(0.0, -round_rect.radius()),
+            round_rect.bottom_right()+Vec2::new(-round_rect.radius(), -round_rect.radius()),
+        ], Color::GREEN);
+
+        //draw center rectangle
+        self.draw_quad([
+            round_rect.top_left()+Vec2::new(round_rect.radius(), 0.0),
+            round_rect.top_right()+Vec2::new(-round_rect.radius(), 0.0),
+            round_rect.bottom_right()+Vec2::new(-round_rect.radius(), 0.0),
+            round_rect.bottom_left()+Vec2::new(round_rect.radius(), 0.0),
+        ], color);
+
+        //draw top right circle
+        self.draw_circle_section_triangular_three_color(
+                 [
+                         round_rect.top_right()+Vec2::new(-round_rect.radius(), 0.0),
+                         round_rect.top_right(),
+                         round_rect.top_right()+Vec2::new(0.0, round_rect.radius())],
+                 [Color::MAGENTA; 3],
+                 [
+                         Vec2::new(0.0, 1.0),
+                         Vec2::new(1.0, 1.0),
+                         Vec2::new(1.0, 0.0)]);
+        //draw top right triangle
+
+
     }
 
     /// Draws a single-color line between the given points, specified in pixels.
