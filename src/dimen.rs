@@ -15,8 +15,8 @@
  */
 
 use std::convert::TryInto;
-use num_traits::{AsPrimitive, Zero};
 
+use num_traits::{AsPrimitive, Zero};
 use rusttype::Point;
 
 use crate::numeric::{PrimitiveZero, RoundFloat};
@@ -52,7 +52,6 @@ impl<T> Vector2<T>
     {
         Vector2 { x, y }
     }
-
 }
 
 impl<T: PrimitiveZero> Vector2<T>
@@ -94,10 +93,13 @@ where
 }
 
 impl<T> Vector2<T>
-    where
-        T: AsPrimitive<f32> + Copy + std::ops::Mul<Output = T> + std::ops::Add<Output = T> + std::ops::Div<f32, Output = T>
+where
+    T: AsPrimitive<f32>
+        + Copy
+        + std::ops::Mul<Output = T>
+        + std::ops::Add<Output = T>
+        + std::ops::Div<f32, Output = T>
 {
-
     /// Returns the magnitude of the vector.
     #[inline]
     #[must_use]
@@ -263,8 +265,6 @@ impl<T: Copy + std::ops::Add<Output = T>, R: Into<Vector2<T>>> std::ops::Add<R>
         Vector2::new(self.x + rhs.x, self.y + rhs.y)
     }
 }
-
-
 
 impl<T: Copy + std::ops::Sub<Output = T>, R: Into<Self>> std::ops::Sub<R> for Vector2<T>
 {

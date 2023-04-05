@@ -1075,72 +1075,93 @@ impl Graphics2D
     /// Draws a single-color rounded rectangle at the specified location. The
     /// coordinates of the rounded rectangle are specified in pixels.
     #[inline]
-    pub fn draw_rounded_rectangle(&mut self, round_rect: impl AsRef<RoundedRectangle>, color: Color)
+    pub fn draw_rounded_rectangle(
+        &mut self,
+        round_rect: impl AsRef<RoundedRectangle>,
+        color: Color
+    )
     {
         let round_rect = round_rect.as_ref();
 
         //create polygon starting clockwise from top-left cornet
         let polygon = Polygon::new(&[
-            Vec2::new(round_rect.left(), round_rect.top()+round_rect.radius()),
-            Vec2::new(round_rect.left()+round_rect.radius(), round_rect.top()),
-            Vec2::new(round_rect.right()-round_rect.radius(), round_rect.top()),
-            Vec2::new(round_rect.right(), round_rect.top()+round_rect.radius()),
-            Vec2::new(round_rect.right(), round_rect.bottom()-round_rect.radius()),
-            Vec2::new(round_rect.right()-round_rect.radius(), round_rect.bottom()),
-            Vec2::new(round_rect.left()+round_rect.radius(), round_rect.bottom()),
-            Vec2::new(round_rect.left(), round_rect.bottom()-round_rect.radius()),
+            Vec2::new(round_rect.left(), round_rect.top() + round_rect.radius()),
+            Vec2::new(round_rect.left() + round_rect.radius(), round_rect.top()),
+            Vec2::new(round_rect.right() - round_rect.radius(), round_rect.top()),
+            Vec2::new(round_rect.right(), round_rect.top() + round_rect.radius()),
+            Vec2::new(
+                round_rect.right(),
+                round_rect.bottom() - round_rect.radius()
+            ),
+            Vec2::new(
+                round_rect.right() - round_rect.radius(),
+                round_rect.bottom()
+            ),
+            Vec2::new(round_rect.left() + round_rect.radius(), round_rect.bottom()),
+            Vec2::new(round_rect.left(), round_rect.bottom() - round_rect.radius())
         ]);
 
         self.draw_polygon(&polygon, Vec2::ZERO, color);
 
         //draw top right circle
         self.draw_circle_section_triangular_three_color(
-                 [
-                         round_rect.top_right()+Vec2::new(-round_rect.radius(), 0.0),
-                         round_rect.top_right(),
-                         round_rect.top_right()+Vec2::new(0.0, round_rect.radius())],
-                 [color; 3],
-                 [
-                         Vec2::new(0.0, 1.0),
-                         Vec2::new(1.0, 1.0),
-                         Vec2::new(1.0, 0.0)]);
+            [
+                round_rect.top_right() + Vec2::new(-round_rect.radius(), 0.0),
+                round_rect.top_right(),
+                round_rect.top_right() + Vec2::new(0.0, round_rect.radius())
+            ],
+            [color; 3],
+            [
+                Vec2::new(0.0, 1.0),
+                Vec2::new(1.0, 1.0),
+                Vec2::new(1.0, 0.0)
+            ]
+        );
 
         //draw top left circle
         self.draw_circle_section_triangular_three_color(
-                 [
-                     round_rect.top_left() + Vec2::new(0.0, round_rect.radius()),
-                     *round_rect.top_left(),
-                     round_rect.top_left() + Vec2::new(round_rect.radius(), 0.0)],
-                 [color; 3],
-                 [
-                         Vec2::new(-1.0, 0.0),
-                         Vec2::new(-1.0, 1.0),
-                         Vec2::new(0.0, 1.0)]);
+            [
+                round_rect.top_left() + Vec2::new(0.0, round_rect.radius()),
+                *round_rect.top_left(),
+                round_rect.top_left() + Vec2::new(round_rect.radius(), 0.0)
+            ],
+            [color; 3],
+            [
+                Vec2::new(-1.0, 0.0),
+                Vec2::new(-1.0, 1.0),
+                Vec2::new(0.0, 1.0)
+            ]
+        );
 
         //draw bottom left circle
         self.draw_circle_section_triangular_three_color(
-                 [
-                     round_rect.bottom_left() + Vec2::new(round_rect.radius(), 0.0),
-                     round_rect.bottom_left(),
-                     round_rect.bottom_left() + Vec2::new(0.0, -round_rect.radius())],
-                 [color; 3],
-                 [
-                         Vec2::new(0.0, -1.0),
-                         Vec2::new(-1.0, -1.0),
-                         Vec2::new(-1.0, 0.0)]);
+            [
+                round_rect.bottom_left() + Vec2::new(round_rect.radius(), 0.0),
+                round_rect.bottom_left(),
+                round_rect.bottom_left() + Vec2::new(0.0, -round_rect.radius())
+            ],
+            [color; 3],
+            [
+                Vec2::new(0.0, -1.0),
+                Vec2::new(-1.0, -1.0),
+                Vec2::new(-1.0, 0.0)
+            ]
+        );
 
         // draw bottom right circle
         self.draw_circle_section_triangular_three_color(
-                 [
-                     round_rect.bottom_right() + Vec2::new(0.0, -round_rect.radius()),
-                     *round_rect.bottom_right(),
-                     round_rect.bottom_right() + Vec2::new(-round_rect.radius(), 0.0)],
-                 [color; 3],
-                 [
-                         Vec2::new(1.0, 0.0),
-                         Vec2::new(1.0, -1.0),
-                         Vec2::new(0.0, -1.0)]);
-
+            [
+                round_rect.bottom_right() + Vec2::new(0.0, -round_rect.radius()),
+                *round_rect.bottom_right(),
+                round_rect.bottom_right() + Vec2::new(-round_rect.radius(), 0.0)
+            ],
+            [color; 3],
+            [
+                Vec2::new(1.0, 0.0),
+                Vec2::new(1.0, -1.0),
+                Vec2::new(0.0, -1.0)
+            ]
+        );
     }
 
     /// Draws a single-color line between the given points, specified in pixels.
