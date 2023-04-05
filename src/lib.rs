@@ -979,12 +979,15 @@ impl Graphics2D
     #[inline]
     pub fn draw_rectangle_image_subset_tinted(
         &mut self,
-        rect: Rectangle,
+        rect: impl AsRef<Rectangle>,
         color: Color,
-        image_coords_normalized: Rectangle,
+        image_coords_normalized: impl AsRef<Rectangle>,
         image: &ImageHandle
     )
     {
+        let rect = rect.as_ref();
+        let image_coords_normalized = image_coords_normalized.as_ref();
+
         self.draw_quad_image_tinted_four_color(
             [
                 *rect.top_left(),
@@ -1013,7 +1016,7 @@ impl Graphics2D
     #[inline]
     pub fn draw_rectangle_image_tinted(
         &mut self,
-        rect: Rectangle,
+        rect: impl AsRef<Rectangle>,
         color: Color,
         image: &ImageHandle
     )
@@ -1029,7 +1032,11 @@ impl Graphics2D
     /// Draws an image at the specified location. The image will be
     /// scaled to fill the pixel coordinates in the provided rectangle.
     #[inline]
-    pub fn draw_rectangle_image(&mut self, rect: Rectangle, image: &ImageHandle)
+    pub fn draw_rectangle_image(
+        &mut self,
+        rect: impl AsRef<Rectangle>,
+        image: &ImageHandle
+    )
     {
         self.draw_rectangle_image_tinted(rect, Color::WHITE, image);
     }
@@ -1050,8 +1057,10 @@ impl Graphics2D
     /// Draws a single-color rectangle at the specified location. The
     /// coordinates of the rectangle are specified in pixels.
     #[inline]
-    pub fn draw_rectangle(&mut self, rect: Rectangle, color: Color)
+    pub fn draw_rectangle(&mut self, rect: impl AsRef<Rectangle>, color: Color)
     {
+        let rect = rect.as_ref();
+
         self.draw_quad(
             [
                 *rect.top_left(),
