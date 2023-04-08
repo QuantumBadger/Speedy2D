@@ -155,7 +155,7 @@ Thanks to [UdHo](https://github.com/UdHo)
 
 ## 1.11.0
 
-## Fixes
+### Fixes
 
 * Fix for issue #74 (in some cases, dropping an `ImageHandle` resulted in a panic)
 
@@ -167,6 +167,12 @@ Thanks to [UdHo](https://github.com/UdHo)
 
 ## 1.13.0
 
+### Changed APIs
+
 * Functions which previously took a `Rectangle` now accept anything which implements
   `AsRef<Rectangle>`. This allows you to either pass in a reference to a Rectangle,
   or move the Rectangle as before.
+
+### New APIs
+
+* `WindowHelper.get_size_pixels()` (thanks to [dennisorlando](https://github.com/dennisorlando))
