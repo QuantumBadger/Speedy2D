@@ -379,36 +379,35 @@ mod test
 
 ///////////////////////////////////
 
-/// A struct representing an axis-aligned rounded rectangle. Two points and a float are
+/// A struct representing an axis-aligned rounded rectangle. Two points and an 'u32' are
 /// stored: the top left vertex, the bottom right vertex and the radius of the
 /// rounded corners.
 ///
 /// Alias for a rectangle with u32 coordinates.
 pub type URoundRect = RoundedRectangle<u32>;
 
-/// A struct representing an axis-aligned rounded rectangle. Two points and a float are
+/// A struct representing an axis-aligned rounded rectangle. Two points and an 'i32' are
 /// stored: the top left vertex, the bottom right vertex and the radius of the
 /// rounded corners.
 ///
 /// Alias for a rectangle with i32 coordinates.
 pub type IRoundRect = RoundedRectangle<i32>;
 
-/// A struct representing an axis-aligned rounded rectangle. Two points and a float are
+/// A struct representing an axis-aligned rounded rectangle. Two points and an 'f32' are
 /// stored: the top left vertex, the bottom right vertex and the radius of the
 /// rounded corners.
 ///
 /// Alias for a rectangle with f32 coordinates.
 pub type RoundRect = RoundedRectangle<f32>;
 
-/// A struct representing an axis-aligned rounded rectangle. Two points and a float are
+/// A struct representing an axis-aligned rounded rectangle. Two points and a 'T' value are
 /// stored: the top left vertex, the bottom right vertex and the radius of the
 /// rounded corners.
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[repr(C)]
 pub struct RoundedRectangle<T = f32>
 {
-    top_left: Vector2<T>,
-    bottom_right: Vector2<T>,
+    rect: Rectangle<T>,
     radius: T
 }
 
@@ -430,8 +429,7 @@ impl<T> RoundedRectangle<T>
     pub const fn new(top_left: Vector2<T>, bottom_right: Vector2<T>, radius: T) -> Self
     {
         RoundedRectangle {
-            top_left,
-            bottom_right,
+            rect: Rectangle::new(top_left, bottom_right),
             radius
         }
     }
@@ -440,13 +438,16 @@ impl<T> RoundedRectangle<T>
     /// and to the left of the bottom right vertex. A negative radius will
     /// be clamped to 0. A big radius (larger than half the width or height)
     /// might produce unexpected behavior but it won't be checked.
+    ///
+    /// Note: a negative radius won't be checked at runtime.
     #[inline]
     pub fn from_tuples(top_left: (T, T), bottom_right: (T, T), radius: T) -> Self
     {
         RoundedRectangle {
-            top_left: Vector2::new(top_left.0, top_left.1),
-            bottom_right: Vector2::new(bottom_right.0, bottom_right.1),
-            radius
+            rect: Rectangle::from_tuples(top_left, bottom_right),
+            radius: { if radius > 0 {
+                radius
+            } else { 0.0 }}
         }
     }
 
@@ -454,11 +455,10 @@ impl<T> RoundedRectangle<T>
     /// A big radius (larger than half the width or height) might produce
     /// unexpected behavior but it won't be checked.
     #[inline]
-    pub fn from_rectangle(rectangle: Rectangle<T>, radius: T) -> Self
+    pub fn from_rectangle(rect: Rectangle<T>, radius: T) -> Self
     {
         RoundedRectangle {
-            top_left: rectangle.top_left,
-            bottom_right: rectangle.bottom_right,
+            rect,
             radius
         }
     }
@@ -467,14 +467,14 @@ impl<T> RoundedRectangle<T>
     #[inline]
     pub const fn top_left(&self) -> &Vector2<T>
     {
-        &self.top_left
+        &self.rect.top_left
     }
 
     /// Returns a reference to the bottom right vertex.
     #[inline]
     pub const fn bottom_right(&self) -> &Vector2<T>
     {
-        &self.bottom_right
+        &self.rect.bottom_right
     }
 }
 
@@ -484,14 +484,14 @@ impl<T: Copy> RoundedRectangle<T>
     #[inline]
     pub fn top_right(&self) -> Vector2<T>
     {
-        Vector2::new(self.bottom_right.x, self.top_left.y)
+        Vector2::new(self.rect.bottom_right.x, self.rect.top_left.y)
     }
 
     /// Returns a vector representing the bottom left vertex.
     #[inline]
     pub fn bottom_left(&self) -> Vector2<T>
     {
-        Vector2::new(self.top_left.x, self.bottom_right.y)
+        Vector2::new(self.rect.top_left.x, self.rect.bottom_right.y)
     }
 
     /// Returns the radius of the rounded corners.
@@ -505,28 +505,28 @@ impl<T: Copy> RoundedRectangle<T>
     #[inline]
     pub fn left(&self) -> T
     {
-        self.top_left.x
+        self.rect.top_left.x
     }
 
     /// Returns the x value of the right border
     #[inline]
     pub fn right(&self) -> T
     {
-        self.bottom_right.x
+        self.rect.bottom_right.x
     }
 
     /// Returns the y value of the top border
     #[inline]
     pub fn top(&self) -> T
     {
-        self.top_left.y
+        self.rect.top_left.y
     }
 
     /// Returns the y value of the bottom border
     #[inline]
     pub fn bottom(&self) -> T
     {
-        self.bottom_right.y
+        self.rect.bottom_right.y
     }
 
     /// Returns a `Rectangle` representing the rectangle that encloses this
@@ -534,7 +534,7 @@ impl<T: Copy> RoundedRectangle<T>
     #[inline]
     pub fn as_rectangle(&self) -> Rectangle<T>
     {
-        Rectangle::new(self.top_left, self.bottom_right)
+        Rectangle::new(self.rect.top_left, self.rect.bottom_right)
     }
 }
 
@@ -544,14 +544,14 @@ impl<T: std::ops::Sub<Output = T> + Copy> RoundedRectangle<T>
     #[inline]
     pub fn width(&self) -> T
     {
-        self.bottom_right.x - self.top_left.x
+        self.rect.bottom_right.x - self.rect.top_left.x
     }
 
     /// Returns the height of the rounded rectangle.
     #[inline]
     pub fn height(&self) -> T
     {
-        self.bottom_right.y - self.top_left.y
+        self.rect.bottom_right.y - self.rect.top_left.y
     }
 
     /// Returns a `Vector2` containing the width and height of the rounded
@@ -594,18 +594,18 @@ where
         //...by circles (overlapping rectangles should be slightly better
         // than 3 rectangles in this case (I think)):
         //first rectangle:
-        if point.x >= self.top_left.x
-            && point.y >= self.top_left.y + self.radius
-            && point.x <= self.bottom_right.x
-            && point.y <= self.bottom_right.y - self.radius
+        if point.x >= self.rect.top_left.x
+            && point.y >= self.rect.top_left.y + self.radius
+            && point.x <= self.rect.bottom_right.x
+            && point.y <= self.rect.bottom_right.y - self.radius
         {
             return true;
         }
         //second rectangle:
-        if point.x >= self.top_left.x + self.radius
-            && point.y >= self.top_left.y
-            && point.x <= self.bottom_right.x - self.radius
-            && point.y <= self.bottom_right.y
+        if point.x >= self.rect.top_left.x + self.radius
+            && point.y >= self.rect.top_left.y
+            && point.x <= self.rect.bottom_right.x - self.radius
+            && point.y <= self.rect.bottom_right.y
         {
             return true;
         }
@@ -613,7 +613,7 @@ where
         //check if the point is inside the 4 circles on the corners by getting the
         // center of the circles and checking if the distance between the point
         // and the center is smaller than the radius
-        if (self.top_left + Vector2::new(self.radius, self.radius) - point).magnitude()
+        if (self.top_left() + Vector2::new(self.radius, self.radius) - point).magnitude()
             <= self.radius.as_()
         {
             return true;
@@ -645,7 +645,7 @@ impl<T: PartialEq> RoundedRectangle<T>
     #[inline]
     pub fn is_zero_area(&self) -> bool
     {
-        self.top_left.x == self.bottom_right.x || self.top_left.y == self.bottom_right.y
+        self.rect.top_left.x == self.rect.bottom_right.x || self.rect.top_left.y == self.rect.bottom_right.y
     }
 }
 
@@ -656,7 +656,7 @@ impl<T: PartialOrd> RoundedRectangle<T>
     #[inline]
     pub fn is_positive_area(&self) -> bool
     {
-        self.top_left.x < self.bottom_right.x && self.top_left.y < self.bottom_right.y
+        self.rect.top_left.x < self.rect.bottom_right.x && self.rect.top_left.y < self.rect.bottom_right.y
     }
 }
 
@@ -672,8 +672,8 @@ where
     {
         let offset = offset.into();
         RoundedRectangle::new(
-            self.top_left + offset,
-            self.bottom_right + offset,
+            self.rect.top_left + offset,
+            self.rect.bottom_right + offset,
             self.radius
         )
     }
@@ -691,8 +691,8 @@ where
     {
         let offset = offset.into();
         RoundedRectangle::new(
-            self.top_left - offset,
-            self.bottom_right - offset,
+            self.rect.top_left - offset,
+            self.rect.bottom_right - offset,
             self.radius
         )
     }
@@ -707,8 +707,8 @@ impl<T: num_traits::AsPrimitive<f32>> RoundedRectangle<T>
     pub fn into_f32(self) -> RoundedRectangle<f32>
     {
         RoundedRectangle::new(
-            self.top_left.into_f32(),
-            self.bottom_right.into_f32(),
+            self.rect.top_left.into_f32(),
+            self.rect.bottom_right.into_f32(),
             self.radius.as_()
         )
     }
@@ -723,8 +723,8 @@ impl<T: num_traits::AsPrimitive<f32> + Copy> RoundedRectangle<T>
     pub fn as_f32(&self) -> RoundedRectangle<f32>
     {
         RoundedRectangle::new(
-            self.top_left.into_f32(),
-            self.bottom_right.into_f32(),
+            self.rect.top_left.into_f32(),
+            self.rect.bottom_right.into_f32(),
             self.radius.as_()
         )
     }
