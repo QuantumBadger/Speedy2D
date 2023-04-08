@@ -422,8 +422,8 @@ impl<T> AsRef<RoundedRectangle<T>> for RoundedRectangle<T>
 impl<T> RoundedRectangle<T>
 {
     /// Constructs a new `RoundedRectangle`. The top left vertex must be above
-    /// and to the left of the bottom right vertex. A negative radius will
-    /// be clamped to 0. A big radius (larger than half the width or height)
+    /// and to the left of the bottom right vertex. A negative radius won't be checked.
+    /// A big radius (larger than half the width or height)
     /// might produce unexpected behavior but it won't be checked.
     #[inline]
     pub const fn new(top_left: Vector2<T>, bottom_right: Vector2<T>, radius: T) -> Self
@@ -435,8 +435,8 @@ impl<T> RoundedRectangle<T>
     }
 
     /// Constructs a new `RoundedRectangle`. The top left vertex must be above
-    /// and to the left of the bottom right vertex. A negative radius will
-    /// be clamped to 0. A big radius (larger than half the width or height)
+    /// and to the left of the bottom right vertex.A negative radius won't be checked.
+    /// A big radius (larger than half the width or height)
     /// might produce unexpected behavior but it won't be checked.
     ///
     /// Note: a negative radius won't be checked at runtime.
@@ -445,13 +445,12 @@ impl<T> RoundedRectangle<T>
     {
         RoundedRectangle {
             rect: Rectangle::from_tuples(top_left, bottom_right),
-            radius: { if radius > 0 {
-                radius
-            } else { 0.0 }}
+            radius
         }
     }
 
     /// Constructs a new `RoundedRectangle` from a `Rectangle` and a radius.
+    /// A negative radius won't be checked.
     /// A big radius (larger than half the width or height) might produce
     /// unexpected behavior but it won't be checked.
     #[inline]
@@ -477,6 +476,7 @@ impl<T> RoundedRectangle<T>
         &self.rect.bottom_right
     }
 }
+
 
 impl<T: Copy> RoundedRectangle<T>
 {
@@ -532,9 +532,9 @@ impl<T: Copy> RoundedRectangle<T>
     /// Returns a `Rectangle` representing the rectangle that encloses this
     /// rounded rectangle.
     #[inline]
-    pub fn as_rectangle(&self) -> Rectangle<T>
+    pub fn as_rectangle(&self) -> &Rectangle<T>
     {
-        Rectangle::new(self.rect.top_left, self.rect.bottom_right)
+        &self.rect
     }
 }
 
@@ -577,10 +577,12 @@ where
     /// Returns true if the specified point is inside this rounded rectangle.
     /// Note: this is always inclusive, in contrast to the `contains` method
     /// of `Rect` which is sometimes exclusive.
-    #[inline]
     #[must_use]
     pub fn contains(&self, point: Vector2<T>) -> bool
     {
+
+        let radius_f32 = self.radius().as_();
+
         //if outside the enclosing rectangle then call it a win and don't proceed
         if point.x <= self.left()
             || point.x >= self.right()
@@ -614,22 +616,22 @@ where
         // center of the circles and checking if the distance between the point
         // and the center is smaller than the radius
         if (self.top_left() + Vector2::new(self.radius, self.radius) - point).magnitude()
-            <= self.radius.as_()
+            <= radius_f32
         {
             return true;
         }
         if (self.top_right() + Vector2::new(-self.radius, self.radius) - point).magnitude()
-            <= self.radius.as_()
+            <= radius_f32
         {
             return true;
         }
         if (self.bottom_left() + Vector2::new(self.radius, -self.radius) - point).magnitude()
-            <= self.radius.as_()
+            <= radius_f32
         {
             return true;
         }
         if (self.bottom_right() + Vector2::new(-self.radius, -self.radius) - point).magnitude()
-            <= self.radius.as_()
+            <= radius_f32
         {
             return true;
         }
