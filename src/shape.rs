@@ -137,12 +137,15 @@ impl<T: Copy> Rectangle<T>
     }
 }
 
-impl<T: Copy + std::ops::Neg<Output = T> + std::ops::Add<Output = T>> RoundedRectangle<T> {
-    /// returns a `Rectangle` representing the inner rectangle of this rounded rectangle.
-    pub fn inner(&self) -> Rectangle<T> {
+impl<T: Copy + std::ops::Neg<Output = T> + std::ops::Add<Output = T>> RoundedRectangle<T>
+{
+    /// returns a `Rectangle` representing the inner rectangle of this rounded
+    /// rectangle.
+    pub fn inner(&self) -> Rectangle<T>
+    {
         Rectangle::new(
             *self.top_left() + Vector2::new(self.radius, self.radius),
-            self.bottom_right() + Vector2::new(-self.radius, -self.radius),
+            self.bottom_right() + Vector2::new(-self.radius, -self.radius)
         )
     }
 }
@@ -389,30 +392,30 @@ mod test
 
 ///////////////////////////////////
 
-/// A struct representing an axis-aligned rounded rectangle. Two points and an 'u32' are
-/// stored: the top left vertex, the bottom right vertex and the radius of the
-/// rounded corners.
+/// A struct representing an axis-aligned rounded rectangle. Two points and an
+/// 'u32' are stored: the top left vertex, the bottom right vertex and the
+/// radius of the rounded corners.
 ///
 /// Alias for a rectangle with u32 coordinates.
 pub type URoundRect = RoundedRectangle<u32>;
 
-/// A struct representing an axis-aligned rounded rectangle. Two points and an 'i32' are
-/// stored: the top left vertex, the bottom right vertex and the radius of the
-/// rounded corners.
+/// A struct representing an axis-aligned rounded rectangle. Two points and an
+/// 'i32' are stored: the top left vertex, the bottom right vertex and the
+/// radius of the rounded corners.
 ///
 /// Alias for a rectangle with i32 coordinates.
 pub type IRoundRect = RoundedRectangle<i32>;
 
-/// A struct representing an axis-aligned rounded rectangle. Two points and an 'f32' are
-/// stored: the top left vertex, the bottom right vertex and the radius of the
-/// rounded corners.
+/// A struct representing an axis-aligned rounded rectangle. Two points and an
+/// 'f32' are stored: the top left vertex, the bottom right vertex and the
+/// radius of the rounded corners.
 ///
 /// Alias for a rectangle with f32 coordinates.
 pub type RoundRect = RoundedRectangle<f32>;
 
-/// A struct representing an axis-aligned rounded rectangle. Two points and a 'T' value are
-/// stored: the top left vertex, the bottom right vertex and the radius of the
-/// rounded corners.
+/// A struct representing an axis-aligned rounded rectangle. Two points and a
+/// 'T' value are stored: the top left vertex, the bottom right vertex and the
+/// radius of the rounded corners.
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[repr(C)]
 pub struct RoundedRectangle<T = f32>
@@ -432,8 +435,8 @@ impl<T> AsRef<RoundedRectangle<T>> for RoundedRectangle<T>
 impl<T> RoundedRectangle<T>
 {
     /// Constructs a new `RoundedRectangle`. The top left vertex must be above
-    /// and to the left of the bottom right vertex. A negative radius won't be checked.
-    /// A big radius (larger than half the width or height)
+    /// and to the left of the bottom right vertex. A negative radius won't be
+    /// checked. A big radius (larger than half the width or height)
     /// might produce unexpected behavior but it won't be checked.
     #[inline]
     pub const fn new(top_left: Vector2<T>, bottom_right: Vector2<T>, radius: T) -> Self
@@ -445,8 +448,8 @@ impl<T> RoundedRectangle<T>
     }
 
     /// Constructs a new `RoundedRectangle`. The top left vertex must be above
-    /// and to the left of the bottom right vertex.A negative radius won't be checked.
-    /// A big radius (larger than half the width or height)
+    /// and to the left of the bottom right vertex.A negative radius won't be
+    /// checked. A big radius (larger than half the width or height)
     /// might produce unexpected behavior but it won't be checked.
     ///
     /// Note: a negative radius won't be checked at runtime.
@@ -466,10 +469,7 @@ impl<T> RoundedRectangle<T>
     #[inline]
     pub fn from_rectangle(rect: Rectangle<T>, radius: T) -> Self
     {
-        RoundedRectangle {
-            rect,
-            radius
-        }
+        RoundedRectangle { rect, radius }
     }
 
     /// Returns a reference to the top left vertex.
@@ -486,7 +486,6 @@ impl<T> RoundedRectangle<T>
         &self.rect.bottom_right
     }
 }
-
 
 impl<T: Copy> RoundedRectangle<T>
 {
@@ -592,20 +591,25 @@ where
     {
         let inner = self.inner();
         if inner.contains(point) {
-            return true
+            return true;
         }
 
-        let radius_squared = self.radius*self.radius;
+        let radius_squared = self.radius * self.radius;
 
         //get distance from the 4 angles of the inner rectangle.
-        //Negative distances are ok because it actually means that it's inside the rectangle
+        //Negative distances are ok because it actually means that it's inside the
+        // rectangle
         let top_left_distance = (inner.top_left() - point).magnitude_squared();
         let top_right_distance = (inner.top_right() - point).magnitude_squared();
         let bottom_right_distance = (inner.bottom_right() - point).magnitude_squared();
         let bottom_left_distance = (inner.bottom_left() - point).magnitude_squared();
 
-        if top_left_distance <= radius_squared || top_right_distance <= radius_squared || bottom_right_distance <= radius_squared || bottom_left_distance <= radius_squared {
-            return true
+        if top_left_distance <= radius_squared
+            || top_right_distance <= radius_squared
+            || bottom_right_distance <= radius_squared
+            || bottom_left_distance <= radius_squared
+        {
+            return true;
         }
 
         false
