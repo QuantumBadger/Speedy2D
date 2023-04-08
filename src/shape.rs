@@ -137,6 +137,16 @@ impl<T: Copy> Rectangle<T>
     }
 }
 
+impl<T: Copy + std::ops::Neg<Output = T> + std::ops::Add<Output = T>> RoundedRectangle<T> {
+    /// returns a `Rectangle` representing the inner rectangle of this rounded rectangle.
+    pub fn inner(&self) -> Rectangle<T> {
+        Rectangle::new(
+            *self.top_left() + Vector2::new(self.radius, self.radius),
+            self.bottom_right() + Vector2::new(-self.radius, -self.radius),
+        )
+    }
+}
+
 impl<T: std::ops::Sub<Output = T> + Copy> Rectangle<T>
 {
     /// Returns the width of the rectangle.
@@ -580,60 +590,22 @@ where
     #[must_use]
     pub fn contains(&self, point: Vector2<T>) -> bool
     {
-
-        let radius_f32 = self.radius().as_();
-
-        //if outside the enclosing rectangle then call it a win and don't proceed
-        if point.x <= self.left()
-            || point.x >= self.right()
-            || point.y >= self.bottom()
-            || point.y <= self.top()
-        {
-            return false;
+        let inner = self.inner();
+        if inner.contains(point) {
+            return true
         }
 
-        //...by looking at the rounded rectangle as 2 rectangles in a cross and 4
-        //...by circles (overlapping rectangles should be slightly better
-        // than 3 rectangles in this case (I think)):
-        //first rectangle:
-        if point.x >= self.rect.top_left.x
-            && point.y >= self.rect.top_left.y + self.radius
-            && point.x <= self.rect.bottom_right.x
-            && point.y <= self.rect.bottom_right.y - self.radius
-        {
-            return true;
-        }
-        //second rectangle:
-        if point.x >= self.rect.top_left.x + self.radius
-            && point.y >= self.rect.top_left.y
-            && point.x <= self.rect.bottom_right.x - self.radius
-            && point.y <= self.rect.bottom_right.y
-        {
-            return true;
-        }
+        let radius_squared = self.radius*self.radius;
 
-        //check if the point is inside the 4 circles on the corners by getting the
-        // center of the circles and checking if the distance between the point
-        // and the center is smaller than the radius
-        if (self.top_left() + Vector2::new(self.radius, self.radius) - point).magnitude()
-            <= radius_f32
-        {
-            return true;
-        }
-        if (self.top_right() + Vector2::new(-self.radius, self.radius) - point).magnitude()
-            <= radius_f32
-        {
-            return true;
-        }
-        if (self.bottom_left() + Vector2::new(self.radius, -self.radius) - point).magnitude()
-            <= radius_f32
-        {
-            return true;
-        }
-        if (self.bottom_right() + Vector2::new(-self.radius, -self.radius) - point).magnitude()
-            <= radius_f32
-        {
-            return true;
+        //get distance from the 4 angles of the inner rectangle.
+        //Negative distances are ok because it actually means that it's inside the rectangle
+        let top_left_distance = (inner.top_left() - point).magnitude_squared();
+        let top_right_distance = (inner.top_right() - point).magnitude_squared();
+        let bottom_right_distance = (inner.bottom_right() - point).magnitude_squared();
+        let bottom_left_distance = (inner.bottom_left() - point).magnitude_squared();
+
+        if top_left_distance <= radius_squared || top_right_distance <= radius_squared || bottom_right_distance <= radius_squared || bottom_left_distance <= radius_squared {
+            return true
         }
 
         false
@@ -647,7 +619,7 @@ impl<T: PartialEq> RoundedRectangle<T>
     #[inline]
     pub fn is_zero_area(&self) -> bool
     {
-        self.rect.top_left.x == self.rect.bottom_right.x || self.rect.top_left.y == self.rect.bottom_right.y
+        self.rect.is_zero_area()
     }
 }
 
@@ -658,7 +630,7 @@ impl<T: PartialOrd> RoundedRectangle<T>
     #[inline]
     pub fn is_positive_area(&self) -> bool
     {
-        self.rect.top_left.x < self.rect.bottom_right.x && self.rect.top_left.y < self.rect.bottom_right.y
+        self.rect.is_positive_area()
     }
 }
 
