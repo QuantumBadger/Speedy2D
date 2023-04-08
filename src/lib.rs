@@ -1083,25 +1083,53 @@ impl Graphics2D
     {
         let round_rect = round_rect.as_ref();
 
-        //create polygon starting clockwise from top-left cornet
-        let polygon = Polygon::new(&[
-            Vec2::new(round_rect.left(), round_rect.top() + round_rect.radius()),
-            Vec2::new(round_rect.left() + round_rect.radius(), round_rect.top()),
-            Vec2::new(round_rect.right() - round_rect.radius(), round_rect.top()),
-            Vec2::new(round_rect.right(), round_rect.top() + round_rect.radius()),
-            Vec2::new(
-                round_rect.right(),
-                round_rect.bottom() - round_rect.radius()
-            ),
-            Vec2::new(
-                round_rect.right() - round_rect.radius(),
-                round_rect.bottom()
-            ),
-            Vec2::new(round_rect.left() + round_rect.radius(), round_rect.bottom()),
-            Vec2::new(round_rect.left(), round_rect.bottom() - round_rect.radius())
-        ]);
+        //create 3 rectangles (the middle one is taller)
+        //draw middle quad (the taller one)
+        self.draw_quad([
+            round_rect.top_left() + Vec2::new(round_rect.radius(), 0.0),
+            round_rect.top_right() + Vec2::new(-round_rect.radius(), 0.0),
+            round_rect.bottom_right() + Vec2::new(-round_rect.radius(), 0.0),
+            round_rect.bottom_left() + Vec2::new(round_rect.radius(), 0.0),
+        ], color);
 
-        self.draw_polygon(&polygon, Vec2::ZERO, color);
+        //draw left quad
+        self.draw_quad([
+            round_rect.top_left() + Vec2::new(0.0, round_rect.radius()),
+            round_rect.top_left() + Vec2::new(round_rect.radius(), round_rect.radius()),
+            round_rect.bottom_left() + Vec2::new(round_rect.radius(), -round_rect.radius()),
+            round_rect.bottom_left() + Vec2::new(0.0, -round_rect.radius()),
+        ], color);
+
+        //draw right quad
+        self.draw_quad([
+            round_rect.top_right() + Vec2::new(0.0, round_rect.radius()),
+            round_rect.top_right() + Vec2::new(-round_rect.radius(), round_rect.radius()),
+            round_rect.bottom_right() + Vec2::new(-round_rect.radius(), -round_rect.radius()),
+            round_rect.bottom_right() + Vec2::new(0.0, -round_rect.radius()),
+        ], color);
+
+        //draw triangles
+        self.draw_triangle([
+            round_rect.top_left() + Vec2::new(round_rect.radius(), 0.0),
+            round_rect.top_left() + Vec2::new(round_rect.radius(), round_rect.radius()),
+            round_rect.top_left() + Vec2::new(0.0, round_rect.radius()),
+        ], color);
+        self.draw_triangle([
+            round_rect.top_right() + Vec2::new(-round_rect.radius(), 0.0),
+            round_rect.top_right() + Vec2::new(-round_rect.radius(), round_rect.radius()),
+            round_rect.top_right() + Vec2::new(0.0, round_rect.radius()),
+        ], color);
+        self.draw_triangle([
+            round_rect.bottom_left() + Vec2::new(round_rect.radius(), 0.0),
+            round_rect.bottom_left() + Vec2::new(0.0, -round_rect.radius()),
+            round_rect.bottom_left() + Vec2::new(round_rect.radius(), -round_rect.radius()),
+        ], color);
+        self.draw_triangle([
+            round_rect.bottom_right() + Vec2::new(-round_rect.radius(), 0.0),
+            round_rect.bottom_right() + Vec2::new(-round_rect.radius(), -round_rect.radius()),
+            round_rect.bottom_right() + Vec2::new(0.0, -round_rect.radius()),
+       ], color);
+
 
         //draw top right circle
         self.draw_circle_section_triangular_three_color(
