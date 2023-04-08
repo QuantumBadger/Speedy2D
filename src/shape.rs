@@ -414,7 +414,7 @@ pub type IRoundRect = RoundedRectangle<i32>;
 pub type RoundRect = RoundedRectangle<f32>;
 
 /// A struct representing an axis-aligned rounded rectangle. Two points and a
-/// 'T' value are stored: the top left vertex, the bottom right vertex and the
+/// value of type 'T' are stored: the top left vertex, the bottom right vertex and the
 /// radius of the rounded corners.
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[repr(C)]
@@ -448,7 +448,7 @@ impl<T> RoundedRectangle<T>
     }
 
     /// Constructs a new `RoundedRectangle`. The top left vertex must be above
-    /// and to the left of the bottom right vertex.A negative radius won't be
+    /// and to the left of the bottom right vertex. A negative radius won't be
     /// checked. A big radius (larger than half the width or height)
     /// might produce unexpected behavior but it won't be checked.
     ///
