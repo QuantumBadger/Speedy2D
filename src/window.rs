@@ -604,6 +604,12 @@ impl<UserEventType> WindowHelper<UserEventType>
         self.inner.set_size_pixels(size)
     }
 
+    /// Gets the window size in pixels.
+    pub fn get_size_pixels(&self) -> UVec2
+    {
+        self.inner.get_size_pixels()
+    }
+
     /// Sets the position of the window in pixels. If multiple monitors are in
     /// use, this will be the distance from the top left of the display
     /// area, spanning all the monitors.

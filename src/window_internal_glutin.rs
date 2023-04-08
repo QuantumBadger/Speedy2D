@@ -222,6 +222,13 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
             .set_inner_size(PhysicalSize::new(size.x, size.y));
     }
 
+    pub fn get_size_pixels(&self) -> UVec2
+    {
+        let size = self.window_context.window().inner_size();
+
+        UVec2::new(size.width, size.height)
+    }
+
     pub fn set_size_scaled_pixels<S: Into<Vec2>>(&self, size: S)
     {
         let size = size.into();

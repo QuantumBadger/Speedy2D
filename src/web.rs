@@ -449,6 +449,15 @@ impl WebCanvasElement
         &self.html_element
     }
 
+    #[cfg(feature = "windowing")]
+    pub fn get_canvas_size(&self) -> UVec2
+    {
+        let width = self.canvas.width();
+        let height = self.canvas.height();
+
+        UVec2::new(width, height)
+    }
+
     pub fn get_webgl2_context<V>(
         &self,
         viewport_size_pixels: V
