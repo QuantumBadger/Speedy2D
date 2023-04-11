@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+use num_traits::Zero;
 use crate::dimen::{Vec2, Vector2};
 use crate::numeric::{max, min, PrimitiveZero};
 
@@ -582,6 +583,7 @@ where
         + std::ops::Neg<Output = T>
         + std::ops::Div<Output = f32>
         + std::ops::Div<f32, Output = T>
+        + Zero
 {
     /// Returns true if the specified point is inside this rounded rectangle.
     /// Note: this is always inclusive, in contrast to the `contains` method
@@ -597,18 +599,12 @@ where
         let radius_squared = self.radius * self.radius;
 
         //get distance from the 4 angles of the inner rectangle.
-        //Negative distances are ok because it actually means that it's inside the
-        // rectangle
-        let top_left_distance = (inner.top_left() - point).magnitude_squared();
-        let top_right_distance = (inner.top_right() - point).magnitude_squared();
-        let bottom_right_distance = (inner.bottom_right() - point).magnitude_squared();
-        let bottom_left_distance = (inner.bottom_left() - point).magnitude_squared();
+        let dx = max(max(inner.left() - point.x, point.x - inner.right()), T::zero());
+        let dy = max(max(inner.top() - point.y, point.y - inner.bottom()), T::zero());
 
-        if top_left_distance <= radius_squared
-            || top_right_distance <= radius_squared
-            || bottom_right_distance <= radius_squared
-            || bottom_left_distance <= radius_squared
-        {
+
+
+        if dx * dx + dy * dy <= radius_squared {
             return true;
         }
 
