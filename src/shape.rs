@@ -174,7 +174,7 @@ impl<T: std::ops::Sub<Output = T> + Copy> Rectangle<T>
     }
 }
 
-impl<T: PartialOrd<T> + Copy> Rectangle<T>
+impl<T: std::cmp::PartialOrd<T> + Copy> Rectangle<T>
 {
     /// Returns true if the specified point is inside this rectangle. This is
     /// inclusive of the top and left coordinates, and exclusive of the bottom
@@ -190,7 +190,7 @@ impl<T: PartialOrd<T> + Copy> Rectangle<T>
     }
 }
 
-impl<T: PartialOrd + Copy> Rectangle<T>
+impl<T: std::cmp::PartialOrd + Copy> Rectangle<T>
 {
     /// Finds the intersection of two rectangles -- in other words, the area
     /// that is common to both of them.
@@ -237,7 +237,7 @@ impl<T: PartialEq> Rectangle<T>
     }
 }
 
-impl<T: PartialOrd> Rectangle<T>
+impl<T: std::cmp::PartialOrd> Rectangle<T>
 {
     /// Returns `true` if the rectangle has an area greater than zero.
     #[inline]
@@ -627,7 +627,7 @@ impl<T: PartialEq> RoundedRectangle<T>
     }
 }
 
-impl<T: PartialOrd> RoundedRectangle<T>
+impl<T: std::cmp::PartialOrd> RoundedRectangle<T>
 {
     /// Returns `true` if the rectangle containing this rounded rectangle has
     /// positive area. (the radius is not taken into account)
