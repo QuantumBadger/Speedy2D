@@ -109,6 +109,47 @@ impl<T: Copy> Rectangle<T>
     }
 }
 
+impl<T: Copy + std::ops::Add<Output = T> + std::ops::Sub<Output = T>> Rectangle<T>
+{
+    /// Shifts all the vertices towards the center of the rectangle by the
+    /// specified 'x' and 'y' amount.
+    #[inline]
+    pub fn shrink(&mut self, vector: impl Copy + Into<Vector2<T>>)
+    {
+        let offset = vector.into();
+        self.top_left = self.top_left + offset;
+        self.bottom_right = self.bottom_right + offset;
+    }
+
+    /// Returns a new rectangle, whose vertices are shifted towards the center
+    /// by the specified 'x' and 'y' amount.
+    #[inline]
+    pub fn shrunk(&self, vector: impl Into<Vector2<T>>) -> Self
+    {
+        let offset = vector.into();
+        Rectangle::new(self.top_left + offset, self.bottom_right - offset)
+    }
+
+    /// Shifts all the vertices away from the center of the rectangle by the
+    /// specified 'x' and 'y' amount.
+    #[inline]
+    pub fn expand(&mut self, vector: impl Copy + Into<Vector2<T>>)
+    {
+        let offset = vector.into();
+        self.top_left = self.top_left - offset;
+        self.bottom_right = self.bottom_right - offset;
+    }
+
+    /// Returns a new rectangle, whose vertices are shifted away from the center
+    /// by the specified 'x' and 'y' amount.
+    #[inline]
+    pub fn expanded(&self, vector: impl Into<Vector2<T>>) -> Self
+    {
+        let offset = vector.into();
+        Rectangle::new(self.top_left - offset, self.bottom_right + offset)
+    }
+}
+
 impl<T: std::ops::Sub<Output = T> + Copy> Rectangle<T>
 {
     /// Returns the width of the rectangle.
