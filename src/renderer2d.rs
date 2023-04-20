@@ -468,7 +468,9 @@ pub struct Renderer2D
     current_texture: Option<GLTexture>,
 
     #[allow(dead_code)]
-    uniforms: Uniforms
+    uniforms: Uniforms,
+    
+    stretch_viewport: bool,
 }
 
 impl Renderer2D
@@ -493,7 +495,8 @@ impl Renderer2D
 
     pub fn new(
         context: &GLContextManager,
-        viewport_size_pixels: UVec2
+        viewport_size_pixels: UVec2,
+        stretch_viewport: bool
     ) -> Result<Self, BacktraceError<ErrorMessage>>
     {
         log::info!("Creating vertex shader");
@@ -553,15 +556,20 @@ impl Renderer2D
             glyph_cache: GlyphCache::new(),
             attribute_buffers,
             current_texture: None,
-            uniforms
+            uniforms,
+            stretch_viewport,
         })
     }
 
     pub fn set_viewport_size_pixels(&self, viewport_size_pixels: UVec2)
     {
-        self.uniforms
-            .set_viewport_size_pixels(&self.context, viewport_size_pixels);
-
+        if !self.stretch_viewport {
+            self.uniforms.set_viewport_size_pixels(
+                &self.context,
+                viewport_size_pixels
+            );
+        }
+        
         self.context.set_viewport_size(viewport_size_pixels);
     }
 

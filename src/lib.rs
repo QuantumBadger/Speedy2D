@@ -469,6 +469,7 @@ impl GLRenderer
     {
         Self::new_with_gl_backend(
             viewport_size_pixels,
+            false,
             Rc::new(GLBackendGLRS {}),
             GLVersion::OpenGL2_0
         )
@@ -504,6 +505,7 @@ impl GLRenderer
 
         Self::new_with_gl_backend(
             viewport_size_pixels,
+            false,
             Rc::new(backend),
             GLVersion::OpenGL2_0
         )
@@ -533,6 +535,7 @@ impl GLRenderer
 
     fn new_with_gl_backend<V: Into<UVec2>>(
         viewport_size_pixels: V,
+        viewport_stretch: bool,
         gl_backend: Rc<dyn GLBackend>,
         gl_version: GLVersion
     ) -> Result<Self, BacktraceError<GLRendererCreationError>>
@@ -548,7 +551,7 @@ impl GLRenderer
             })?;
 
         let renderer = Graphics2D {
-            renderer: Renderer2D::new(&context, viewport_size_pixels).map_err(|err| {
+            renderer: Renderer2D::new(&context, viewport_size_pixels, viewport_stretch).map_err(|err| {
                 GLRendererCreationError::msg_with_cause("Renderer2D creation failed", err)
             })?
         };
@@ -1298,10 +1301,12 @@ impl<UserEventType: 'static> Window<UserEventType>
         options: WindowCreationOptions
     ) -> Result<Self, BacktraceError<WindowCreationError>>
     {
+        let stretch = options.stretch;
         let window_impl = WindowGlutin::new(title, options)?;
 
         let renderer = GLRenderer::new_with_gl_backend(
             window_impl.get_inner_size_pixels(),
+            stretch,
             window_impl.gl_backend().clone(),
             GLVersion::OpenGL2_0
         )

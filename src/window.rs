@@ -1060,7 +1060,8 @@ pub struct WindowCreationOptions
     pub(crate) resizable: bool,
     pub(crate) maximized: bool,
     pub(crate) transparent: bool,
-    pub(crate) decorations: bool
+    pub(crate) decorations: bool,
+    pub(crate) stretch: bool,
 }
 
 impl WindowCreationOptions
@@ -1093,8 +1094,18 @@ impl WindowCreationOptions
             resizable: true,
             maximized: false,
             decorations: true,
-            transparent: false
+            transparent: false,
+            stretch: false,
         }
+    }
+    
+    /// Sets if the window contents are stretched when resized, rather
+    /// then expanding the drawing size.
+    #[inline]
+    #[must_use]
+    pub fn with_stretch(mut self, stretch: bool) -> Self {
+        self.stretch = stretch;
+        self
     }
 
     /// Sets the maximum level of multisampling which will be applied. By
