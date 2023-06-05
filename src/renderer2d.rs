@@ -470,7 +470,7 @@ pub struct Renderer2D
     #[allow(dead_code)]
     uniforms: Uniforms,
     
-    stretch_viewport: bool,
+    fixed_resolution: bool,
 }
 
 impl Renderer2D
@@ -496,7 +496,7 @@ impl Renderer2D
     pub fn new(
         context: &GLContextManager,
         viewport_size_pixels: UVec2,
-        stretch_viewport: bool
+        fixed_resolution: bool
     ) -> Result<Self, BacktraceError<ErrorMessage>>
     {
         log::info!("Creating vertex shader");
@@ -557,13 +557,13 @@ impl Renderer2D
             attribute_buffers,
             current_texture: None,
             uniforms,
-            stretch_viewport,
+            fixed_resolution,
         })
     }
 
     pub fn set_viewport_size_pixels(&self, viewport_size_pixels: UVec2)
     {
-        if !self.stretch_viewport {
+        if !self.fixed_resolution {
             self.uniforms.set_viewport_size_pixels(
                 &self.context,
                 viewport_size_pixels
@@ -571,6 +571,10 @@ impl Renderer2D
         }
         
         self.context.set_viewport_size(viewport_size_pixels);
+    }
+    
+    pub fn set_resolution_pixels(&self, resolution: UVec2) {
+        self.uniforms.set_viewport_size_pixels(&self.context, resolution);
     }
 
     pub fn finish_frame(&mut self)

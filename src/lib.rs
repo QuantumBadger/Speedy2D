@@ -1232,6 +1232,11 @@ impl Graphics2D
     {
         self.renderer.capture(format)
     }
+    
+    /// With a fixed-resolution window, set the resolution.
+    pub fn set_resolution(&self, resolution: UVec2) {
+        self.renderer.set_resolution_pixels(resolution);
+    }
 }
 
 /// Struct representing a window.
@@ -1301,12 +1306,12 @@ impl<UserEventType: 'static> Window<UserEventType>
         options: WindowCreationOptions
     ) -> Result<Self, BacktraceError<WindowCreationError>>
     {
-        let stretch = options.stretch;
+        let fixed_resolution = options.fixed_resolution;
         let window_impl = WindowGlutin::new(title, options)?;
 
         let renderer = GLRenderer::new_with_gl_backend(
             window_impl.get_inner_size_pixels(),
-            stretch,
+            fixed_resolution,
             window_impl.gl_backend().clone(),
             GLVersion::OpenGL2_0
         )

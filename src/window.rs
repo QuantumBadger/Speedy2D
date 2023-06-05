@@ -1061,7 +1061,7 @@ pub struct WindowCreationOptions
     pub(crate) maximized: bool,
     pub(crate) transparent: bool,
     pub(crate) decorations: bool,
-    pub(crate) stretch: bool,
+    pub(crate) fixed_resolution: bool,
 }
 
 impl WindowCreationOptions
@@ -1095,16 +1095,16 @@ impl WindowCreationOptions
             maximized: false,
             decorations: true,
             transparent: false,
-            stretch: false,
+            fixed_resolution: false,
         }
     }
     
-    /// Sets if the window contents are stretched when resized, rather
-    /// then expanding the drawing size.
+    /// Sets if the window contents have a fixed resolution, getting stretched when
+    /// resized, rather then expanding the drawing size.
     #[inline]
     #[must_use]
-    pub fn with_stretch(mut self, stretch: bool) -> Self {
-        self.stretch = stretch;
+    pub fn with_fixed_resolution(mut self, fixed_resolution: bool) -> Self {
+        self.fixed_resolution = fixed_resolution;
         self
     }
 

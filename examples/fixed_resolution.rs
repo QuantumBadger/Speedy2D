@@ -19,6 +19,7 @@
 use std::rc::Rc;
 
 use speedy2d::color::Color;
+use speedy2d::dimen::UVec2;
 use speedy2d::font::{Font, FormattedTextBlock, TextLayout, TextOptions};
 use speedy2d::window::{WindowHandler, WindowHelper, WindowCreationOptions, WindowSize};
 use speedy2d::{Graphics2D, Window};
@@ -30,33 +31,47 @@ fn main()
     let options =  WindowCreationOptions::new_windowed(
         WindowSize::PhysicalPixels((640, 240).into()),
         None,
-    ).with_stretch(true);
+    ).with_fixed_resolution(true);
     
-    let window = Window::new_with_options("Stretching window", options).unwrap();
+    let window = Window::new_with_options("Fixed resolution window", options).unwrap();
 
     let font = Font::new(include_bytes!("../assets/fonts/NotoSans-Regular.ttf")).unwrap();
-
     let text = font.layout_text("Hello world!", 64.0, TextOptions::new());
 
-    window.run_loop(MyWindowHandler { text })
+    window.run_loop(MyWindowHandler {
+        text,
+        new_resolution: None
+    });
 }
 
 struct MyWindowHandler
 {
-    text: Rc<FormattedTextBlock>
+    text: Rc<FormattedTextBlock>,
+    new_resolution: Option<UVec2>,
 }
 
 impl WindowHandler for MyWindowHandler
 {
     fn on_draw(&mut self, helper: &mut WindowHelper, graphics: &mut Graphics2D)
     {
+        if let Some(resolution) = self.new_resolution {
+            graphics.set_resolution(resolution);
+            self.new_resolution = None;
+        }
+
         graphics.clear_screen(Color::WHITE);
-
         graphics.draw_circle((150.0, 120.0), 75.0, Color::from_rgb(0.8, 0.9, 1.0));
-
         graphics.draw_text((290.0, 90.0), Color::BLACK, &self.text);
-
         // Request that we draw another frame once this one has finished
         helper.request_redraw();
+    }
+    
+    fn on_key_down(
+        &mut self,
+        helper: &mut WindowHelper<()>,
+        _virtual_key_code: Option<speedy2d::window::VirtualKeyCode>,
+        _scancode: speedy2d::window::KeyScancode
+    ) {
+        self.new_resolution = Some(helper.get_size_pixels());
     }
 }
