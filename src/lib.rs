@@ -172,7 +172,9 @@
 //! # use speedy2d::GLRenderer;
 //! # use speedy2d::color::Color;
 //! # let mut renderer = unsafe {
-//! #    GLRenderer::new_for_current_context((640, 480))
+//! #     GLRenderer::new_for_gl_context((640, 480), |fn_name| {
+//! #         std::ptr::null() as *const _
+//! #     })
 //! # }.unwrap();
 //! renderer.draw_frame(|graphics| {
 //!     graphics.clear_screen(Color::WHITE);
@@ -215,7 +217,9 @@
 //! # let font = Font::new(&[]).unwrap();
 //! # let block = font.layout_text("Hello World", 32.0, TextOptions::new());
 //! # let mut renderer = unsafe {
-//! #    GLRenderer::new_for_current_context((640, 480))
+//! #     GLRenderer::new_for_gl_context((640, 480), |fn_name| {
+//! #         std::ptr::null() as *const _
+//! #     })
 //! # }.unwrap();
 //! # renderer.draw_frame(|graphics| {
 //! graphics.draw_text((100.0, 100.0), Color::BLUE, &block);
@@ -587,7 +591,11 @@ impl GLRenderer
     /// # use speedy2d::color::Color;
     /// # use speedy2d::image::ImageSmoothingMode;
     /// use std::io::Cursor;
-    /// # let mut renderer = unsafe {GLRenderer::new_for_current_context((0,0))}.unwrap();
+    /// # let mut renderer = unsafe {
+    /// #     GLRenderer::new_for_gl_context((640, 480), |fn_name| {
+    /// #         std::ptr::null() as *const _
+    /// #     })
+    /// # }.unwrap();
     ///
     /// let image_bytes : &[u8] = include_bytes!("../assets/screenshots/hello_world.png");
     ///
@@ -709,7 +717,11 @@ impl Graphics2D
     /// # use speedy2d::color::Color;
     /// # use speedy2d::image::ImageSmoothingMode;
     /// use std::io::Cursor;
-    /// # let mut renderer = unsafe {GLRenderer::new_for_current_context((0,0))}.unwrap();
+    /// # let mut renderer = unsafe {
+    /// #     GLRenderer::new_for_gl_context((640, 480), |fn_name| {
+    /// #         std::ptr::null() as *const _
+    /// #     })
+    /// # }.unwrap();
     /// # renderer.draw_frame(|graphics| {
     ///
     /// let image_bytes : &[u8] = include_bytes!("../assets/screenshots/hello_world.png");
@@ -1152,7 +1164,11 @@ impl Graphics2D
     /// # use speedy2d::GLRenderer;
     /// # use speedy2d::dimen::Vec2;
     /// # use speedy2d::color::Color;
-    /// # let mut renderer = unsafe {GLRenderer::new_for_current_context((0,0))}.unwrap();
+    /// # let mut renderer = unsafe {
+    /// #     GLRenderer::new_for_gl_context((640, 480), |fn_name| {
+    /// #         std::ptr::null() as *const _
+    /// #     })
+    /// # }.unwrap();
     /// # renderer.draw_frame(|graphics| {
     /// graphics.draw_circle_section_triangular_three_color(
     ///         [

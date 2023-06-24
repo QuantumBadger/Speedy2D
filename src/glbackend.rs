@@ -18,7 +18,6 @@ use std::mem::MaybeUninit;
 
 use glow::{HasContext, PixelPackData};
 
-#[cfg(not(target_arch = "wasm32"))]
 use crate::error::{BacktraceError, ErrorMessage};
 use crate::glbackend::constants::*;
 use crate::glbackend::types::*;
