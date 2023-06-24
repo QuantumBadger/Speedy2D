@@ -16,8 +16,6 @@
 
 #![deny(warnings)]
 
-use std::rc::Rc;
-
 use speedy2d::color::Color;
 use speedy2d::dimen::Vec2;
 use speedy2d::font::{Font, FormattedTextBlock, TextLayout, TextOptions};
@@ -60,7 +58,7 @@ pub struct Button<UserEventType: Clone + 'static>
 {
     text: String,
     font: Font,
-    text_formatted: Option<Rc<FormattedTextBlock>>,
+    text_formatted: Option<FormattedTextBlock>,
     text_position: Vec2,
     position: Rectangle,
     currently_hovering: bool,
