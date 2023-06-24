@@ -16,7 +16,6 @@
 
 #![deny(warnings)]
 
-use std::rc::Rc;
 use std::time::Instant;
 
 use speedy2d::color::Color;
@@ -55,7 +54,7 @@ fn main()
 
 struct MyWindowHandler
 {
-    text: Rc<FormattedTextBlock>,
+    text: FormattedTextBlock,
     start_time: Instant
 }
 

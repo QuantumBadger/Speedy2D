@@ -16,8 +16,6 @@
 
 #![deny(warnings)]
 
-use std::rc::Rc;
-
 use speedy2d::color::Color;
 use speedy2d::dimen::{UVec2, Vec2};
 use speedy2d::font::{Font, FormattedTextBlock, TextLayout, TextOptions};
@@ -50,7 +48,7 @@ fn main()
 struct MyWindowHandler
 {
     offset: Vec2,
-    text: Rc<FormattedTextBlock>,
+    text: FormattedTextBlock,
     grabbed: bool,
     window_size: UVec2
 }

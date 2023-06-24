@@ -16,8 +16,6 @@
 
 #![deny(warnings)]
 
-use std::rc::Rc;
-
 use speedy2d::color::Color;
 use speedy2d::font::{Font, FormattedTextBlock, TextLayout, TextOptions};
 use speedy2d::window::{WindowHandler, WindowHelper};
@@ -38,7 +36,7 @@ fn main()
 
 struct MyWindowHandler
 {
-    text: Rc<FormattedTextBlock>
+    text: FormattedTextBlock
 }
 
 impl WindowHandler for MyWindowHandler

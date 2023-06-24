@@ -286,10 +286,9 @@ enum RenderQueueItem
     {
         position: Vec2,
         color: Color,
-        block: Rc<FormattedTextBlock>
+        block: FormattedTextBlock
     },
 
-    #[allow(dead_code)]
     FormattedTextGlyph
     {
         position: Vec2,
@@ -867,7 +866,7 @@ impl Renderer2D
         &mut self,
         position: V,
         color: Color,
-        text: &Rc<FormattedTextBlock>
+        text: &FormattedTextBlock
     )
     {
         self.add_to_render_queue(RenderQueueItem::FormattedTextBlock {
@@ -883,7 +882,7 @@ impl Renderer2D
         position: V,
         crop_window: Rect,
         color: Color,
-        text: &Rc<FormattedTextBlock>
+        text: &FormattedTextBlock
     )
     {
         let position = position.into();

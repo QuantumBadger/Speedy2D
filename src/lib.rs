@@ -765,7 +765,7 @@ impl Graphics2D
         &mut self,
         position: V,
         color: Color,
-        text: &Rc<FormattedTextBlock>
+        text: &FormattedTextBlock
     )
     {
         self.renderer.draw_text(position, color, text);
@@ -784,7 +784,7 @@ impl Graphics2D
         position: V,
         crop_window: Rect,
         color: Color,
-        text: &Rc<FormattedTextBlock>
+        text: &FormattedTextBlock
     )
     {
         self.renderer
