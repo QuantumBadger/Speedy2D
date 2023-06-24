@@ -176,3 +176,13 @@ Thanks to [UdHo](https://github.com/UdHo)
 ### New APIs
 
 * `WindowHelper.get_size_pixels()` (thanks to [dennisorlando](https://github.com/dennisorlando))
+
+## 2.0.0
+
+### Changed APIs
+
+* APIs which previously returned or accepted an `Rc<FormattedTextBlock>` now use
+  a `FormattedTextBlock` directly
+* `FormattedTextBlock` can now be cheaply cloned, and sent between threads.
+* Removed the deprecated function `new_for_current_context` -- please switch
+  to `new_for_gl_context` instead.

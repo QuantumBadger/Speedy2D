@@ -172,7 +172,9 @@
 //! # use speedy2d::GLRenderer;
 //! # use speedy2d::color::Color;
 //! # let mut renderer = unsafe {
-//! #    GLRenderer::new_for_current_context((640, 480))
+//! #     GLRenderer::new_for_gl_context((640, 480), |fn_name| {
+//! #         std::ptr::null() as *const _
+//! #     })
 //! # }.unwrap();
 //! renderer.draw_frame(|graphics| {
 //!     graphics.clear_screen(Color::WHITE);
@@ -215,7 +217,9 @@
 //! # let font = Font::new(&[]).unwrap();
 //! # let block = font.layout_text("Hello World", 32.0, TextOptions::new());
 //! # let mut renderer = unsafe {
-//! #    GLRenderer::new_for_current_context((640, 480))
+//! #     GLRenderer::new_for_gl_context((640, 480), |fn_name| {
+//! #         std::ptr::null() as *const _
+//! #     })
 //! # }.unwrap();
 //! # renderer.draw_frame(|graphics| {
 //! graphics.draw_text((100.0, 100.0), Color::BLUE, &block);
@@ -309,7 +313,7 @@ use crate::error::{BacktraceError, ErrorMessage};
 use crate::font::FormattedTextBlock;
 use crate::glbackend::GLBackend;
 #[cfg(not(target_arch = "wasm32"))]
-use crate::glbackend::{GLBackendGLRS, GLBackendGlow};
+use crate::glbackend::GLBackendGlow;
 use crate::glwrapper::{GLContextManager, GLVersion};
 use crate::image::{ImageDataType, ImageHandle, ImageSmoothingMode, RawBitmapData};
 use crate::renderer2d::Renderer2D;
@@ -442,39 +446,6 @@ pub struct GLRenderer
 
 impl GLRenderer
 {
-    /// Creates a `GLRenderer` for the current OpenGL context.
-    /// `viewport_size_pixels` should be set to the initial viewport size,
-    /// however this can be changed later using [GLRenderer::
-    /// set_viewport_size_pixels()].
-    ///
-    /// Note: This function must not be called if you are letting Speedy2D
-    /// create a window for you.
-    ///
-    /// # Deprecation
-    ///
-    /// Note: This function will be removed in a future version of Speedy2D.
-    /// Please use [GLRenderer::new_for_gl_context] instead.
-    ///
-    /// # Safety
-    ///
-    /// While a `GLRenderer` object is active, you must not make any changes to
-    /// the active GL context. Doing so may lead to undefined behavior,
-    /// which is why this function is marked `unsafe`. It is strongly
-    /// advised not to use any other OpenGL libraries in the same thread
-    /// as `GLRenderer`.
-    #[cfg(not(target_arch = "wasm32"))]
-    pub unsafe fn new_for_current_context<V: Into<UVec2>>(
-        viewport_size_pixels: V
-    ) -> Result<Self, BacktraceError<GLRendererCreationError>>
-    {
-        Self::new_with_gl_backend(
-            viewport_size_pixels,
-            false,
-            Rc::new(GLBackendGLRS {}),
-            GLVersion::OpenGL2_0
-        )
-    }
-
     /// Creates a `GLRenderer` with the specified OpenGL loader function. The
     /// loader function takes the name of an OpenGL function, and returns the
     /// associated function pointer. `viewport_size_pixels` should be set to
@@ -622,7 +593,11 @@ impl GLRenderer
     /// # use speedy2d::color::Color;
     /// # use speedy2d::image::ImageSmoothingMode;
     /// use std::io::Cursor;
-    /// # let mut renderer = unsafe {GLRenderer::new_for_current_context((0,0))}.unwrap();
+    /// # let mut renderer = unsafe {
+    /// #     GLRenderer::new_for_gl_context((640, 480), |fn_name| {
+    /// #         std::ptr::null() as *const _
+    /// #     })
+    /// # }.unwrap();
     ///
     /// let image_bytes : &[u8] = include_bytes!("../assets/screenshots/hello_world.png");
     ///
@@ -744,7 +719,11 @@ impl Graphics2D
     /// # use speedy2d::color::Color;
     /// # use speedy2d::image::ImageSmoothingMode;
     /// use std::io::Cursor;
-    /// # let mut renderer = unsafe {GLRenderer::new_for_current_context((0,0))}.unwrap();
+    /// # let mut renderer = unsafe {
+    /// #     GLRenderer::new_for_gl_context((640, 480), |fn_name| {
+    /// #         std::ptr::null() as *const _
+    /// #     })
+    /// # }.unwrap();
     /// # renderer.draw_frame(|graphics| {
     ///
     /// let image_bytes : &[u8] = include_bytes!("../assets/screenshots/hello_world.png");
@@ -800,7 +779,7 @@ impl Graphics2D
         &mut self,
         position: V,
         color: Color,
-        text: &Rc<FormattedTextBlock>
+        text: &FormattedTextBlock
     )
     {
         self.renderer.draw_text(position, color, text);
@@ -819,7 +798,7 @@ impl Graphics2D
         position: V,
         crop_window: Rect,
         color: Color,
-        text: &Rc<FormattedTextBlock>
+        text: &FormattedTextBlock
     )
     {
         self.renderer
@@ -1187,7 +1166,11 @@ impl Graphics2D
     /// # use speedy2d::GLRenderer;
     /// # use speedy2d::dimen::Vec2;
     /// # use speedy2d::color::Color;
-    /// # let mut renderer = unsafe {GLRenderer::new_for_current_context((0,0))}.unwrap();
+    /// # let mut renderer = unsafe {
+    /// #     GLRenderer::new_for_gl_context((640, 480), |fn_name| {
+    /// #         std::ptr::null() as *const _
+    /// #     })
+    /// # }.unwrap();
     /// # renderer.draw_frame(|graphics| {
     /// graphics.draw_circle_section_triangular_three_color(
     ///         [

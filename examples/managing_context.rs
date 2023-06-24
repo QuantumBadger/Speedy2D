@@ -59,7 +59,7 @@ fn main()
             Event::RedrawRequested(_) => context.window().request_redraw(),
             Event::RedrawEventsCleared => {
                 renderer.draw_frame(|graphics| {
-                    render_frame(graphics, text.clone());
+                    render_frame(graphics, &text);
                 });
                 context.swap_buffers().unwrap();
             }
@@ -68,11 +68,11 @@ fn main()
     });
 }
 
-fn render_frame(graphics: &mut Graphics2D, text: std::rc::Rc<FormattedTextBlock>)
+fn render_frame(graphics: &mut Graphics2D, text: &FormattedTextBlock)
 {
     graphics.clear_screen(Color::WHITE);
     graphics.draw_circle((150.0, 120.0), 75.0, Color::from_rgb(0.8, 0.9, 1.0));
-    graphics.draw_text((290.0, 90.0), Color::BLACK, &text);
+    graphics.draw_text((290.0, 90.0), Color::BLACK, text);
 }
 
 fn create_best_context(
