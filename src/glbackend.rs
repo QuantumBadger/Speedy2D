@@ -319,7 +319,7 @@ pub trait GLBackend
     {
         let data = std::slice::from_raw_parts(
             data.as_ptr() as *const u8,
-            data.len() * std::mem::size_of::<f32>()
+            std::mem::size_of_val(data)
         );
 
         self.gl_buffer_data(target, data, usage)
