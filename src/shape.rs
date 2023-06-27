@@ -15,6 +15,7 @@
  */
 
 use num_traits::Zero;
+
 use crate::dimen::{Vec2, Vector2};
 use crate::numeric::{max, min, PrimitiveZero};
 
@@ -95,6 +96,13 @@ impl<T> Rectangle<T>
 
 impl<T: Copy> Rectangle<T>
 {
+    /// Returns a new `RoundedRectangle` which has the same sizes of `Self` and
+    /// a radius of T
+    #[inline]
+    pub fn rounded(&self, radius: T) -> RoundedRectangle<T>
+    {
+        RoundedRectangle::from_rectangle(self.clone(), radius)
+    }
     /// Returns a vector representing the top right vertex.
     #[inline]
     pub fn top_right(&self) -> Vector2<T>
@@ -415,8 +423,8 @@ pub type IRoundRect = RoundedRectangle<i32>;
 pub type RoundRect = RoundedRectangle<f32>;
 
 /// A struct representing an axis-aligned rounded rectangle. Two points and a
-/// value of type 'T' are stored: the top left vertex, the bottom right vertex and the
-/// radius of the rounded corners.
+/// value of type 'T' are stored: the top left vertex, the bottom right vertex
+/// and the radius of the rounded corners.
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[repr(C)]
 pub struct RoundedRectangle<T = f32>
@@ -591,6 +599,9 @@ where
     #[must_use]
     pub fn contains(&self, point: Vector2<T>) -> bool
     {
+        if !self.rect.contains(point) {
+            return false;
+        }
         let inner = self.inner();
         if inner.contains(point) {
             return true;
@@ -599,10 +610,14 @@ where
         let radius_squared = self.radius * self.radius;
 
         //get distance from the 4 angles of the inner rectangle.
-        let dx = max(max(inner.left() - point.x, point.x - inner.right()), T::zero());
-        let dy = max(max(inner.top() - point.y, point.y - inner.bottom()), T::zero());
-
-
+        let dx = max(
+            max(inner.left() - point.x, point.x - inner.right()),
+            T::zero()
+        );
+        let dy = max(
+            max(inner.top() - point.y, point.y - inner.bottom()),
+            T::zero()
+        );
 
         if dx * dx + dy * dy <= radius_squared {
             return true;
