@@ -950,10 +950,19 @@ pub(crate) enum UserEventGlutin<UserEventType: 'static>
     UserEvent(UserEventType)
 }
 
-#[derive(Clone)]
 pub struct UserEventSenderGlutin<UserEventType: 'static>
 {
     event_proxy: EventLoopProxy<UserEventGlutin<UserEventType>>
+}
+
+impl<UserEventType> Clone for UserEventSenderGlutin<UserEventType>
+{
+    fn clone(&self) -> Self
+    {
+        UserEventSenderGlutin {
+            event_proxy: self.event_proxy.clone()
+        }
+    }
 }
 
 impl<UserEventType> UserEventSenderGlutin<UserEventType>
