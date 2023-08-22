@@ -417,6 +417,34 @@ impl<T: Copy + std::ops::Div<Output = T>> std::ops::Div<T> for Vector2<T>
     }
 }
 
+impl<T: Copy + std::ops::Mul<Output = T>, R: Into<Vector2<T>>> std::ops::Mul<R>
+    for &Vector2<T>
+{
+    type Output = Vector2<T>;
+
+    #[inline]
+    #[must_use]
+    fn add(self, rhs: R) -> Self::Output
+    {
+        let rhs = rhs.into();
+        Vector2::new(self.x * rhs.x, self.y * rhs.y)
+    }
+}
+
+impl<T: Copy + std::ops::Div<Output = T>, R: Into<Vector2<T>>> std::ops::Div<R>
+    for &Vector2<T>
+{
+    type Output = Vector2<T>;
+
+    #[inline]
+    #[must_use]
+    fn sub(self, rhs: R) -> Self::Output
+    {
+        let rhs = rhs.into();
+        Vector2::new(self.x / rhs.x, self.y / rhs.y)
+    }
+}
+
 impl<T: RoundFloat> RoundFloat for Vector2<T>
 {
     fn round(&self) -> Self
