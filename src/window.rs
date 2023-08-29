@@ -324,7 +324,7 @@ where
         DrawingWindowHandler {
             window_handler,
             renderer,
-            phantom: PhantomData::default()
+            phantom: PhantomData
         }
     }
 

@@ -382,7 +382,7 @@ mod window_internal_web;
 #[cfg(any(doc, doctest))]
 mod window_internal_doctest;
 
-#[cfg(any(target_arch = "wasm32"))]
+#[cfg(target_arch = "wasm32")]
 mod web;
 
 mod font_cache;
