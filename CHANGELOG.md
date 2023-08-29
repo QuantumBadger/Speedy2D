@@ -186,3 +186,4 @@ Thanks to [UdHo](https://github.com/UdHo)
 * `FormattedTextBlock` can now be cheaply cloned, and sent between threads.
 * Removed the deprecated function `new_for_current_context` -- please switch
   to `new_for_gl_context` instead.
+* `UserEventSender` now implements `Clone` even if the event type doesn't (thanks to [Alex Kladov](https://github.com/matklad))
