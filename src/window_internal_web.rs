@@ -560,12 +560,21 @@ impl<UserEventType: 'static> WindowHelperWeb<UserEventType>
 type UserEventSenderActionType<UserEventType> =
     dyn FnMut(UserEventType) -> Result<(), BacktraceError<ErrorMessage>>;
 
-#[derive(Clone)]
 pub struct UserEventSenderWeb<UserEventType>
 where
     UserEventType: 'static
 {
     action: Rc<RefCell<UserEventSenderActionType<UserEventType>>>
+}
+
+impl<UserEventType: 'static> Clone for UserEventSenderWeb<UserEventType>
+{
+    fn clone(&self) -> Self
+    {
+        UserEventSenderWeb {
+            action: self.action.clone()
+        }
+    }
 }
 
 impl<UserEventType: 'static> UserEventSenderWeb<UserEventType>
