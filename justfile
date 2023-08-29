@@ -15,6 +15,7 @@ precommit:
 	cargo test
 	cargo test --no-default-features --lib --examples --tests
 	cargo clippy
+	cargo clippy --target wasm32-unknown-unknown
 	cargo +nightly fmt -- --check
 	cargo doc
 	cargo build --target wasm32-unknown-unknown

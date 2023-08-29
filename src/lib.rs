@@ -1390,7 +1390,7 @@ impl<UserEventType: 'static> WebCanvas<UserEventType>
         Ok(WebCanvas {
             inner: Some(WebCanvasImpl::new(element_id, handler)?),
             should_cleanup: false,
-            user_event_type: PhantomData::default()
+            user_event_type: PhantomData
         })
     }
 
