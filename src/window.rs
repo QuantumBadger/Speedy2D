@@ -52,10 +52,19 @@ pub enum EventLoopSendError
 }
 
 /// Allows user events to be sent to the event loop from other threads.
-#[derive(Clone)]
 pub struct UserEventSender<UserEventType: 'static>
 {
     inner: UserEventSenderInnerType<UserEventType>
+}
+
+impl<UserEventType> Clone for UserEventSender<UserEventType>
+{
+    fn clone(&self) -> Self
+    {
+        UserEventSender {
+            inner: self.inner.clone()
+        }
+    }
 }
 
 impl<UserEventType> UserEventSender<UserEventType>
@@ -324,7 +333,7 @@ where
         DrawingWindowHandler {
             window_handler,
             renderer,
-            phantom: PhantomData::default()
+            phantom: PhantomData
         }
     }
 
