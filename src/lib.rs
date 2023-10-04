@@ -503,6 +503,23 @@ impl GLRenderer
             .get_webgl2_context(viewport_size_pixels)
     }
 
+    /// Creates a `GLRenderer` from callback's result.
+    ///
+    /// The parameter `viewport_size_pixels` should be set to
+    /// the initial canvas size, however this can be changed later using
+    /// [GLRenderer:: set_viewport_size_pixels()].
+    #[cfg(any(doc, doctest, target_arch = "wasm32"))]
+    pub fn new_for_web_canvas_from_callback<V,S>(
+        viewport_size_pixels: V,
+        webgl2_context_cb: S
+    ) -> Result<Self, BacktraceError<GLRendererCreationError>>
+    where
+        V: Into<UVec2>,
+        S: FnOnce() -> web_sys::WebGl2RenderingContext
+    {
+        WebCanvasElement::get_webgl2_context_from_callback(viewport_size_pixels, webgl2_context_cb)
+    }
+
     fn new_with_gl_backend<V: Into<UVec2>>(
         viewport_size_pixels: V,
         gl_backend: Rc<dyn GLBackend>,
