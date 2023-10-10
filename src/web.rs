@@ -497,13 +497,13 @@ impl WebCanvasElement
         )
     }
 
-    pub fn get_webgl2_context_from_callback<V,CB>(
+    pub fn get_webgl2_context_from_callback<V, CB>(
         viewport_size_pixels: V,
-        cb: CB,
+        cb: CB
     ) -> Result<GLRenderer, BacktraceError<GLRendererCreationError>>
-        where
-            V: Into<UVec2>,
-            CB: FnOnce() -> web_sys::WebGl2RenderingContext,
+    where
+        V: Into<UVec2>,
+        CB: FnOnce() -> web_sys::WebGl2RenderingContext
     {
         let viewport_size_pixels = viewport_size_pixels.into();
 

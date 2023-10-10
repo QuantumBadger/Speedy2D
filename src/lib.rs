@@ -300,6 +300,8 @@ use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 use std::rc::Rc;
 
+#[cfg(target_arch = "wasm32")]
+use web_sys::WebGl2RenderingContext;
 #[cfg(any(feature = "image-loading", doc, doctest))]
 use {
     crate::image::ImageFileFormat,
@@ -509,15 +511,18 @@ impl GLRenderer
     /// the initial canvas size, however this can be changed later using
     /// [GLRenderer:: set_viewport_size_pixels()].
     #[cfg(any(doc, doctest, target_arch = "wasm32"))]
-    pub fn new_for_web_canvas_from_callback<V,S>(
+    pub fn new_for_web_canvas_from_callback<V, S>(
         viewport_size_pixels: V,
         webgl2_context_cb: S
     ) -> Result<Self, BacktraceError<GLRendererCreationError>>
     where
         V: Into<UVec2>,
-        S: FnOnce() -> web_sys::WebGl2RenderingContext
+        S: FnOnce() -> WebGl2RenderingContext
     {
-        WebCanvasElement::get_webgl2_context_from_callback(viewport_size_pixels, webgl2_context_cb)
+        WebCanvasElement::get_webgl2_context_from_callback(
+            viewport_size_pixels,
+            webgl2_context_cb
+        )
     }
 
     fn new_with_gl_backend<V: Into<UVec2>>(
