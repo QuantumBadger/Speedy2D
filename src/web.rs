@@ -497,17 +497,21 @@ impl WebCanvasElement
         )
     }
 
-    pub fn get_webgl2_context_from_callback<V, CB>(
+    pub fn use_provided_webgl2_context<V>(
         viewport_size_pixels: V,
-        cb: CB
+        context: web_sys::WebGl2RenderingContext
     ) -> Result<GLRenderer, BacktraceError<GLRendererCreationError>>
     where
-        V: Into<UVec2>,
-        CB: FnOnce() -> web_sys::WebGl2RenderingContext
+        V: Into<UVec2>
     {
         let viewport_size_pixels = viewport_size_pixels.into();
 
-        let gl_context = glow::Context::from_webgl2_context(cb());
+        log::info!(
+            "Using WebGL2 context with viewport size {:?}",
+            viewport_size_pixels
+        );
+
+        let gl_context = glow::Context::from_webgl2_context(context);
 
         GLRenderer::new_with_gl_backend(
             viewport_size_pixels,
