@@ -510,7 +510,7 @@ impl GLRenderer
     /// The parameter `viewport_size_pixels` should be set to
     /// the initial canvas size, however this can be changed later using
     /// [GLRenderer:: set_viewport_size_pixels()].
-    #[cfg(any(doc, doctest, target_arch = "wasm32"))]
+    #[cfg(all(any(doc, doctest), target_arch = "wasm32"))]
     pub fn new_for_web_canvas_from_prepared_context<V>(
         viewport_size_pixels: V,
         webgl2_prepared_context: WebGl2RenderingContext
