@@ -503,7 +503,7 @@ impl GLRenderer
             .get_webgl2_context(viewport_size_pixels)
     }
 
-    /// Creates a `GLRenderer` from callback's result.
+    /// Creates a `GLRenderer` from provided [web_sys:: WebGl2RenderingContext].
     ///
     /// The parameter `viewport_size_pixels` should be set to
     /// the initial canvas size, however this can be changed later using
