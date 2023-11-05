@@ -25,6 +25,7 @@ use std::sync::mpsc::channel;
 use glutin::dpi::PhysicalSize;
 use glutin::event_loop::EventLoop;
 use image::{ColorType, GenericImageView, ImageFormat};
+use num_traits::ToPrimitive;
 use speedy2d::color::Color;
 use speedy2d::dimen::{Vec2, Vector2};
 use speedy2d::font::{Font, TextAlignment, TextLayout, TextOptions};
@@ -497,6 +498,71 @@ fn main()
                 graphics.draw_text(Vec2::new(0.0, 300.0), Color::BLUE, &text);
 
                 graphics.draw_text(Vec2::new(0.0, 400.0), Color::WHITE, &text);
+            });
+        })
+    });
+
+    tests.push(GLTest {
+        width: 500,
+        height: 500,
+        name: "text_trimming".to_string(),
+        action: Box::new(|renderer| {
+            let typeface = Font::new(NOTO_SANS_REGULAR_BYTES).unwrap();
+
+            renderer.draw_frame(|graphics| {
+                graphics.clear_screen(Color::WHITE);
+
+                for i in 0..4 {
+                    let mut text = String::new();
+
+                    for _ in 0..i {
+                        text.push(' ');
+                    }
+
+                    text.push_str("Trimming");
+
+                    for _ in 0..=i {
+                        text.push(' ');
+                    }
+
+                    text.push_str("default (on)");
+
+                    let text = typeface.layout_text(&text, 32.0, TextOptions::new());
+
+                    graphics.draw_text(
+                        Vec2::new(0.0, 40.0 * i.to_f32().unwrap()),
+                        Color::BLACK,
+                        &text
+                    );
+                }
+
+                for i in 0..4 {
+                    let mut text = String::new();
+
+                    for _ in 0..i {
+                        text.push(' ');
+                    }
+
+                    text.push_str("Trimming");
+
+                    for _ in 0..=i {
+                        text.push(' ');
+                    }
+
+                    text.push_str("off");
+
+                    let text = typeface.layout_text(
+                        &text,
+                        32.0,
+                        TextOptions::new().with_trim_each_line(false)
+                    );
+
+                    graphics.draw_text(
+                        Vec2::new(0.0, 160.0 + 40.0 * i.to_f32().unwrap()),
+                        Color::BLACK,
+                        &text
+                    );
+                }
             });
         })
     });
