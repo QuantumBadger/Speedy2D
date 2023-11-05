@@ -187,3 +187,7 @@ Thanks to [UdHo](https://github.com/UdHo)
 * Removed the deprecated function `new_for_current_context` -- please switch
   to `new_for_gl_context` instead.
 * `UserEventSender` now implements `Clone` even if the event type doesn't (thanks to [Alex Kladov](https://github.com/matklad))
+
+### New APIs
+
+* `TextOptions::with_trim_each_line()` (thanks to [InfiniteCoder01](https://github.com/InfiniteCoder01))
