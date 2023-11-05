@@ -816,7 +816,7 @@ pub struct TextOptions
     wrap_words_after_width: Option<f32>,
     alignment: TextAlignment,
     line_spacing_multiplier: f32,
-    trim_each_line: bool,
+    trim_each_line: bool
 }
 
 impl TextOptions
@@ -831,7 +831,7 @@ impl TextOptions
             wrap_words_after_width: None,
             alignment: TextAlignment::Left,
             line_spacing_multiplier: 1.0,
-            trim_each_line: true,
+            trim_each_line: true
         }
     }
 
@@ -878,7 +878,8 @@ impl TextOptions
         self
     }
 
-    /// Decides whether to trim each line or not
+    /// True if whitespace should be trimmed at the beginning of each line,
+    /// false to preserve whitespace.
     ///
     /// The default is `true`.
     #[inline]
