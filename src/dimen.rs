@@ -130,6 +130,14 @@ impl<T: std::ops::Neg<Output = T> + Copy> Vector2<T>
     {
         Vector2::new(self.y, -self.x)
     }
+
+    /// Rotates the vector by 180 degrees. Equivalent to negating the vector.
+    #[inline]
+    #[must_use]
+    pub fn rotate_180_degrees(&self) -> Vector2<T>
+    {
+        -self
+    }
 }
 
 impl<T: num_traits::AsPrimitive<f32>> Vector2<T>
@@ -254,18 +262,6 @@ impl<T: Copy + std::ops::Add<Output = T>, R: Into<Vector2<T>>> std::ops::Add<R>
     }
 }
 
-impl<T: Copy + std::ops::Neg<Output = T>> std::ops::Neg for Vector2<T>
-{
-    type Output = Vector2<T>;
-
-    #[inline]
-    #[must_use]
-    fn neg(self) -> Self::Output
-    {
-        Vector2::new(-self.x, -self.y)
-    }
-}
-
 impl<T: Copy + std::ops::Sub<Output = T>, R: Into<Self>> std::ops::Sub<R> for Vector2<T>
 {
     type Output = Vector2<T>;
@@ -290,6 +286,30 @@ impl<T: Copy + std::ops::Sub<Output = T>, R: Into<Vector2<T>>> std::ops::Sub<R>
     {
         let rhs = rhs.into();
         Vector2::new(self.x - rhs.x, self.y - rhs.y)
+    }
+}
+
+impl<T: Copy + std::ops::Neg<Output = T>> std::ops::Neg for Vector2<T>
+{
+    type Output = Vector2<T>;
+
+    #[inline]
+    #[must_use]
+    fn neg(self) -> Self::Output
+    {
+        Vector2::new(-self.x, -self.y)
+    }
+}
+
+impl<T: Copy + std::ops::Neg<Output = T>> std::ops::Neg for &Vector2<T>
+{
+    type Output = Vector2<T>;
+
+    #[inline]
+    #[must_use]
+    fn neg(self) -> Self::Output
+    {
+        Vector2::new(-self.x, -self.y)
     }
 }
 
