@@ -22,7 +22,7 @@ use std::rc::Rc;
 
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::JsCast;
-use web_sys::{KeyboardEvent, MouseEvent, WheelEvent};
+use web_sys::{KeyboardEvent, PointerEvent, WheelEvent};
 
 use crate::dimen::{IVec2, UVec2, Vec2};
 use crate::error::{BacktraceError, ErrorMessage};
@@ -870,22 +870,21 @@ impl WebCanvasImpl
             let handler = handler.clone();
             let helper = helper.clone();
             let current_dpr = current_dpr.clone();
+            let is_pointer_locked = is_pointer_locked.clone();
 
             event_listeners_to_clean_up.push(
-                canvas_event_target.register_event_listener_mouse(
-                    "mousemove",
+                canvas_event_target.register_event_listener_pointer(
+                    "pointermove",
                     move |event| {
+                        if !event.is_primary() {
+                            return;
+                        }
                         let current_dpr = Cell::get(Rc::borrow(&current_dpr)) as f32;
-
-                        let position = if is_pointer_locked.get() {
-                            IVec2::new(event.movement_x(), event.movement_y())
-                                .into_f32()
-                                .mul(current_dpr)
-                        } else {
-                            IVec2::new(event.offset_x(), event.offset_y())
-                                .into_f32()
-                                .mul(current_dpr)
-                        };
+                        let position = calculate_position_from_pointer_event(
+                            &event,
+                            current_dpr,
+                            is_pointer_locked.get()
+                        );
 
                         RefCell::borrow_mut(Rc::borrow(&handler)).on_mouse_move(
                             RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut(),
@@ -896,53 +895,80 @@ impl WebCanvasImpl
             );
         }
 
-        {
+        let pointer_down_closure = {
+            let handler = handler.clone();
+            let helper = helper.clone();
+            let current_dpr = current_dpr.clone();
+            let is_pointer_locked = is_pointer_locked.clone();
+
+            move |event: PointerEvent| {
+                if !event.is_primary() || event.button() == -1 {
+                    return;
+                }
+
+                if event.pointer_type() != "mouse" {
+                    let current_dpr = Cell::get(Rc::borrow(&current_dpr)) as f32;
+                    let position = calculate_position_from_pointer_event(
+                        &event,
+                        current_dpr,
+                        is_pointer_locked.get()
+                    );
+
+                    RefCell::borrow_mut(Rc::borrow(&handler)).on_mouse_move(
+                        RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut(),
+                        position
+                    );
+                }
+
+                match mouse_button_from_event(&event) {
+                    None => {
+                        log::error!("Mouse down: Unknown mouse button {}", event.button())
+                    }
+                    Some(button) => RefCell::borrow_mut(Rc::borrow(&handler))
+                        .on_mouse_button_down(
+                            RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut(),
+                            button
+                        )
+                }
+            }
+        };
+        event_listeners_to_clean_up.push(
+            canvas_event_target
+                .register_event_listener_pointer("pointerdown", pointer_down_closure)?
+        );
+
+        let pointer_up_closure = {
             let handler = handler.clone();
             let helper = helper.clone();
 
-            event_listeners_to_clean_up.push(
-                canvas_event_target.register_event_listener_mouse(
-                    "mousedown",
-                    move |event| match mouse_button_from_event(&event) {
-                        None => {
-                            log::error!(
-                                "Mouse down: Unknown mouse button {}",
-                                event.button()
-                            )
-                        }
-                        Some(button) => RefCell::borrow_mut(Rc::borrow(&handler))
-                            .on_mouse_button_down(
-                                RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut(),
-                                button
-                            )
+            move |event: PointerEvent| {
+                if !event.is_primary() || event.button() == -1 {
+                    return;
+                }
+                match mouse_button_from_event(&event) {
+                    None => {
+                        log::error!("Mouse up: Unknown mouse button {}", event.button())
                     }
-                )?
-            );
-        }
-
-        {
-            let handler = handler.clone();
-            let helper = helper.clone();
-
-            event_listeners_to_clean_up.push(
-                canvas_event_target.register_event_listener_mouse(
-                    "mouseup",
-                    move |event| match mouse_button_from_event(&event) {
-                        None => {
-                            log::error!(
-                                "Mouse up: Unknown mouse button {}",
-                                event.button()
-                            )
-                        }
-                        Some(button) => RefCell::borrow_mut(Rc::borrow(&handler))
-                            .on_mouse_button_up(
-                                RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut(),
-                                button
-                            )
-                    }
-                )?
-            );
-        }
+                    Some(button) => RefCell::borrow_mut(Rc::borrow(&handler))
+                        .on_mouse_button_up(
+                            RefCell::borrow_mut(Rc::borrow(&helper)).deref_mut(),
+                            button
+                        )
+                }
+            }
+        };
+        event_listeners_to_clean_up.push(
+            canvas_event_target.register_event_listener_pointer(
+                "pointerup",
+                pointer_up_closure.clone()
+            )?
+        );
+        event_listeners_to_clean_up.push(
+            canvas_event_target.register_event_listener_pointer(
+                "pointercancel",
+                pointer_up_closure.clone()
+            )?
+        );
 
         {
             let handler = handler.clone();
@@ -1140,13 +1166,30 @@ impl Drop for WebCanvasImpl
     }
 }
 
-fn mouse_button_from_event(event: &MouseEvent) -> Option<MouseButton>
+fn mouse_button_from_event(event: &PointerEvent) -> Option<MouseButton>
 {
     let button: i16 = event.button();
     match button {
         0 => Some(MouseButton::Left),
         1 => Some(MouseButton::Middle),
         2 => Some(MouseButton::Right),
-        _ => Some(MouseButton::Other(button.try_into().unwrap()))
+        _ => Some(MouseButton::Other(button.try_into().ok()?))
+    }
+}
+
+fn calculate_position_from_pointer_event(
+    event: &PointerEvent,
+    current_dpr: f32,
+    is_pointer_locked: bool
+) -> Vec2
+{
+    if is_pointer_locked {
+        IVec2::new(event.movement_x(), event.movement_y())
+            .into_f32()
+            .mul(current_dpr)
+    } else {
+        IVec2::new(event.offset_x(), event.offset_y())
+            .into_f32()
+            .mul(current_dpr)
     }
 }
