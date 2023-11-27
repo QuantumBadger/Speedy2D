@@ -154,11 +154,17 @@ fn run_test_with_new_context<S: AsRef<str>, F: FnOnce(&mut GLRenderer)>(
         "Actual image size mismatch"
     );
 
-    assert_eq!(
-        expected_image,
-        actual_image.into_data(),
-        "Generated image did not match expected ({})",
-        expected_image_name.as_ref()
+    let max_differing_pixel = expected_image
+        .into_iter()
+        .zip(actual_image.into_data())
+        .enumerate()
+        .max_by_key(|(_, (a, b))| a.abs_diff(*b));
+    assert!(
+        !max_differing_pixel.is_some_and(|(_, (a, b))| a != b),
+        "Generated image did not match expected (index {}: {} != {})",
+        max_differing_pixel.unwrap().0,
+        max_differing_pixel.unwrap().1 .0,
+        max_differing_pixel.unwrap().1 .1,
     );
 }
 
