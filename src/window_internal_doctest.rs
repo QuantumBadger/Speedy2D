@@ -14,6 +14,11 @@
  *  limitations under the License.
  */
 
+use crate::PhantomData;
+
 pub struct WebCanvasImpl {}
 
-pub struct WindowGlutin<UserEventType> {}
+pub struct WindowGlutin<UserEventType>
+{
+    user_event_type: PhantomData<UserEventType>
+}
