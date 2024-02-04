@@ -80,8 +80,7 @@ impl Codepoint
 
     fn from_unindexed_codepoints(unindexed_codepoints: &[char]) -> Vec<Self>
     {
-        let mut codepoints = Vec::new();
-        codepoints.reserve(unindexed_codepoints.len());
+        let mut codepoints = Vec::with_capacity(unindexed_codepoints.len());
 
         for (i, codepoint) in unindexed_codepoints.iter().enumerate() {
             codepoints.push(Codepoint::new(i.try_into().unwrap(), *codepoint));
@@ -144,8 +143,7 @@ impl Word
                 _ => {
                     // Non-whitespace word
 
-                    let mut word_codepoints = Vec::new();
-                    word_codepoints.reserve(16);
+                    let mut word_codepoints = Vec::with_capacity(16);
                     word_codepoints.push(first_token.clone());
 
                     while let Some(next) = reader.peek() {
