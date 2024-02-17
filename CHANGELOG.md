@@ -191,3 +191,13 @@ Thanks to [UdHo](https://github.com/UdHo)
 ### New APIs
 
 * `TextOptions::with_trim_each_line()` (thanks to [InfiniteCoder01](https://github.com/InfiniteCoder01))
+
+## 2.1.0
+
+### New APIs
+
+Ability to draw rounded rectangles, thanks to [dennisorlando](https://github.com/dennisorlando):
+
+* `RoundedRectangle` struct
+* `Rectangle.rounded(radius)`
+* `Graphics2D.draw_rounded_rectangle()`
