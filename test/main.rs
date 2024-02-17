@@ -1265,6 +1265,41 @@ fn main()
         })
     });
 
+    tests.push(GLTest {
+        width: 500,
+        height: 500,
+        name: "round_rect_1".to_string(),
+        action: Box::new(|renderer| {
+            renderer.draw_frame(|graphics| {
+                graphics.clear_screen(Color::WHITE);
+
+                graphics.draw_rounded_rectangle(
+                    Rectangle::from_tuples((100.0, 100.0), (200.0, 350.0)).rounded(20.0),
+                    Color::RED
+                );
+            });
+        })
+    });
+
+    tests.push(GLTest {
+        width: 500,
+        height: 500,
+        name: "round_rect_2".to_string(),
+        action: Box::new(|renderer| {
+            renderer.draw_frame(|graphics| {
+                graphics.clear_screen(Color::WHITE);
+
+                let rect = Rectangle::from_tuples((100.0, 100.0), (300.0, 200.0));
+
+                let rounded = rect.rounded(20.0);
+
+                graphics.draw_rectangle(rect, Color::RED);
+                graphics.draw_rounded_rectangle(&rounded, Color::GREEN);
+                graphics.draw_rectangle(rounded.inner(), Color::BLUE);
+            });
+        })
+    });
+
     for test in tests {
         log::info!("Running test {}", test.name);
 
