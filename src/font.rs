@@ -450,12 +450,14 @@ fn layout_line_internal<T: TextLayout + ?Sized>(
 
     let mut first_word_on_line = true;
 
-    // Skip whitespace
-    while let Some(Word::Renderable(word)) = words.peek() {
-        if word.is_whitespace {
-            words.next().unwrap();
-        } else {
-            break;
+    if options.trim_each_line {
+        // Skip whitespace
+        while let Some(Word::Renderable(word)) = words.peek() {
+            if word.is_whitespace {
+                words.next().unwrap();
+            } else {
+                break;
+            }
         }
     }
 
@@ -813,7 +815,8 @@ pub struct TextOptions
     tracking: f32,
     wrap_words_after_width: Option<f32>,
     alignment: TextAlignment,
-    line_spacing_multiplier: f32
+    line_spacing_multiplier: f32,
+    trim_each_line: bool,
 }
 
 impl TextOptions
@@ -827,7 +830,8 @@ impl TextOptions
             tracking: 0.0,
             wrap_words_after_width: None,
             alignment: TextAlignment::Left,
-            line_spacing_multiplier: 1.0
+            line_spacing_multiplier: 1.0,
+            trim_each_line: true,
         }
     }
 
@@ -871,6 +875,17 @@ impl TextOptions
     pub fn with_line_spacing_multiplier(mut self, line_spacing_multiplier: f32) -> Self
     {
         self.line_spacing_multiplier = line_spacing_multiplier;
+        self
+    }
+
+    /// Decides whether to trim each line or not
+    ///
+    /// The default is `true`.
+    #[inline]
+    #[must_use]
+    pub fn with_trim_each_line(mut self, trim_each_line: bool) -> Self
+    {
+        self.trim_each_line = trim_each_line;
         self
     }
 }

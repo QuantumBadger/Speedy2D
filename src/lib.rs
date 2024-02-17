@@ -382,7 +382,7 @@ mod window_internal_web;
 #[cfg(any(doc, doctest))]
 mod window_internal_doctest;
 
-#[cfg(any(target_arch = "wasm32"))]
+#[cfg(target_arch = "wasm32")]
 mod web;
 
 mod font_cache;
@@ -1390,7 +1390,7 @@ impl<UserEventType: 'static> WebCanvas<UserEventType>
         Ok(WebCanvas {
             inner: Some(WebCanvasImpl::new(element_id, handler)?),
             should_cleanup: false,
-            user_event_type: PhantomData::default()
+            user_event_type: PhantomData
         })
     }
 
