@@ -28,7 +28,8 @@ use web_sys::{
     EventTarget,
     KeyboardEvent,
     MediaQueryListEvent,
-    MouseEvent
+    MouseEvent,
+    PointerEvent
 };
 use web_sys::{Document, Element, HtmlCanvasElement, HtmlElement, Performance, Window};
 
@@ -635,6 +636,19 @@ impl WebEventTarget
         self.register_event_listener(
             listener_type,
             Box::new(callback) as Box<dyn FnMut()>,
+            false
+        )
+    }
+
+    pub fn register_event_listener_pointer<F: FnMut(PointerEvent) + 'static>(
+        &self,
+        listener_type: &str,
+        callback: F
+    ) -> Result<WebPending, BacktraceError<ErrorMessage>>
+    {
+        self.register_event_listener(
+            listener_type,
+            Box::new(callback) as Box<dyn FnMut(_)>,
             false
         )
     }

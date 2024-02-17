@@ -51,6 +51,7 @@ features = [
     "MediaQueryList",
     "MediaQueryListEvent",
     "MouseEvent",
+    "PointerEvent",
     "WheelEvent",
     "Performance",
     "WebGl2RenderingContext",
