@@ -616,6 +616,9 @@ mod test
     }
 
     #[test]
+    #[allow(clippy::op_ref)]
+    #[allow(clippy::needless_borrows_for_generic_args)]
+    #[allow(clippy::needless_borrow)]
     fn test_arithmetic_ref()
     {
         assert_eq!(
@@ -680,6 +683,9 @@ mod test
     }
 
     #[test]
+    #[allow(clippy::op_ref)]
+    #[allow(clippy::needless_borrows_for_generic_args)]
+    #[allow(clippy::needless_borrow)]
     fn test_arithmetic_tuples()
     {
         assert_eq!(Vector2::new(15, 20), Vector2::new(10, 4) + (5, 16));
@@ -740,6 +746,9 @@ mod test
     }
 
     #[test]
+    #[allow(clippy::op_ref)]
+    #[allow(clippy::needless_borrows_for_generic_args)]
+    #[allow(clippy::needless_borrow)]
     fn test_arithmetic_values()
     {
         assert_eq!(Vector2::new(15, 20), Vector2::new(10, 15) + 5);
