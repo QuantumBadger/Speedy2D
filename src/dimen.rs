@@ -16,6 +16,7 @@
 
 use std::convert::TryInto;
 
+use num_traits::{AsPrimitive, Zero};
 use rusttype::Point;
 
 use crate::numeric::{PrimitiveZero, RoundFloat};
@@ -78,22 +79,33 @@ impl<T: PrimitiveZero> Vector2<T>
     }
 }
 
-impl Vec2
+impl<T> Vector2<T>
+where
+    T: Copy + std::ops::Mul<Output = T> + std::ops::Add<Output = T>
 {
     /// Returns the magnitude of the vector, squared.
     #[inline]
     #[must_use]
-    pub fn magnitude_squared(&self) -> f32
+    pub fn magnitude_squared(&self) -> T
     {
         self.x * self.x + self.y * self.y
     }
+}
 
+impl<T> Vector2<T>
+where
+    T: AsPrimitive<f32>
+        + Copy
+        + std::ops::Mul<Output = T>
+        + std::ops::Add<Output = T>
+        + std::ops::Div<f32, Output = T>
+{
     /// Returns the magnitude of the vector.
     #[inline]
     #[must_use]
     pub fn magnitude(&self) -> f32
     {
-        self.magnitude_squared().sqrt()
+        (self.magnitude_squared().as_()).sqrt()
     }
 
     /// Normalizes the vector so that the magnitude is `1.0`. If the current
@@ -101,17 +113,18 @@ impl Vec2
     /// division by zero.
     #[inline]
     #[must_use]
-    pub fn normalize(&self) -> Option<Vec2>
+    pub fn normalize(&self) -> Option<Vector2<T>>
     {
         let magnitude = self.magnitude();
 
-        if magnitude == 0.0 {
+        if magnitude.is_zero() {
             return None;
         }
 
-        Some(self / magnitude)
+        Some(Vector2::new(self.x / magnitude, self.y / magnitude))
     }
 }
+
 impl<T: std::ops::Neg<Output = T> + Copy> Vector2<T>
 {
     /// Rotates the vector by 90 degrees in the clockwise direction.
