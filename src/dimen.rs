@@ -33,7 +33,7 @@ pub type UVec2 = Vector2<u32>;
 /// A vector containing two numeric values. This may represent a size or
 /// position.
 #[repr(C)]
-#[derive(PartialEq, Eq, Clone, Copy, Hash, Debug)]
+#[derive(PartialEq, Eq, Clone, Copy, Hash, Debug, Default)]
 pub struct Vector2<T>
 {
     /// The horizontal component of the vector.
@@ -144,6 +144,7 @@ impl<T: std::ops::Neg<Output = T> + Copy> Vector2<T>
     }
 }
 
+/* ----- Casting ----- */
 impl<T: num_traits::AsPrimitive<f32>> Vector2<T>
 {
     /// Returns a new vector with each element cast to `f32`, using the `as`
@@ -215,6 +216,30 @@ where
     }
 }
 
+impl<T> From<T> for Vector2<T>
+where
+    T: Copy
+{
+    #[inline]
+    #[must_use]
+    fn from(value: T) -> Self
+    {
+        Vector2::new(value, value)
+    }
+}
+
+impl<T> From<&T> for Vector2<T>
+where
+    T: Copy
+{
+    #[inline]
+    #[must_use]
+    fn from(value: &T) -> Self
+    {
+        Vector2::new(*value, *value)
+    }
+}
+
 impl<T> From<&Self> for Vector2<T>
 where
     T: Copy
@@ -239,6 +264,7 @@ where
     }
 }
 
+/* ----- Operators ----- */
 impl<T: Copy + std::ops::Add<Output = T>, R: Into<Self>> std::ops::Add<R> for Vector2<T>
 {
     type Output = Vector2<T>;
@@ -341,43 +367,15 @@ impl<T: Copy + std::ops::SubAssign, R: Into<Vector2<T>>> std::ops::SubAssign<R>
     }
 }
 
-impl<T: Copy + std::ops::MulAssign> std::ops::MulAssign<T> for Vector2<T>
+impl<T: Copy + std::ops::Mul<Output = T>> std::ops::Mul<T> for Vector2<T>
 {
-    #[inline]
-    fn mul_assign(&mut self, factor: T)
-    {
-        self.x *= factor;
-        self.y *= factor;
-    }
-}
+    type Output = Vector2<T>;
 
-impl<T: Copy + std::ops::MulAssign> std::ops::MulAssign<T> for &mut Vector2<T>
-{
     #[inline]
-    fn mul_assign(&mut self, factor: T)
+    #[must_use]
+    fn mul(self, rhs: T) -> Self::Output
     {
-        self.x *= factor;
-        self.y *= factor;
-    }
-}
-
-impl<T: Copy + std::ops::DivAssign> std::ops::DivAssign<T> for Vector2<T>
-{
-    #[inline]
-    fn div_assign(&mut self, divisor: T)
-    {
-        self.x /= divisor;
-        self.y /= divisor;
-    }
-}
-
-impl<T: Copy + std::ops::DivAssign> std::ops::DivAssign<T> for &mut Vector2<T>
-{
-    #[inline]
-    fn div_assign(&mut self, divisor: T)
-    {
-        self.x /= divisor;
-        self.y /= divisor;
+        Vector2::new(self.x * rhs, self.y * rhs)
     }
 }
 
@@ -393,15 +391,15 @@ impl<T: Copy + std::ops::Mul<Output = T>> std::ops::Mul<T> for &Vector2<T>
     }
 }
 
-impl<T: Copy + std::ops::Mul<Output = T>> std::ops::Mul<T> for Vector2<T>
+impl<T: Copy + std::ops::Div<Output = T>> std::ops::Div<T> for Vector2<T>
 {
     type Output = Vector2<T>;
 
     #[inline]
     #[must_use]
-    fn mul(self, rhs: T) -> Self::Output
+    fn div(self, rhs: T) -> Self::Output
     {
-        Vector2::new(self.x * rhs, self.y * rhs)
+        Vector2::new(self.x / rhs, self.y / rhs)
     }
 }
 
@@ -417,15 +415,131 @@ impl<T: Copy + std::ops::Div<Output = T>> std::ops::Div<T> for &Vector2<T>
     }
 }
 
-impl<T: Copy + std::ops::Div<Output = T>> std::ops::Div<T> for Vector2<T>
+impl<T: Copy + std::ops::MulAssign> std::ops::MulAssign<T> for Vector2<T>
+{
+    #[inline]
+    fn mul_assign(&mut self, rhs: T)
+    {
+        self.x *= rhs;
+        self.y *= rhs;
+    }
+}
+
+impl<T: Copy + std::ops::MulAssign> std::ops::MulAssign<T> for &mut Vector2<T>
+{
+    #[inline]
+    fn mul_assign(&mut self, rhs: T)
+    {
+        self.x *= rhs;
+        self.y *= rhs;
+    }
+}
+
+impl<T: Copy + std::ops::DivAssign> std::ops::DivAssign<T> for Vector2<T>
+{
+    #[inline]
+    fn div_assign(&mut self, rhs: T)
+    {
+        self.x /= rhs;
+        self.y /= rhs;
+    }
+}
+
+impl<T: Copy + std::ops::DivAssign> std::ops::DivAssign<T> for &mut Vector2<T>
+{
+    #[inline]
+    fn div_assign(&mut self, rhs: T)
+    {
+        self.x /= rhs;
+        self.y /= rhs;
+    }
+}
+
+impl<T: Copy + std::ops::Mul<Output = T>> std::ops::Mul<&T> for Vector2<T>
 {
     type Output = Vector2<T>;
 
     #[inline]
     #[must_use]
-    fn div(self, rhs: T) -> Self::Output
+    fn mul(self, rhs: &T) -> Self::Output
     {
-        Vector2::new(self.x / rhs, self.y / rhs)
+        Vector2::new(self.x * *rhs, self.y * *rhs)
+    }
+}
+
+impl<T: Copy + std::ops::Mul<Output = T>> std::ops::Mul<&T> for &Vector2<T>
+{
+    type Output = Vector2<T>;
+
+    #[inline]
+    #[must_use]
+    fn mul(self, rhs: &T) -> Self::Output
+    {
+        Vector2::new(self.x * *rhs, self.y * *rhs)
+    }
+}
+
+impl<T: Copy + std::ops::Div<Output = T>> std::ops::Div<&T> for Vector2<T>
+{
+    type Output = Vector2<T>;
+
+    #[inline]
+    #[must_use]
+    fn div(self, rhs: &T) -> Self::Output
+    {
+        Vector2::new(self.x / *rhs, self.y / *rhs)
+    }
+}
+
+impl<T: Copy + std::ops::Div<Output = T>> std::ops::Div<&T> for &Vector2<T>
+{
+    type Output = Vector2<T>;
+
+    #[inline]
+    #[must_use]
+    fn div(self, rhs: &T) -> Self::Output
+    {
+        Vector2::new(self.x / *rhs, self.y / *rhs)
+    }
+}
+
+impl<T: Copy + std::ops::MulAssign> std::ops::MulAssign<&T> for Vector2<T>
+{
+    #[inline]
+    fn mul_assign(&mut self, rhs: &T)
+    {
+        self.x *= *rhs;
+        self.y *= *rhs;
+    }
+}
+
+impl<T: Copy + std::ops::MulAssign> std::ops::MulAssign<&T> for &mut Vector2<T>
+{
+    #[inline]
+    fn mul_assign(&mut self, rhs: &T)
+    {
+        self.x *= *rhs;
+        self.y *= *rhs;
+    }
+}
+
+impl<T: Copy + std::ops::DivAssign> std::ops::DivAssign<&T> for Vector2<T>
+{
+    #[inline]
+    fn div_assign(&mut self, rhs: &T)
+    {
+        self.x /= *rhs;
+        self.y /= *rhs;
+    }
+}
+
+impl<T: Copy + std::ops::DivAssign> std::ops::DivAssign<&T> for &mut Vector2<T>
+{
+    #[inline]
+    fn div_assign(&mut self, rhs: &T)
+    {
+        self.x /= *rhs;
+        self.y /= *rhs;
     }
 }
 
@@ -447,6 +561,30 @@ impl<T> From<Point<T>> for Vector2<T>
     }
 }
 
+impl<T: Copy + std::ops::Mul<Output = T>> Vector2<T>
+{
+    /// Multiply two vectors componentwise
+    #[inline]
+    #[must_use]
+    pub fn mul_components(&self, rhs: impl Into<Vector2<T>>) -> Vector2<T>
+    {
+        let rhs = rhs.into();
+        Vector2::new(self.x * rhs.x, self.y * rhs.y)
+    }
+}
+
+impl<T: Copy + std::ops::Div<Output = T>> Vector2<T>
+{
+    /// Divide two vectors componentwise
+    #[inline]
+    #[must_use]
+    pub fn div_components(&self, rhs: impl Into<Vector2<T>>) -> Vector2<T>
+    {
+        let rhs = rhs.into();
+        Vector2::new(self.x / rhs.x, self.y / rhs.y)
+    }
+}
+
 #[cfg(test)]
 mod test
 {
@@ -465,12 +603,35 @@ mod test
             Vector2::new(10, 4) - Vector2::new(5, 16)
         );
 
+        assert_eq!(
+            Vector2::new(20, 16),
+            Vector2::new(10, 4).mul_components(Vector2::new(2, 4))
+        );
+
+        assert_eq!(
+            Vector2::new(5, 1),
+            Vector2::new(10, 4).div_components(Vector2::new(2, 4))
+        );
+
         assert_eq!(IVec2::new(-5, 10), IVec2::new(3, 10) - IVec2::new_x(8));
 
         assert_eq!(IVec2::new(-5, 17), IVec2::new(-5, 10) + IVec2::new_y(7));
+
+        assert_eq!(
+            Vec2::new(7.5, 0.0),
+            Vec2::new(2.5, 1.0).mul_components(Vec2::new_x(3.0))
+        );
+
+        assert_eq!(
+            Vec2::new(2.5, -1.0),
+            Vec2::new(5.0, 1.0).div_components(Vec2::new(2.0, -1.0))
+        );
     }
 
     #[test]
+    #[allow(clippy::op_ref)]
+    #[allow(clippy::needless_borrows_for_generic_args)]
+    #[allow(clippy::needless_borrow)]
     fn test_arithmetic_ref()
     {
         assert_eq!(
@@ -502,9 +663,42 @@ mod test
             Vector2::new(5, -12),
             &Vector2::new(10, 4) - &Vector2::new(5, 16)
         );
+
+        assert_eq!(
+            Vector2::new(20, 16),
+            Vector2::new(10, 4).mul_components(&Vector2::new(2, 4))
+        );
+
+        assert_eq!(
+            Vector2::new(5, 1),
+            Vector2::new(10, 4).div_components(&Vector2::new(2, 4))
+        );
+
+        assert_eq!(
+            Vector2::new(20, 16),
+            (&Vector2::new(10, 4)).mul_components(Vector2::new(2, 4))
+        );
+
+        assert_eq!(
+            Vector2::new(5, 1),
+            (&Vector2::new(10, 4)).div_components(Vector2::new(2, 4))
+        );
+
+        assert_eq!(
+            Vector2::new(20, 16),
+            (&Vector2::new(10, 4)).mul_components(&Vector2::new(2, 4))
+        );
+
+        assert_eq!(
+            Vector2::new(5, 1),
+            (&Vector2::new(10, 4)).div_components(&Vector2::new(2, 4))
+        );
     }
 
     #[test]
+    #[allow(clippy::op_ref)]
+    #[allow(clippy::needless_borrows_for_generic_args)]
+    #[allow(clippy::needless_borrow)]
     fn test_arithmetic_tuples()
     {
         assert_eq!(Vector2::new(15, 20), Vector2::new(10, 4) + (5, 16));
@@ -522,7 +716,87 @@ mod test
         assert_eq!(Vector2::new(5, -12), &Vector2::new(10, 4) - (5, 16));
 
         assert_eq!(Vector2::new(5, -12), &Vector2::new(10, 4) - &(5, 16));
+
+        assert_eq!(
+            Vector2::new(20, 16),
+            Vector2::new(10, 4).mul_components((2, 4))
+        );
+
+        assert_eq!(
+            Vector2::new(20, 16),
+            Vector2::new(10, 4).mul_components(&(2, 4))
+        );
+
+        assert_eq!(
+            Vector2::new(20, 16),
+            (&Vector2::new(10, 4)).mul_components((2, 4))
+        );
+
+        assert_eq!(
+            Vector2::new(20, 16),
+            (&Vector2::new(10, 4)).mul_components(&(2, 4))
+        );
+
+        assert_eq!(
+            Vector2::new(5, 1),
+            Vector2::new(10, 4).div_components((2, 4))
+        );
+
+        assert_eq!(
+            Vector2::new(5, 1),
+            Vector2::new(10, 4).div_components(&(2, 4))
+        );
+
+        assert_eq!(
+            Vector2::new(5, 1),
+            (&Vector2::new(10, 4)).div_components((2, 4))
+        );
+
+        assert_eq!(
+            Vector2::new(5, 1),
+            (&Vector2::new(10, 4)).div_components(&(2, 4))
+        );
     }
+
+    #[test]
+    #[allow(clippy::op_ref)]
+    #[allow(clippy::needless_borrows_for_generic_args)]
+    #[allow(clippy::needless_borrow)]
+    fn test_arithmetic_values()
+    {
+        assert_eq!(Vector2::new(15, 20), Vector2::new(10, 15) + 5);
+
+        assert_eq!(Vector2::new(15, 20), Vector2::new(10, 15) + &5);
+
+        assert_eq!(Vector2::new(15, 20), &Vector2::new(10, 15) + 5);
+
+        assert_eq!(Vector2::new(15, 20), &Vector2::new(10, 15) + &5);
+
+        assert_eq!(Vector2::new(5, 10), Vector2::new(10, 15) - 5);
+
+        assert_eq!(Vector2::new(5, 10), Vector2::new(10, 15) - &5);
+
+        assert_eq!(Vector2::new(5, 10), &Vector2::new(10, 15) - 5);
+
+        assert_eq!(Vector2::new(5, 10), &Vector2::new(10, 15) - &5);
+
+        assert_eq!(Vector2::new(20, 30), Vector2::new(10, 15) * 2);
+
+        assert_eq!(Vector2::new(20, 30), Vector2::new(10, 15) * &2);
+
+        assert_eq!(Vector2::new(20, 30), &Vector2::new(10, 15) * 2);
+
+        assert_eq!(Vector2::new(20, 30), &Vector2::new(10, 15) * &2);
+
+        assert_eq!(Vector2::new(5, 4), Vector2::new(10, 8) / 2);
+
+        assert_eq!(Vector2::new(5, 4), Vector2::new(10, 8) / &2);
+
+        assert_eq!(Vector2::new(5, 4), &Vector2::new(10, 8) / 2);
+
+        assert_eq!(Vector2::new(5, 4), &Vector2::new(10, 8) / &2);
+    }
+
     #[test]
     fn test_add_assign()
     {
