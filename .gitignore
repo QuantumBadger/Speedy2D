@@ -1,5 +1,6 @@
 /target
 Cargo.lock
 .idea
+.direnv
 /.cargo/config.toml
 /examples/webgl/generated
