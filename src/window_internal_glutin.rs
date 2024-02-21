@@ -41,6 +41,7 @@ use crate::glbackend::{GLBackend, GLBackendGlow};
 use crate::window::{
     DrawingWindowHandler,
     EventLoopSendError,
+    FileDragState,
     ModifiersState,
     MouseButton,
     MouseScrollDistance,
@@ -525,6 +526,18 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
 
                 GlutinWindowEvent::ModifiersChanged(state) => {
                     handler.on_keyboard_modifiers_changed(helper, state.into())
+                }
+
+                GlutinWindowEvent::HoveredFile(path) => {
+                    handler.on_file_drag(helper, FileDragState::Hover(path));
+                }
+
+                GlutinWindowEvent::DroppedFile(path) => {
+                    handler.on_file_drag(helper, FileDragState::Dropped(path));
+                }
+
+                GlutinWindowEvent::HoveredFileCancelled => {
+                    handler.on_file_drag(helper, FileDragState::Cancelled);
                 }
 
                 _ => {}
