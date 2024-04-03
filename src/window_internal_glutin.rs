@@ -26,9 +26,16 @@ use glutin::event::{
     VirtualKeyCode as GlutinVirtualKeyCode,
     WindowEvent as GlutinWindowEvent
 };
-use glutin::event_loop::{ControlFlow, EventLoop, EventLoopClosed, EventLoopProxy};
+use glutin::event_loop::{
+    ControlFlow,
+    EventLoop,
+    EventLoopBuilder,
+    EventLoopClosed,
+    EventLoopProxy
+};
 use glutin::monitor::MonitorHandle;
 use glutin::window::{
+    CursorGrabMode,
     Icon,
     Window as GlutinWindow,
     WindowBuilder as GlutinWindowBuilder
@@ -154,7 +161,17 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
                 )
             })?;
 
-        match self.window_context.window().set_cursor_grab(grabbed) {
+        let grabbed_enum: CursorGrabMode = if grabbed {
+            if cfg!(target_os = "linux") | cfg!(target_os = "windows") {
+                CursorGrabMode::Confined
+            } else {
+                CursorGrabMode::Locked
+            }
+        } else {
+            CursorGrabMode::None
+        };
+
+        match self.window_context.window().set_cursor_grab(grabbed_enum) {
             Ok(_) => {
                 self.is_mouse_grabbed.set(grabbed);
                 if self
@@ -284,7 +301,7 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
     ) -> Result<WindowGlutin<UserEventType>, BacktraceError<WindowCreationError>>
     {
         let event_loop: EventLoop<UserEventGlutin<UserEventType>> =
-            EventLoop::with_user_event();
+            EventLoopBuilder::with_user_event().build();
 
         let primary_monitor = event_loop
             .primary_monitor()
@@ -361,6 +378,19 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
 
         // Show window after positioning to avoid the window jumping around
         window_context.window().set_visible(true);
+
+        match window_context
+            .window()
+            .set_cursor_hittest(!options.mouse_passthrough)
+        {
+            Ok(_) => (),
+            Err(err) => {
+                return Err(BacktraceError::new_with_cause(
+                    WindowCreationError::SetMousePassthroughFailed,
+                    err
+                ));
+            }
+        };
 
         // Set the position again to work around an issue on Linux
         if let WindowCreationMode::Windowed {
