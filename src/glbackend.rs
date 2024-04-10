@@ -148,6 +148,7 @@ impl From<GLErrorCode> for BacktraceError<ErrorMessage>
     }
 }
 
+#[allow(unused)]
 pub trait GLBackend
 {
     unsafe fn gl_delete_program(&self, handle: GLTypeProgram);
