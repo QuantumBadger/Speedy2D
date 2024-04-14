@@ -37,7 +37,21 @@ where
     cause: Option<Box<dyn std::error::Error>>
 }
 
-impl<E: Debug + Display> std::error::Error for BacktraceError<E> {}
+impl<E: Debug + Display> std::error::Error for BacktraceError<E>
+{
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)>
+    {
+        match self.value.cause {
+            Some(ref cause) => Some(&**cause),
+            None => None
+        }
+    }
+
+    fn cause(&self) -> Option<&dyn std::error::Error>
+    {
+        self.source()
+    }
+}
 
 impl<E: Debug + Display> Display for BacktraceError<E>
 {
