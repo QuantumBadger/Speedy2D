@@ -212,6 +212,8 @@ Ability to draw rounded rectangles, thanks to [dennisorlando](https://github.com
 
 ## 3.0.0
 
+Updated to the latest version of Glutin.
+
 ### New APIs
 
 * `MouseButton.Back` and `MouseButton.Forward`
@@ -219,4 +221,4 @@ Ability to draw rounded rectangles, thanks to [dennisorlando](https://github.com
 
 ### Changed APIs
 
-* `MouseButton` and `WindowCreationError` are marked as `non_exhaustive`
+* `MouseButton`, `VirtualKeyCode`, and `WindowCreationError` are marked as `non_exhaustive`

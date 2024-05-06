@@ -788,6 +788,7 @@ pub enum MouseScrollDistance
 /// A virtual key code.
 #[allow(missing_docs)]
 #[derive(Debug, Hash, Ord, PartialOrd, PartialEq, Eq, Clone, Copy)]
+#[non_exhaustive]
 pub enum VirtualKeyCode
 {
     Key1,
