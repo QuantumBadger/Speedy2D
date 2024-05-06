@@ -15,23 +15,55 @@
  */
 
 use std::cell::Cell;
+use std::convert::{TryFrom, TryInto};
+use std::ffi::CString;
+use std::num::NonZeroU32;
 use std::rc::Rc;
 
-use glutin::dpi::{LogicalSize, PhysicalPosition, PhysicalSize};
-use glutin::event::{
+use glutin::config::{Config, ConfigTemplateBuilder};
+use glutin::context::{
+    ContextApi,
+    ContextAttributesBuilder,
+    NotCurrentGlContext,
+    PossiblyCurrentContext,
+    Version
+};
+use glutin::display::{GetGlDisplay, GlDisplay};
+use glutin::surface::{
+    GlSurface,
+    Surface,
+    SurfaceAttributesBuilder,
+    SwapInterval,
+    WindowSurface
+};
+use glutin_winit::{DisplayBuilder, GlWindow};
+use raw_window_handle::HasRawWindowHandle;
+use winit::dpi::{LogicalSize, PhysicalPosition, PhysicalSize};
+use winit::error::EventLoopError;
+use winit::event::{
     ElementState as GlutinElementState,
     Event as GlutinEvent,
     MouseScrollDelta as GlutinMouseScrollDelta,
     TouchPhase,
-    VirtualKeyCode as GlutinVirtualKeyCode,
     WindowEvent as GlutinWindowEvent
 };
-use glutin::event_loop::{ControlFlow, EventLoop, EventLoopClosed, EventLoopProxy};
-use glutin::monitor::MonitorHandle;
-use glutin::window::{
+use winit::event_loop::{
+    ControlFlow,
+    EventLoop,
+    EventLoopBuilder,
+    EventLoopClosed,
+    EventLoopProxy
+};
+use winit::keyboard::Key as GlutinVirtualKeyCode;
+use winit::monitor::MonitorHandle;
+use winit::platform::scancode::PhysicalKeyExtScancode;
+use winit::window::{
+    CursorGrabMode,
     Icon,
     Window as GlutinWindow,
-    WindowBuilder as GlutinWindowBuilder
+    Window,
+    WindowBuilder,
+    WindowLevel
 };
 
 use crate::dimen::{IVec2, UVec2, Vec2, Vector2};
@@ -61,7 +93,7 @@ use crate::GLRenderer;
 
 pub(crate) struct WindowHelperGlutin<UserEventType: 'static>
 {
-    window_context: Rc<glutin::ContextWrapper<glutin::PossiblyCurrent, GlutinWindow>>,
+    window: Rc<Window>,
     event_proxy: EventLoopProxy<UserEventGlutin<UserEventType>>,
     redraw_requested: Cell<bool>,
     terminate_requested: bool,
@@ -73,13 +105,13 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
 {
     #[inline]
     pub fn new(
-        context: &Rc<glutin::ContextWrapper<glutin::PossiblyCurrent, GlutinWindow>>,
+        window: &Rc<Window>,
         event_proxy: EventLoopProxy<UserEventGlutin<UserEventType>>,
         initial_physical_size: UVec2
     ) -> Self
     {
         WindowHelperGlutin {
-            window_context: context.clone(),
+            window: Rc::clone(&window),
             event_proxy,
             redraw_requested: Cell::new(false),
             terminate_requested: false,
@@ -121,7 +153,7 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
         size: UVec2
     ) -> Result<(), BacktraceError<ErrorMessage>>
     {
-        self.window_context.window().set_window_icon(Some(
+        self.window.set_window_icon(Some(
             Icon::from_rgba(data, size.x, size.y).map_err(|err| {
                 ErrorMessage::msg_with_cause("Icon data was invalid", err)
             })?
@@ -132,7 +164,7 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
 
     pub fn set_cursor_visible(&self, visible: bool)
     {
-        self.window_context.window().set_cursor_visible(visible);
+        self.window.set_cursor_visible(visible);
     }
 
     pub fn set_cursor_grab(
@@ -141,8 +173,7 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
     ) -> Result<(), BacktraceError<ErrorMessage>>
     {
         let central_position = self.physical_size / 2;
-        self.window_context
-            .window()
+        self.window
             .set_cursor_position(PhysicalPosition::new(
                 central_position.x as i32,
                 central_position.y as i32
@@ -154,7 +185,15 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
                 )
             })?;
 
-        match self.window_context.window().set_cursor_grab(grabbed) {
+        let result = if grabbed {
+            self.window
+                .set_cursor_grab(CursorGrabMode::Locked)
+                .or_else(|_| self.window.set_cursor_grab(CursorGrabMode::Confined))
+        } else {
+            self.window.set_cursor_grab(CursorGrabMode::None)
+        };
+
+        match result {
             Ok(_) => {
                 self.is_mouse_grabbed.set(grabbed);
                 if self
@@ -172,7 +211,7 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
 
     pub fn set_resizable(&self, resizable: bool)
     {
-        self.window_context.window().set_resizable(resizable);
+        self.window.set_resizable(resizable);
     }
 
     #[inline]
@@ -183,17 +222,17 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
 
     pub fn set_title(&self, title: &str)
     {
-        self.window_context.window().set_title(title);
+        self.window.set_title(title);
     }
 
     pub fn set_fullscreen_mode(&self, mode: WindowFullscreenMode)
     {
-        let window = self.window_context.window();
+        let window = &self.window;
 
         window.set_fullscreen(match mode {
             WindowFullscreenMode::Windowed => None,
             WindowFullscreenMode::FullscreenBorderless => {
-                Some(glutin::window::Fullscreen::Borderless(None))
+                Some(winit::window::Fullscreen::Borderless(None))
             }
         });
 
@@ -217,14 +256,14 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
     {
         let size = size.into();
 
-        self.window_context
-            .window()
-            .set_inner_size(PhysicalSize::new(size.x, size.y));
+        let _ = self
+            .window
+            .request_inner_size(PhysicalSize::new(size.x, size.y));
     }
 
     pub fn get_size_pixels(&self) -> UVec2
     {
-        let size = self.window_context.window().inner_size();
+        let size = self.window.inner_size();
 
         UVec2::new(size.width, size.height)
     }
@@ -233,17 +272,16 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
     {
         let size = size.into();
 
-        self.window_context
-            .window()
-            .set_inner_size(LogicalSize::new(size.x, size.y));
+        let _ = self
+            .window
+            .request_inner_size(LogicalSize::new(size.x, size.y));
     }
 
     pub fn set_position_pixels<P: Into<IVec2>>(&self, position: P)
     {
         let position = position.into();
 
-        self.window_context
-            .window()
+        self.window
             .set_outer_position(PhysicalPosition::new(position.x, position.y));
     }
 
@@ -251,16 +289,15 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
     {
         let position = position.into();
 
-        self.window_context.window().set_outer_position(
-            glutin::dpi::LogicalPosition::new(position.x, position.y)
-        );
+        self.window
+            .set_outer_position(winit::dpi::LogicalPosition::new(position.x, position.y));
     }
 
     #[inline]
     #[must_use]
     pub fn get_scale_factor(&self) -> f64
     {
-        self.window_context.window().scale_factor()
+        self.window.scale_factor()
     }
 
     pub fn create_user_event_sender(&self) -> UserEventSender<UserEventType>
@@ -272,7 +309,9 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
 pub(crate) struct WindowGlutin<UserEventType: 'static>
 {
     event_loop: EventLoop<UserEventGlutin<UserEventType>>,
-    window_context: Rc<glutin::ContextWrapper<glutin::PossiblyCurrent, GlutinWindow>>,
+    window: Rc<Window>,
+    context: Rc<PossiblyCurrentContext>,
+    surface: Rc<Surface<WindowSurface>>,
     gl_backend: Rc<dyn GLBackend>
 }
 
@@ -284,7 +323,7 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
     ) -> Result<WindowGlutin<UserEventType>, BacktraceError<WindowCreationError>>
     {
         let event_loop: EventLoop<UserEventGlutin<UserEventType>> =
-            EventLoop::with_user_event();
+            EventLoopBuilder::with_user_event().build()?;
 
         let primary_monitor = event_loop
             .primary_monitor()
@@ -314,10 +353,16 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
             );
         }
 
-        let mut window_builder = GlutinWindowBuilder::new()
+        let mut window_builder = WindowBuilder::new()
             .with_title(title)
             .with_resizable(options.resizable)
-            .with_always_on_top(options.always_on_top)
+            .with_window_level(
+                if options.always_on_top {
+                    WindowLevel::AlwaysOnTop
+                } else {
+                    WindowLevel::Normal
+                }
+            )
             .with_maximized(options.maximized)
             .with_visible(false)
             .with_transparent(options.transparent)
@@ -331,36 +376,26 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
 
             WindowCreationMode::FullscreenBorderless => {
                 window_builder = window_builder.with_fullscreen(Some(
-                    glutin::window::Fullscreen::Borderless(Some(primary_monitor.clone()))
+                    winit::window::Fullscreen::Borderless(Some(primary_monitor.clone()))
                 ));
             }
         }
 
-        let window_context = create_best_context(&window_builder, &event_loop, &options)
-            .ok_or_else(|| {
-                BacktraceError::new(WindowCreationError::SuitableContextNotFound)
-            })?;
-
-        let window_context = Rc::new(match unsafe { window_context.make_current() } {
-            Ok(window_context) => window_context,
-            Err((_, err)) => {
-                return Err(BacktraceError::new_with_cause(
-                    WindowCreationError::MakeContextCurrentFailed,
-                    err
-                ));
-            }
-        });
+        let (context, window, surface) =
+            create_best_context(&window_builder, &event_loop, &options).ok_or_else(
+                || BacktraceError::new(WindowCreationError::SuitableContextNotFound)
+            )?;
 
         if let WindowCreationMode::Windowed {
             position: Some(position),
             ..
         } = &options.mode
         {
-            position_window(&primary_monitor, window_context.window(), position);
+            position_window(&primary_monitor, &window, position);
         }
 
         // Show window after positioning to avoid the window jumping around
-        window_context.window().set_visible(true);
+        window.set_visible(true);
 
         // Set the position again to work around an issue on Linux
         if let WindowCreationMode::Windowed {
@@ -368,12 +403,16 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
             ..
         } = &options.mode
         {
-            position_window(&primary_monitor, window_context.window(), position);
+            position_window(&primary_monitor, &window, position);
         }
 
         let glow_context = unsafe {
             glow::Context::from_loader_function(|ptr| {
-                window_context.get_proc_address(ptr) as *const _
+                context.display().get_proc_address(
+                    CString::new(ptr)
+                        .expect("Invalid GL function name string")
+                        .as_c_str()
+                ) as *const _
             })
         };
 
@@ -396,7 +435,9 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
 
         Ok(WindowGlutin {
             event_loop,
-            window_context,
+            window: Rc::new(window),
+            context: Rc::new(context),
+            surface: Rc::new(surface),
             gl_backend
         })
     }
@@ -408,11 +449,13 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
 
     pub fn get_inner_size_pixels(&self) -> UVec2
     {
-        self.window_context.window().inner_size().into()
+        self.window.inner_size().into()
     }
 
     fn loop_handle_event<Handler>(
-        window_context: &glutin::ContextWrapper<glutin::PossiblyCurrent, GlutinWindow>,
+        window: &Rc<Window>,
+        context: &Rc<PossiblyCurrentContext>,
+        surface: &Rc<Surface<WindowSurface>>,
         handler: &mut DrawingWindowHandler<UserEventType, Handler>,
         event: GlutinEvent<UserEventGlutin<UserEventType>>,
         helper: &mut WindowHelper<UserEventType>
@@ -421,7 +464,7 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
         Handler: WindowHandler<UserEventType> + 'static
     {
         match event {
-            GlutinEvent::LoopDestroyed => return WindowEventLoopAction::Exit,
+            GlutinEvent::LoopExiting => return WindowEventLoopAction::Exit,
 
             GlutinEvent::UserEvent(event) => match event {
                 UserEventGlutin::MouseGrabStatusChanged(grabbed) => {
@@ -441,7 +484,12 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
 
                 GlutinWindowEvent::Resized(physical_size) => {
                     log::info!("Resized: {:?}", physical_size);
-                    window_context.resize(physical_size);
+                    if let (Ok(w), Ok(h)) = (
+                        NonZeroU32::try_from(physical_size.width),
+                        NonZeroU32::try_from(physical_size.height)
+                    ) {
+                        surface.resize(&context, w, h);
+                    }
                     helper.inner().physical_size = physical_size.into();
                     handler.on_resize(helper, physical_size.into())
                 }
@@ -453,8 +501,7 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
 
                     if helper.inner().is_mouse_grabbed.get() {
                         let central_position = helper.inner().physical_size / 2;
-                        window_context
-                            .window()
+                        window
                             .set_cursor_position(PhysicalPosition::new(
                                 central_position.x as i32,
                                 central_position.y as i32
@@ -505,40 +552,49 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
                     handler.on_mouse_wheel_scroll(helper, distance);
                 }
 
-                GlutinWindowEvent::KeyboardInput { input, .. } => {
-                    let virtual_key_code =
-                        input.virtual_keycode.map(VirtualKeyCode::from);
+                GlutinWindowEvent::KeyboardInput { event, .. } => {
+                    let virtual_key_code = VirtualKeyCode::from(event.logical_key);
 
-                    match input.state {
+                    match event.state {
                         GlutinElementState::Pressed => {
-                            handler.on_key_down(helper, virtual_key_code, input.scancode)
+                            event.text.unwrap().chars().for_each(|c| {
+                                handler.on_keyboard_char(helper, c);
+                            });
+
+                            if !event.repeat {
+                                handler.on_key_down(
+                                    helper,
+                                    Some(virtual_key_code),
+                                    event.physical_key.to_scancode().unwrap_or(0)
+                                );
+                            }
                         }
                         GlutinElementState::Released => {
-                            handler.on_key_up(helper, virtual_key_code, input.scancode)
+                            handler.on_key_up(
+                                helper,
+                                Some(virtual_key_code),
+                                event.physical_key.to_scancode().unwrap_or(0)
+                            );
                         }
                     }
                 }
 
-                GlutinWindowEvent::ReceivedCharacter(character) => {
-                    handler.on_keyboard_char(helper, character)
+                GlutinWindowEvent::ModifiersChanged(state) => {
+                    handler.on_keyboard_modifiers_changed(helper, state.state().into())
                 }
 
-                GlutinWindowEvent::ModifiersChanged(state) => {
-                    handler.on_keyboard_modifiers_changed(helper, state.into())
+                GlutinWindowEvent::RedrawRequested => {
+                    helper.inner().set_redraw_requested(true);
                 }
 
                 _ => {}
             },
 
-            GlutinEvent::RedrawRequested(_) => {
-                helper.inner().set_redraw_requested(true);
-            }
-
-            GlutinEvent::RedrawEventsCleared => {
+            GlutinEvent::AboutToWait => {
                 if helper.inner().is_redraw_requested() {
                     helper.inner().set_redraw_requested(false);
                     handler.on_draw(helper);
-                    window_context.swap_buffers().unwrap();
+                    surface.swap_buffers(context).unwrap();
                 }
             }
 
@@ -552,25 +608,24 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
     where
         Handler: WindowHandler<UserEventType> + 'static
     {
-        let window_context = self.window_context.clone();
+        let window = self.window;
+        let context = self.context;
+        let surface = self.surface;
         let event_loop = self.event_loop;
 
-        let initial_viewport_size_pixels = window_context.window().inner_size().into();
+        let initial_viewport_size_pixels = window.inner_size().into();
 
         let mut handler = DrawingWindowHandler::new(handler, renderer);
 
         let mut helper = WindowHelper::new(WindowHelperGlutin::new(
-            &window_context,
+            &window,
             event_loop.create_proxy(),
             initial_viewport_size_pixels
         ));
 
         handler.on_start(
             &mut helper,
-            WindowStartupInfo::new(
-                initial_viewport_size_pixels,
-                window_context.window().scale_factor()
-            )
+            WindowStartupInfo::new(initial_viewport_size_pixels, window.scale_factor())
         );
 
         match helper.inner().get_event_loop_action() {
@@ -586,38 +641,43 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
 
         let mut handler = Some(handler);
 
-        event_loop.run(
-            move |event: GlutinEvent<UserEventGlutin<UserEventType>>,
-                  _,
-                  control_flow: &mut ControlFlow| {
-                *control_flow = {
-                    if handler.is_none() {
-                        ControlFlow::Exit
-                    } else {
-                        let action = WindowGlutin::loop_handle_event(
-                            &window_context,
-                            handler.as_mut().unwrap(),
-                            event,
-                            &mut helper
-                        );
+        let result = event_loop.run(
+            move |event: GlutinEvent<UserEventGlutin<UserEventType>>, target| {
+                if handler.is_none() {
+                    target.exit();
+                } else {
+                    let action = WindowGlutin::loop_handle_event(
+                        &window,
+                        &context,
+                        &surface,
+                        handler.as_mut().unwrap(),
+                        event,
+                        &mut helper
+                    );
 
-                        match action {
-                            WindowEventLoopAction::Continue => {
-                                if helper.inner().is_redraw_requested() {
-                                    ControlFlow::Poll
-                                } else {
-                                    ControlFlow::Wait
-                                }
+                    match action {
+                        WindowEventLoopAction::Continue => {
+                            if helper.inner().is_redraw_requested() {
+                                target.set_control_flow(ControlFlow::Poll)
+                            } else {
+                                target.set_control_flow(ControlFlow::Wait)
                             }
-                            WindowEventLoopAction::Exit => {
-                                handler = None;
-                                ControlFlow::Exit
-                            }
+                        }
+                        WindowEventLoopAction::Exit => {
+                            handler = None;
+                            target.exit();
                         }
                     }
                 }
             }
-        )
+        );
+
+        if let Err(err) = result {
+            log::error!("Exited loop with error: {err:?}");
+            std::process::exit(1);
+        }
+
+        std::process::exit(0);
     }
 
     #[inline]
@@ -628,37 +688,108 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
     }
 }
 
+fn gl_config_picker(mut configs: Box<dyn Iterator<Item = Config> + '_>) -> Config
+{
+    configs.next().unwrap()
+}
+
 fn create_best_context<UserEventType>(
-    window_builder: &GlutinWindowBuilder,
+    window_builder: &WindowBuilder,
     event_loop: &EventLoop<UserEventType>,
     options: &WindowCreationOptions
-) -> Option<glutin::WindowedContext<glutin::NotCurrent>>
+) -> Option<(PossiblyCurrentContext, Window, Surface<WindowSurface>)>
 {
-    for vsync in &[options.vsync, true, false] {
-        for multisampling in &[options.multisampling, 16, 8, 4, 2, 1, 0] {
-            log::info!("Trying vsync={}, multisampling={}...", vsync, multisampling);
+    for multisampling in &[options.multisampling, 16, 8, 4, 2, 1, 0] {
+        log::info!("Trying multisampling={}...", multisampling);
 
-            let mut windowed_context = glutin::ContextBuilder::new()
-                .with_vsync(*vsync)
-                .with_gl(glutin::GlRequest::Specific(glutin::Api::OpenGl, (2, 0)));
+        let mut template = ConfigTemplateBuilder::new();
 
-            if *multisampling > 1 {
-                windowed_context = windowed_context.with_multisampling(*multisampling);
+        if *multisampling > 1 {
+            template = template.with_multisampling(
+                (*multisampling)
+                    .try_into()
+                    .expect("Multisampling level out of bounds")
+            );
+        }
+
+        let result = DisplayBuilder::new()
+            .with_window_builder(Some(window_builder.clone()))
+            .build(event_loop, template, gl_config_picker);
+
+        let (window, gl_config) = match result {
+            Ok((Some(window), config)) => {
+                log::info!("Window created");
+                (window, config)
             }
+            Ok((None, _)) => {
+                log::info!("Failed with null window");
+                continue;
+            }
+            Err(err) => {
+                log::info!("Failed with error: {:?}", err);
+                continue;
+            }
+        };
 
-            let result =
-                windowed_context.build_windowed(window_builder.clone(), event_loop);
+        let gl_display = gl_config.display();
 
-            match result {
-                Ok(context) => {
-                    log::info!("Context created");
-                    return Some(context);
-                }
+        let context_attributes = ContextAttributesBuilder::new()
+            .with_context_api(ContextApi::OpenGl(Some(Version::new(2, 0))))
+            .build(Some(window.raw_window_handle()));
+
+        let context =
+            match unsafe { gl_display.create_context(&gl_config, &context_attributes) } {
+                Ok(context) => context,
                 Err(err) => {
-                    log::info!("Failed with error: {:?}", err);
+                    log::info!("Failed to create context with error: {err:?}");
+                    continue;
                 }
+            };
+
+        let window = match glutin_winit::finalize_window(
+            event_loop,
+            window_builder.clone(),
+            &gl_config
+        ) {
+            Ok(window) => window,
+            Err(err) => {
+                log::info!("Failed to finalize window with error: {err:?}");
+                continue;
+            }
+        };
+
+        let attrs = window.build_surface_attributes(SurfaceAttributesBuilder::default());
+
+        let surface = match unsafe {
+            gl_config
+                .display()
+                .create_window_surface(&gl_config, &attrs)
+        } {
+            Ok(surface) => surface,
+            Err(err) => {
+                log::info!("Failed to finalize surface with error: {err:?}");
+                continue;
+            }
+        };
+
+        let context = match context.make_current(&surface) {
+            Ok(context) => context,
+            Err(err) => {
+                log::info!("Failed to make context current with error: {err:?}");
+                continue;
+            }
+        };
+
+        if options.vsync {
+            if let Err(err) = surface.set_swap_interval(
+                &context,
+                SwapInterval::Wait(NonZeroU32::new(1).unwrap())
+            ) {
+                log::error!("Error setting vsync, continuing anyway: {err:?}");
             }
         }
+
+        return Some((context, window, surface));
     }
 
     log::error!("Failed to create any context.");
@@ -737,23 +868,28 @@ fn compute_window_size(monitor: &MonitorHandle, size: &WindowSize) -> PhysicalSi
     }
 }
 
-impl From<glutin::event::MouseButton> for MouseButton
+impl From<winit::event::MouseButton> for MouseButton
 {
-    fn from(button: glutin::event::MouseButton) -> Self
+    fn from(button: winit::event::MouseButton) -> Self
     {
         match button {
-            glutin::event::MouseButton::Left => MouseButton::Left,
-            glutin::event::MouseButton::Right => MouseButton::Right,
-            glutin::event::MouseButton::Middle => MouseButton::Middle,
-            glutin::event::MouseButton::Other(id) => MouseButton::Other(id)
+            winit::event::MouseButton::Left => MouseButton::Left,
+            winit::event::MouseButton::Right => MouseButton::Right,
+            winit::event::MouseButton::Middle => MouseButton::Middle,
+            winit::event::MouseButton::Other(id) => MouseButton::Other(id),
+            winit::event::MouseButton::Back => MouseButton::Back,
+            winit::event::MouseButton::Forward => MouseButton::Forward
         }
     }
 }
 
 impl From<GlutinVirtualKeyCode> for VirtualKeyCode
 {
-    fn from(virtual_key_code: GlutinVirtualKeyCode) -> Self
+    fn from(_virtual_key_code: GlutinVirtualKeyCode) -> Self
     {
+        // TODO
+        return VirtualKeyCode::A;
+        /*
         match virtual_key_code {
             GlutinVirtualKeyCode::Key1 => VirtualKeyCode::Key1,
             GlutinVirtualKeyCode::Key2 => VirtualKeyCode::Key2,
@@ -918,19 +1054,19 @@ impl From<GlutinVirtualKeyCode> for VirtualKeyCode
             GlutinVirtualKeyCode::Copy => VirtualKeyCode::Copy,
             GlutinVirtualKeyCode::Paste => VirtualKeyCode::Paste,
             GlutinVirtualKeyCode::Cut => VirtualKeyCode::Cut
-        }
+        }*/
     }
 }
 
-impl From<glutin::event::ModifiersState> for ModifiersState
+impl From<winit::keyboard::ModifiersState> for ModifiersState
 {
-    fn from(state: glutin::event::ModifiersState) -> Self
+    fn from(state: winit::keyboard::ModifiersState) -> Self
     {
         ModifiersState {
-            ctrl: state.ctrl(),
-            alt: state.alt(),
-            shift: state.shift(),
-            logo: state.logo()
+            ctrl: state.control_key(),
+            alt: state.alt_key(),
+            shift: state.shift_key(),
+            logo: state.super_key()
         }
     }
 }
@@ -979,5 +1115,13 @@ impl<UserEventType> UserEventSenderGlutin<UserEventType>
             .map_err(|err| match err {
                 EventLoopClosed(_) => EventLoopSendError::EventLoopNoLongerExists
             })
+    }
+}
+
+impl From<EventLoopError> for BacktraceError<WindowCreationError>
+{
+    fn from(value: EventLoopError) -> Self
+    {
+        Self::new_with_cause(WindowCreationError::EventLoopCreationFailed, value)
     }
 }

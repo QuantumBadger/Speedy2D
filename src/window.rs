@@ -89,6 +89,7 @@ impl<UserEventType> UserEventSender<UserEventType>
 
 /// Error occurring when creating a window.
 #[derive(Clone, Copy, Debug, Hash, Eq, PartialEq)]
+#[non_exhaustive]
 pub enum WindowCreationError
 {
     /// Could not find the primary monitor.
@@ -100,27 +101,30 @@ pub enum WindowCreationError
     /// Failed to make the graphics context current.
     MakeContextCurrentFailed,
     /// Failed to instantiate the renderer.
-    RendererCreationFailed
+    RendererCreationFailed,
+    /// Failed to instantiate the main window event loop.
+    EventLoopCreationFailed
 }
 
 impl Display for WindowCreationError
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result
     {
-        match self {
-            WindowCreationError::PrimaryMonitorNotFound => {
-                f.write_str("Primary monitor not found")
-            }
+        f.write_str(match self {
+            WindowCreationError::PrimaryMonitorNotFound => "Primary monitor not found",
             WindowCreationError::SuitableContextNotFound => {
-                f.write_str("Could not find a suitable graphics context")
+                "Could not find a suitable graphics context"
             }
             WindowCreationError::MakeContextCurrentFailed => {
-                f.write_str("Failed to make the graphics context current")
+                "Failed to make the graphics context current"
             }
             WindowCreationError::RendererCreationFailed => {
-                f.write_str("Failed to create the renderer")
+                "Failed to create the renderer"
             }
-        }
+            WindowCreationError::EventLoopCreationFailed => {
+                "Failed to instantiate the main window event loop"
+            }
+        })
     }
 }
 
@@ -716,6 +720,7 @@ impl WindowStartupInfo
 
 /// Identifies a mouse button.
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
+#[non_exhaustive]
 pub enum MouseButton
 {
     /// The left mouse button.
@@ -724,6 +729,10 @@ pub enum MouseButton
     Middle,
     /// The right mouse button.
     Right,
+    /// The mouse back button.
+    Back,
+    /// The mouse forward button.
+    Forward,
     /// Another mouse button, identified by a number.
     Other(u16)
 }

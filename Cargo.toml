@@ -17,7 +17,7 @@ documentation = "https://docs.rs/speedy2d"
 
 [features]
 default = ["windowing", "image-loading"]
-windowing = ["glutin"]
+windowing = ["glutin", "winit", "glutin-winit", "raw-window-handle"]
 image-loading = ["image"]
 
 [dependencies]
@@ -35,7 +35,10 @@ image = { version = "0.23", optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 # For windowing feature
-glutin = { version = "0.28", optional = true }
+glutin = { version = "0.31.3", optional = true }
+winit = { version = "0.29.2", optional = true, default-features = false, features = ["rwh_05"] }
+glutin-winit = { version = "0.4.2", optional = true }
+raw-window-handle = { version = "0.5.2", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { version = "0.2" }
