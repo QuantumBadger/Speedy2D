@@ -16,10 +16,10 @@ jobs:
         os: [ ubuntu-latest, windows-latest, macOS-latest ]
 
     steps:
-      -   uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-      -   name: Build
-          run: cargo build
+      - name: Build
+        run: cargo build
 
       - name: Build (release)
         run: cargo build --release
@@ -31,8 +31,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Install xvfb
-        run: sudo apt-get --yes install xvfb
+      - name: Install xvfb and dependencies
+        run: sudo apt-get --yes install xvfb libxkbcommon-x11-0
 
       - name: Start X server and run tests
         run: xvfb-run --auto-servernum cargo test
@@ -109,13 +109,13 @@ jobs:
         os: [ ubuntu-latest, windows-latest, macOS-latest ]
 
     steps:
-      -   uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-      -   name: Build (no features)
-          run: cargo build --no-default-features
+      - name: Build (no features)
+        run: cargo build --no-default-features
 
-      -   name: Build (no features, release)
-          run: cargo build --no-default-features --release
+      - name: Build (no features, release)
+        run: cargo build --no-default-features --release
 
   test_features_disabled:
     name: Test (features disabled)
@@ -124,8 +124,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Install xvfb
-        run: sudo apt-get --yes install xvfb
+      - name: Install xvfb and dependencies
+        run: sudo apt-get --yes install xvfb libxkbcommon-x11-0
 
       - name: Start X server and run tests
         run: xvfb-run --auto-servernum cargo test --no-default-features --lib --examples --tests
