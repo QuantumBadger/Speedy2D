@@ -182,7 +182,9 @@ pub trait GLBackend
     unsafe fn gl_draw_arrays(&self, mode: GLenum, first: GLint, count: GLsizei);
     unsafe fn gl_clear_color(&self, r: f32, g: f32, b: f32, a: f32);
     unsafe fn gl_clear(&self, mask: GLenum);
+    #[allow(dead_code)]
     unsafe fn gl_enable_debug_message_callback(&self);
+    #[allow(dead_code)]
     unsafe fn gl_get_string(&self, parameter: GLenum) -> String;
     unsafe fn gl_viewport(&self, x: i32, y: i32, width: i32, height: i32);
     unsafe fn gl_scissor(&self, x: GLint, y: GLint, width: GLsizei, height: GLsizei);
@@ -285,6 +287,7 @@ pub trait GLBackend
         Ok(())
     }
 
+    #[allow(dead_code)]
     fn gl_get_error_name(&self) -> Option<String>
     {
         let err = unsafe { self.gl_get_error() };
