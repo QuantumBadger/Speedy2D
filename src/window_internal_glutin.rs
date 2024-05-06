@@ -558,9 +558,11 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
 
                     match event.state {
                         GlutinElementState::Pressed => {
-                            event.text.unwrap().chars().for_each(|c| {
-                                handler.on_keyboard_char(helper, c);
-                            });
+                            if let Some(text) = event.text {
+                                text.chars().for_each(|c| {
+                                    handler.on_keyboard_char(helper, c);
+                                });
+                            }
 
                             if !event.repeat {
                                 handler.on_key_down(

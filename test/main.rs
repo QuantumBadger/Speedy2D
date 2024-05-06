@@ -20,8 +20,19 @@
 compile_error!("The automated tests currently support Linux x86_64 only");
 
 use std::convert::TryInto;
+use std::ffi::CString;
 use std::sync::mpsc::channel;
 
+use glutin::config::ConfigTemplateBuilder;
+use glutin::context::{
+    ContextApi,
+    ContextAttributesBuilder,
+    NotCurrentGlContext,
+    Version
+};
+use glutin::display::{GetGlDisplay, GlDisplay};
+use glutin::surface::{PbufferSurface, SurfaceAttributesBuilder};
+use glutin_winit::DisplayBuilder;
 use image::{ColorType, GenericImageView, ImageFormat};
 use num_traits::ToPrimitive;
 use speedy2d::color::Color;
@@ -30,7 +41,6 @@ use speedy2d::font::{Font, TextAlignment, TextLayout, TextOptions};
 use speedy2d::image::{ImageDataType, ImageSmoothingMode};
 use speedy2d::shape::{Polygon, Rect, Rectangle};
 use speedy2d::GLRenderer;
-use winit::dpi::PhysicalSize;
 use winit::event_loop::EventLoop;
 
 const NOTO_SANS_REGULAR_BYTES: &[u8] =
@@ -76,31 +86,35 @@ fn create_context_and_run<R, F>(
 where
     F: FnOnce(&mut GLRenderer) -> R
 {
-    let context_builder = glutin::ContextBuilder::new()
-        .with_gl_debug_flag(true)
-        .with_multisampling(0)
-        .with_gl(glutin::GlRequest::Specific(glutin::Api::OpenGl, (2, 0)));
+    let (_window, config) = DisplayBuilder::new()
+        .build(event_loop, ConfigTemplateBuilder::new(), |mut configs| {
+            configs.next().unwrap()
+        })
+        .unwrap();
 
-    #[cfg(not(target_os = "linux"))]
-    let context = context_builder
-        .build_windowed(
-            glutin::window::WindowBuilder::new()
-                .with_inner_size(PhysicalSize::new(width, height)),
-            &event_loop
+    let gl_display = config.display();
+
+    let context_attr = ContextAttributesBuilder::new()
+        .with_context_api(ContextApi::OpenGl(Some(Version::new(2, 0))))
+        .build(None);
+
+    let context = unsafe { gl_display.create_context(&config, &context_attr) }.unwrap();
+
+    let surface = unsafe {
+        config.display().create_pbuffer_surface(
+            &config,
+            &SurfaceAttributesBuilder::<PbufferSurface>::new()
+                .build(width.try_into().unwrap(), height.try_into().unwrap())
         )
-        .unwrap();
+    }
+    .unwrap();
 
-    #[cfg(target_os = "linux")]
-    let context = context_builder
-        .with_vsync(false)
-        .build_headless(&event_loop, PhysicalSize::new(width, height))
-        .unwrap();
-
-    let context = unsafe { context.make_current().unwrap() };
+    let _context = context.make_current(&surface).unwrap();
 
     let mut renderer = unsafe {
         GLRenderer::new_for_gl_context((width, height), |name| {
-            context.get_proc_address(name) as *const _
+            gl_display.get_proc_address(CString::new(name).unwrap().as_c_str())
+                as *const _
         })
         .unwrap()
     };
@@ -174,7 +188,7 @@ fn main()
 {
     simple_logger::SimpleLogger::new().init().unwrap();
 
-    let event_loop = EventLoop::new();
+    let event_loop = EventLoop::new().unwrap();
 
     let mut tests = Vec::new();
 
