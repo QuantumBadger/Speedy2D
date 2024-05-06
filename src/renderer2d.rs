@@ -632,7 +632,7 @@ impl Renderer2D
                             current_texture
                         );
 
-                        *current_texture = action.texture.clone();
+                        current_texture.clone_from(&action.texture);
                     }
 
                     action.append_to_attribute_buffers(attribute_buffers);

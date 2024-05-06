@@ -15,23 +15,56 @@
  */
 
 use std::cell::Cell;
+use std::convert::{TryFrom, TryInto};
+use std::ffi::CString;
+use std::num::NonZeroU32;
 use std::rc::Rc;
 
-use glutin::dpi::{LogicalSize, PhysicalPosition, PhysicalSize};
-use glutin::event::{
+use glutin::config::{Config, ConfigTemplateBuilder};
+use glutin::context::{
+    ContextApi,
+    ContextAttributesBuilder,
+    NotCurrentGlContext,
+    PossiblyCurrentContext,
+    Version
+};
+use glutin::display::{GetGlDisplay, GlDisplay};
+use glutin::surface::{
+    GlSurface,
+    Surface,
+    SurfaceAttributesBuilder,
+    SwapInterval,
+    WindowSurface
+};
+use glutin_winit::{DisplayBuilder, GlWindow};
+use raw_window_handle::HasRawWindowHandle;
+use winit::dpi::{LogicalSize, PhysicalPosition, PhysicalSize};
+use winit::error::EventLoopError;
+use winit::event::{
     ElementState as GlutinElementState,
     Event as GlutinEvent,
+    KeyEvent,
     MouseScrollDelta as GlutinMouseScrollDelta,
     TouchPhase,
-    VirtualKeyCode as GlutinVirtualKeyCode,
     WindowEvent as GlutinWindowEvent
 };
-use glutin::event_loop::{ControlFlow, EventLoop, EventLoopClosed, EventLoopProxy};
-use glutin::monitor::MonitorHandle;
-use glutin::window::{
+use winit::event_loop::{
+    ControlFlow,
+    EventLoop,
+    EventLoopBuilder,
+    EventLoopClosed,
+    EventLoopProxy
+};
+use winit::keyboard::{Key, KeyLocation, NamedKey};
+use winit::monitor::MonitorHandle;
+use winit::platform::scancode::PhysicalKeyExtScancode;
+use winit::window::{
+    CursorGrabMode,
     Icon,
     Window as GlutinWindow,
-    WindowBuilder as GlutinWindowBuilder
+    Window,
+    WindowBuilder,
+    WindowLevel
 };
 
 use crate::dimen::{IVec2, UVec2, Vec2, Vector2};
@@ -61,7 +94,7 @@ use crate::GLRenderer;
 
 pub(crate) struct WindowHelperGlutin<UserEventType: 'static>
 {
-    window_context: Rc<glutin::ContextWrapper<glutin::PossiblyCurrent, GlutinWindow>>,
+    window: Rc<Window>,
     event_proxy: EventLoopProxy<UserEventGlutin<UserEventType>>,
     redraw_requested: Cell<bool>,
     terminate_requested: bool,
@@ -73,13 +106,13 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
 {
     #[inline]
     pub fn new(
-        context: &Rc<glutin::ContextWrapper<glutin::PossiblyCurrent, GlutinWindow>>,
+        window: &Rc<Window>,
         event_proxy: EventLoopProxy<UserEventGlutin<UserEventType>>,
         initial_physical_size: UVec2
     ) -> Self
     {
         WindowHelperGlutin {
-            window_context: context.clone(),
+            window: Rc::clone(window),
             event_proxy,
             redraw_requested: Cell::new(false),
             terminate_requested: false,
@@ -121,7 +154,7 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
         size: UVec2
     ) -> Result<(), BacktraceError<ErrorMessage>>
     {
-        self.window_context.window().set_window_icon(Some(
+        self.window.set_window_icon(Some(
             Icon::from_rgba(data, size.x, size.y).map_err(|err| {
                 ErrorMessage::msg_with_cause("Icon data was invalid", err)
             })?
@@ -132,7 +165,7 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
 
     pub fn set_cursor_visible(&self, visible: bool)
     {
-        self.window_context.window().set_cursor_visible(visible);
+        self.window.set_cursor_visible(visible);
     }
 
     pub fn set_cursor_grab(
@@ -141,8 +174,7 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
     ) -> Result<(), BacktraceError<ErrorMessage>>
     {
         let central_position = self.physical_size / 2;
-        self.window_context
-            .window()
+        self.window
             .set_cursor_position(PhysicalPosition::new(
                 central_position.x as i32,
                 central_position.y as i32
@@ -154,7 +186,15 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
                 )
             })?;
 
-        match self.window_context.window().set_cursor_grab(grabbed) {
+        let result = if grabbed {
+            self.window
+                .set_cursor_grab(CursorGrabMode::Locked)
+                .or_else(|_| self.window.set_cursor_grab(CursorGrabMode::Confined))
+        } else {
+            self.window.set_cursor_grab(CursorGrabMode::None)
+        };
+
+        match result {
             Ok(_) => {
                 self.is_mouse_grabbed.set(grabbed);
                 if self
@@ -172,7 +212,7 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
 
     pub fn set_resizable(&self, resizable: bool)
     {
-        self.window_context.window().set_resizable(resizable);
+        self.window.set_resizable(resizable);
     }
 
     #[inline]
@@ -183,17 +223,17 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
 
     pub fn set_title(&self, title: &str)
     {
-        self.window_context.window().set_title(title);
+        self.window.set_title(title);
     }
 
     pub fn set_fullscreen_mode(&self, mode: WindowFullscreenMode)
     {
-        let window = self.window_context.window();
+        let window = &self.window;
 
         window.set_fullscreen(match mode {
             WindowFullscreenMode::Windowed => None,
             WindowFullscreenMode::FullscreenBorderless => {
-                Some(glutin::window::Fullscreen::Borderless(None))
+                Some(winit::window::Fullscreen::Borderless(None))
             }
         });
 
@@ -217,14 +257,14 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
     {
         let size = size.into();
 
-        self.window_context
-            .window()
-            .set_inner_size(PhysicalSize::new(size.x, size.y));
+        let _ = self
+            .window
+            .request_inner_size(PhysicalSize::new(size.x, size.y));
     }
 
     pub fn get_size_pixels(&self) -> UVec2
     {
-        let size = self.window_context.window().inner_size();
+        let size = self.window.inner_size();
 
         UVec2::new(size.width, size.height)
     }
@@ -233,17 +273,16 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
     {
         let size = size.into();
 
-        self.window_context
-            .window()
-            .set_inner_size(LogicalSize::new(size.x, size.y));
+        let _ = self
+            .window
+            .request_inner_size(LogicalSize::new(size.x, size.y));
     }
 
     pub fn set_position_pixels<P: Into<IVec2>>(&self, position: P)
     {
         let position = position.into();
 
-        self.window_context
-            .window()
+        self.window
             .set_outer_position(PhysicalPosition::new(position.x, position.y));
     }
 
@@ -251,16 +290,15 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
     {
         let position = position.into();
 
-        self.window_context.window().set_outer_position(
-            glutin::dpi::LogicalPosition::new(position.x, position.y)
-        );
+        self.window
+            .set_outer_position(winit::dpi::LogicalPosition::new(position.x, position.y));
     }
 
     #[inline]
     #[must_use]
     pub fn get_scale_factor(&self) -> f64
     {
-        self.window_context.window().scale_factor()
+        self.window.scale_factor()
     }
 
     pub fn create_user_event_sender(&self) -> UserEventSender<UserEventType>
@@ -272,7 +310,9 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
 pub(crate) struct WindowGlutin<UserEventType: 'static>
 {
     event_loop: EventLoop<UserEventGlutin<UserEventType>>,
-    window_context: Rc<glutin::ContextWrapper<glutin::PossiblyCurrent, GlutinWindow>>,
+    window: Rc<Window>,
+    context: Rc<PossiblyCurrentContext>,
+    surface: Rc<Surface<WindowSurface>>,
     gl_backend: Rc<dyn GLBackend>
 }
 
@@ -284,7 +324,7 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
     ) -> Result<WindowGlutin<UserEventType>, BacktraceError<WindowCreationError>>
     {
         let event_loop: EventLoop<UserEventGlutin<UserEventType>> =
-            EventLoop::with_user_event();
+            EventLoopBuilder::with_user_event().build()?;
 
         let primary_monitor = event_loop
             .primary_monitor()
@@ -314,10 +354,16 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
             );
         }
 
-        let mut window_builder = GlutinWindowBuilder::new()
+        let mut window_builder = WindowBuilder::new()
             .with_title(title)
             .with_resizable(options.resizable)
-            .with_always_on_top(options.always_on_top)
+            .with_window_level(
+                if options.always_on_top {
+                    WindowLevel::AlwaysOnTop
+                } else {
+                    WindowLevel::Normal
+                }
+            )
             .with_maximized(options.maximized)
             .with_visible(false)
             .with_transparent(options.transparent)
@@ -331,36 +377,26 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
 
             WindowCreationMode::FullscreenBorderless => {
                 window_builder = window_builder.with_fullscreen(Some(
-                    glutin::window::Fullscreen::Borderless(Some(primary_monitor.clone()))
+                    winit::window::Fullscreen::Borderless(Some(primary_monitor.clone()))
                 ));
             }
         }
 
-        let window_context = create_best_context(&window_builder, &event_loop, &options)
-            .ok_or_else(|| {
-                BacktraceError::new(WindowCreationError::SuitableContextNotFound)
-            })?;
-
-        let window_context = Rc::new(match unsafe { window_context.make_current() } {
-            Ok(window_context) => window_context,
-            Err((_, err)) => {
-                return Err(BacktraceError::new_with_cause(
-                    WindowCreationError::MakeContextCurrentFailed,
-                    err
-                ));
-            }
-        });
+        let (context, window, surface) =
+            create_best_context(&window_builder, &event_loop, &options).ok_or_else(
+                || BacktraceError::new(WindowCreationError::SuitableContextNotFound)
+            )?;
 
         if let WindowCreationMode::Windowed {
             position: Some(position),
             ..
         } = &options.mode
         {
-            position_window(&primary_monitor, window_context.window(), position);
+            position_window(&primary_monitor, &window, position);
         }
 
         // Show window after positioning to avoid the window jumping around
-        window_context.window().set_visible(true);
+        window.set_visible(true);
 
         // Set the position again to work around an issue on Linux
         if let WindowCreationMode::Windowed {
@@ -368,12 +404,16 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
             ..
         } = &options.mode
         {
-            position_window(&primary_monitor, window_context.window(), position);
+            position_window(&primary_monitor, &window, position);
         }
 
         let glow_context = unsafe {
             glow::Context::from_loader_function(|ptr| {
-                window_context.get_proc_address(ptr) as *const _
+                context.display().get_proc_address(
+                    CString::new(ptr)
+                        .expect("Invalid GL function name string")
+                        .as_c_str()
+                ) as *const _
             })
         };
 
@@ -396,7 +436,9 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
 
         Ok(WindowGlutin {
             event_loop,
-            window_context,
+            window: Rc::new(window),
+            context: Rc::new(context),
+            surface: Rc::new(surface),
             gl_backend
         })
     }
@@ -408,11 +450,13 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
 
     pub fn get_inner_size_pixels(&self) -> UVec2
     {
-        self.window_context.window().inner_size().into()
+        self.window.inner_size().into()
     }
 
     fn loop_handle_event<Handler>(
-        window_context: &glutin::ContextWrapper<glutin::PossiblyCurrent, GlutinWindow>,
+        window: &Rc<Window>,
+        context: &Rc<PossiblyCurrentContext>,
+        surface: &Rc<Surface<WindowSurface>>,
         handler: &mut DrawingWindowHandler<UserEventType, Handler>,
         event: GlutinEvent<UserEventGlutin<UserEventType>>,
         helper: &mut WindowHelper<UserEventType>
@@ -421,7 +465,7 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
         Handler: WindowHandler<UserEventType> + 'static
     {
         match event {
-            GlutinEvent::LoopDestroyed => return WindowEventLoopAction::Exit,
+            GlutinEvent::LoopExiting => return WindowEventLoopAction::Exit,
 
             GlutinEvent::UserEvent(event) => match event {
                 UserEventGlutin::MouseGrabStatusChanged(grabbed) => {
@@ -441,7 +485,12 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
 
                 GlutinWindowEvent::Resized(physical_size) => {
                     log::info!("Resized: {:?}", physical_size);
-                    window_context.resize(physical_size);
+                    if let (Ok(w), Ok(h)) = (
+                        NonZeroU32::try_from(physical_size.width),
+                        NonZeroU32::try_from(physical_size.height)
+                    ) {
+                        surface.resize(context, w, h);
+                    }
                     helper.inner().physical_size = physical_size.into();
                     handler.on_resize(helper, physical_size.into())
                 }
@@ -453,8 +502,7 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
 
                     if helper.inner().is_mouse_grabbed.get() {
                         let central_position = helper.inner().physical_size / 2;
-                        window_context
-                            .window()
+                        window
                             .set_cursor_position(PhysicalPosition::new(
                                 central_position.x as i32,
                                 central_position.y as i32
@@ -505,40 +553,51 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
                     handler.on_mouse_wheel_scroll(helper, distance);
                 }
 
-                GlutinWindowEvent::KeyboardInput { input, .. } => {
-                    let virtual_key_code =
-                        input.virtual_keycode.map(VirtualKeyCode::from);
+                GlutinWindowEvent::KeyboardInput { event, .. } => {
+                    let virtual_key_code = VirtualKeyCode::try_from(&event).ok();
 
-                    match input.state {
+                    match event.state {
                         GlutinElementState::Pressed => {
-                            handler.on_key_down(helper, virtual_key_code, input.scancode)
+                            if let Some(text) = event.text {
+                                text.chars().for_each(|c| {
+                                    handler.on_keyboard_char(helper, c);
+                                });
+                            }
+
+                            if !event.repeat {
+                                handler.on_key_down(
+                                    helper,
+                                    virtual_key_code,
+                                    event.physical_key.to_scancode().unwrap_or(0)
+                                );
+                            }
                         }
                         GlutinElementState::Released => {
-                            handler.on_key_up(helper, virtual_key_code, input.scancode)
+                            handler.on_key_up(
+                                helper,
+                                virtual_key_code,
+                                event.physical_key.to_scancode().unwrap_or(0)
+                            );
                         }
                     }
                 }
 
-                GlutinWindowEvent::ReceivedCharacter(character) => {
-                    handler.on_keyboard_char(helper, character)
+                GlutinWindowEvent::ModifiersChanged(state) => {
+                    handler.on_keyboard_modifiers_changed(helper, state.state().into())
                 }
 
-                GlutinWindowEvent::ModifiersChanged(state) => {
-                    handler.on_keyboard_modifiers_changed(helper, state.into())
+                GlutinWindowEvent::RedrawRequested => {
+                    helper.inner().set_redraw_requested(true);
                 }
 
                 _ => {}
             },
 
-            GlutinEvent::RedrawRequested(_) => {
-                helper.inner().set_redraw_requested(true);
-            }
-
-            GlutinEvent::RedrawEventsCleared => {
+            GlutinEvent::AboutToWait => {
                 if helper.inner().is_redraw_requested() {
                     helper.inner().set_redraw_requested(false);
                     handler.on_draw(helper);
-                    window_context.swap_buffers().unwrap();
+                    surface.swap_buffers(context).unwrap();
                 }
             }
 
@@ -552,25 +611,24 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
     where
         Handler: WindowHandler<UserEventType> + 'static
     {
-        let window_context = self.window_context.clone();
+        let window = self.window;
+        let context = self.context;
+        let surface = self.surface;
         let event_loop = self.event_loop;
 
-        let initial_viewport_size_pixels = window_context.window().inner_size().into();
+        let initial_viewport_size_pixels = window.inner_size().into();
 
         let mut handler = DrawingWindowHandler::new(handler, renderer);
 
         let mut helper = WindowHelper::new(WindowHelperGlutin::new(
-            &window_context,
+            &window,
             event_loop.create_proxy(),
             initial_viewport_size_pixels
         ));
 
         handler.on_start(
             &mut helper,
-            WindowStartupInfo::new(
-                initial_viewport_size_pixels,
-                window_context.window().scale_factor()
-            )
+            WindowStartupInfo::new(initial_viewport_size_pixels, window.scale_factor())
         );
 
         match helper.inner().get_event_loop_action() {
@@ -586,38 +644,43 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
 
         let mut handler = Some(handler);
 
-        event_loop.run(
-            move |event: GlutinEvent<UserEventGlutin<UserEventType>>,
-                  _,
-                  control_flow: &mut ControlFlow| {
-                *control_flow = {
-                    if handler.is_none() {
-                        ControlFlow::Exit
-                    } else {
-                        let action = WindowGlutin::loop_handle_event(
-                            &window_context,
-                            handler.as_mut().unwrap(),
-                            event,
-                            &mut helper
-                        );
+        let result = event_loop.run(
+            move |event: GlutinEvent<UserEventGlutin<UserEventType>>, target| {
+                if handler.is_none() {
+                    target.exit();
+                } else {
+                    let action = WindowGlutin::loop_handle_event(
+                        &window,
+                        &context,
+                        &surface,
+                        handler.as_mut().unwrap(),
+                        event,
+                        &mut helper
+                    );
 
-                        match action {
-                            WindowEventLoopAction::Continue => {
-                                if helper.inner().is_redraw_requested() {
-                                    ControlFlow::Poll
-                                } else {
-                                    ControlFlow::Wait
-                                }
+                    match action {
+                        WindowEventLoopAction::Continue => {
+                            if helper.inner().is_redraw_requested() {
+                                target.set_control_flow(ControlFlow::Poll)
+                            } else {
+                                target.set_control_flow(ControlFlow::Wait)
                             }
-                            WindowEventLoopAction::Exit => {
-                                handler = None;
-                                ControlFlow::Exit
-                            }
+                        }
+                        WindowEventLoopAction::Exit => {
+                            handler = None;
+                            target.exit();
                         }
                     }
                 }
             }
-        )
+        );
+
+        if let Err(err) = result {
+            log::error!("Exited loop with error: {err:?}");
+            std::process::exit(1);
+        }
+
+        std::process::exit(0);
     }
 
     #[inline]
@@ -628,37 +691,108 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
     }
 }
 
+fn gl_config_picker(mut configs: Box<dyn Iterator<Item = Config> + '_>) -> Config
+{
+    configs.next().unwrap()
+}
+
 fn create_best_context<UserEventType>(
-    window_builder: &GlutinWindowBuilder,
+    window_builder: &WindowBuilder,
     event_loop: &EventLoop<UserEventType>,
     options: &WindowCreationOptions
-) -> Option<glutin::WindowedContext<glutin::NotCurrent>>
+) -> Option<(PossiblyCurrentContext, Window, Surface<WindowSurface>)>
 {
-    for vsync in &[options.vsync, true, false] {
-        for multisampling in &[options.multisampling, 16, 8, 4, 2, 1, 0] {
-            log::info!("Trying vsync={}, multisampling={}...", vsync, multisampling);
+    for multisampling in &[options.multisampling, 16, 8, 4, 2, 1, 0] {
+        log::info!("Trying multisampling={}...", multisampling);
 
-            let mut windowed_context = glutin::ContextBuilder::new()
-                .with_vsync(*vsync)
-                .with_gl(glutin::GlRequest::Specific(glutin::Api::OpenGl, (2, 0)));
+        let mut template = ConfigTemplateBuilder::new();
 
-            if *multisampling > 1 {
-                windowed_context = windowed_context.with_multisampling(*multisampling);
+        if *multisampling > 1 {
+            template = template.with_multisampling(
+                (*multisampling)
+                    .try_into()
+                    .expect("Multisampling level out of bounds")
+            );
+        }
+
+        let result = DisplayBuilder::new()
+            .with_window_builder(Some(window_builder.clone()))
+            .build(event_loop, template, gl_config_picker);
+
+        let (window, gl_config) = match result {
+            Ok((Some(window), config)) => {
+                log::info!("Window created");
+                (window, config)
             }
+            Ok((None, _)) => {
+                log::info!("Failed with null window");
+                continue;
+            }
+            Err(err) => {
+                log::info!("Failed with error: {:?}", err);
+                continue;
+            }
+        };
 
-            let result =
-                windowed_context.build_windowed(window_builder.clone(), event_loop);
+        let gl_display = gl_config.display();
 
-            match result {
-                Ok(context) => {
-                    log::info!("Context created");
-                    return Some(context);
-                }
+        let context_attributes = ContextAttributesBuilder::new()
+            .with_context_api(ContextApi::OpenGl(Some(Version::new(2, 0))))
+            .build(Some(window.raw_window_handle()));
+
+        let context =
+            match unsafe { gl_display.create_context(&gl_config, &context_attributes) } {
+                Ok(context) => context,
                 Err(err) => {
-                    log::info!("Failed with error: {:?}", err);
+                    log::info!("Failed to create context with error: {err:?}");
+                    continue;
                 }
+            };
+
+        let window = match glutin_winit::finalize_window(
+            event_loop,
+            window_builder.clone(),
+            &gl_config
+        ) {
+            Ok(window) => window,
+            Err(err) => {
+                log::info!("Failed to finalize window with error: {err:?}");
+                continue;
+            }
+        };
+
+        let attrs = window.build_surface_attributes(SurfaceAttributesBuilder::default());
+
+        let surface = match unsafe {
+            gl_config
+                .display()
+                .create_window_surface(&gl_config, &attrs)
+        } {
+            Ok(surface) => surface,
+            Err(err) => {
+                log::info!("Failed to finalize surface with error: {err:?}");
+                continue;
+            }
+        };
+
+        let context = match context.make_current(&surface) {
+            Ok(context) => context,
+            Err(err) => {
+                log::info!("Failed to make context current with error: {err:?}");
+                continue;
+            }
+        };
+
+        if options.vsync {
+            if let Err(err) = surface.set_swap_interval(
+                &context,
+                SwapInterval::Wait(NonZeroU32::new(1).unwrap())
+            ) {
+                log::error!("Error setting vsync, continuing anyway: {err:?}");
             }
         }
+
+        return Some((context, window, surface));
     }
 
     log::error!("Failed to create any context.");
@@ -737,200 +871,183 @@ fn compute_window_size(monitor: &MonitorHandle, size: &WindowSize) -> PhysicalSi
     }
 }
 
-impl From<glutin::event::MouseButton> for MouseButton
+impl From<winit::event::MouseButton> for MouseButton
 {
-    fn from(button: glutin::event::MouseButton) -> Self
+    fn from(button: winit::event::MouseButton) -> Self
     {
         match button {
-            glutin::event::MouseButton::Left => MouseButton::Left,
-            glutin::event::MouseButton::Right => MouseButton::Right,
-            glutin::event::MouseButton::Middle => MouseButton::Middle,
-            glutin::event::MouseButton::Other(id) => MouseButton::Other(id)
+            winit::event::MouseButton::Left => MouseButton::Left,
+            winit::event::MouseButton::Right => MouseButton::Right,
+            winit::event::MouseButton::Middle => MouseButton::Middle,
+            winit::event::MouseButton::Other(id) => MouseButton::Other(id),
+            winit::event::MouseButton::Back => MouseButton::Back,
+            winit::event::MouseButton::Forward => MouseButton::Forward
         }
     }
 }
 
-impl From<GlutinVirtualKeyCode> for VirtualKeyCode
+impl TryFrom<&KeyEvent> for VirtualKeyCode
 {
-    fn from(virtual_key_code: GlutinVirtualKeyCode) -> Self
+    type Error = ();
+
+    fn try_from(event: &KeyEvent) -> Result<Self, Self::Error>
     {
-        match virtual_key_code {
-            GlutinVirtualKeyCode::Key1 => VirtualKeyCode::Key1,
-            GlutinVirtualKeyCode::Key2 => VirtualKeyCode::Key2,
-            GlutinVirtualKeyCode::Key3 => VirtualKeyCode::Key3,
-            GlutinVirtualKeyCode::Key4 => VirtualKeyCode::Key4,
-            GlutinVirtualKeyCode::Key5 => VirtualKeyCode::Key5,
-            GlutinVirtualKeyCode::Key6 => VirtualKeyCode::Key6,
-            GlutinVirtualKeyCode::Key7 => VirtualKeyCode::Key7,
-            GlutinVirtualKeyCode::Key8 => VirtualKeyCode::Key8,
-            GlutinVirtualKeyCode::Key9 => VirtualKeyCode::Key9,
-            GlutinVirtualKeyCode::Key0 => VirtualKeyCode::Key0,
-            GlutinVirtualKeyCode::A => VirtualKeyCode::A,
-            GlutinVirtualKeyCode::B => VirtualKeyCode::B,
-            GlutinVirtualKeyCode::C => VirtualKeyCode::C,
-            GlutinVirtualKeyCode::D => VirtualKeyCode::D,
-            GlutinVirtualKeyCode::E => VirtualKeyCode::E,
-            GlutinVirtualKeyCode::F => VirtualKeyCode::F,
-            GlutinVirtualKeyCode::G => VirtualKeyCode::G,
-            GlutinVirtualKeyCode::H => VirtualKeyCode::H,
-            GlutinVirtualKeyCode::I => VirtualKeyCode::I,
-            GlutinVirtualKeyCode::J => VirtualKeyCode::J,
-            GlutinVirtualKeyCode::K => VirtualKeyCode::K,
-            GlutinVirtualKeyCode::L => VirtualKeyCode::L,
-            GlutinVirtualKeyCode::M => VirtualKeyCode::M,
-            GlutinVirtualKeyCode::N => VirtualKeyCode::N,
-            GlutinVirtualKeyCode::O => VirtualKeyCode::O,
-            GlutinVirtualKeyCode::P => VirtualKeyCode::P,
-            GlutinVirtualKeyCode::Q => VirtualKeyCode::Q,
-            GlutinVirtualKeyCode::R => VirtualKeyCode::R,
-            GlutinVirtualKeyCode::S => VirtualKeyCode::S,
-            GlutinVirtualKeyCode::T => VirtualKeyCode::T,
-            GlutinVirtualKeyCode::U => VirtualKeyCode::U,
-            GlutinVirtualKeyCode::V => VirtualKeyCode::V,
-            GlutinVirtualKeyCode::W => VirtualKeyCode::W,
-            GlutinVirtualKeyCode::X => VirtualKeyCode::X,
-            GlutinVirtualKeyCode::Y => VirtualKeyCode::Y,
-            GlutinVirtualKeyCode::Z => VirtualKeyCode::Z,
-            GlutinVirtualKeyCode::Escape => VirtualKeyCode::Escape,
-            GlutinVirtualKeyCode::F1 => VirtualKeyCode::F1,
-            GlutinVirtualKeyCode::F2 => VirtualKeyCode::F2,
-            GlutinVirtualKeyCode::F3 => VirtualKeyCode::F3,
-            GlutinVirtualKeyCode::F4 => VirtualKeyCode::F4,
-            GlutinVirtualKeyCode::F5 => VirtualKeyCode::F5,
-            GlutinVirtualKeyCode::F6 => VirtualKeyCode::F6,
-            GlutinVirtualKeyCode::F7 => VirtualKeyCode::F7,
-            GlutinVirtualKeyCode::F8 => VirtualKeyCode::F8,
-            GlutinVirtualKeyCode::F9 => VirtualKeyCode::F9,
-            GlutinVirtualKeyCode::F10 => VirtualKeyCode::F10,
-            GlutinVirtualKeyCode::F11 => VirtualKeyCode::F11,
-            GlutinVirtualKeyCode::F12 => VirtualKeyCode::F12,
-            GlutinVirtualKeyCode::F13 => VirtualKeyCode::F13,
-            GlutinVirtualKeyCode::F14 => VirtualKeyCode::F14,
-            GlutinVirtualKeyCode::F15 => VirtualKeyCode::F15,
-            GlutinVirtualKeyCode::F16 => VirtualKeyCode::F16,
-            GlutinVirtualKeyCode::F17 => VirtualKeyCode::F17,
-            GlutinVirtualKeyCode::F18 => VirtualKeyCode::F18,
-            GlutinVirtualKeyCode::F19 => VirtualKeyCode::F19,
-            GlutinVirtualKeyCode::F20 => VirtualKeyCode::F20,
-            GlutinVirtualKeyCode::F21 => VirtualKeyCode::F21,
-            GlutinVirtualKeyCode::F22 => VirtualKeyCode::F22,
-            GlutinVirtualKeyCode::F23 => VirtualKeyCode::F23,
-            GlutinVirtualKeyCode::F24 => VirtualKeyCode::F24,
-            GlutinVirtualKeyCode::Snapshot => VirtualKeyCode::PrintScreen,
-            GlutinVirtualKeyCode::Scroll => VirtualKeyCode::ScrollLock,
-            GlutinVirtualKeyCode::Pause => VirtualKeyCode::PauseBreak,
-            GlutinVirtualKeyCode::Insert => VirtualKeyCode::Insert,
-            GlutinVirtualKeyCode::Home => VirtualKeyCode::Home,
-            GlutinVirtualKeyCode::Delete => VirtualKeyCode::Delete,
-            GlutinVirtualKeyCode::End => VirtualKeyCode::End,
-            GlutinVirtualKeyCode::PageDown => VirtualKeyCode::PageDown,
-            GlutinVirtualKeyCode::PageUp => VirtualKeyCode::PageUp,
-            GlutinVirtualKeyCode::Left => VirtualKeyCode::Left,
-            GlutinVirtualKeyCode::Up => VirtualKeyCode::Up,
-            GlutinVirtualKeyCode::Right => VirtualKeyCode::Right,
-            GlutinVirtualKeyCode::Down => VirtualKeyCode::Down,
-            GlutinVirtualKeyCode::Back => VirtualKeyCode::Backspace,
-            GlutinVirtualKeyCode::Return => VirtualKeyCode::Return,
-            GlutinVirtualKeyCode::Space => VirtualKeyCode::Space,
-            GlutinVirtualKeyCode::Compose => VirtualKeyCode::Compose,
-            GlutinVirtualKeyCode::Caret => VirtualKeyCode::Caret,
-            GlutinVirtualKeyCode::Numlock => VirtualKeyCode::Numlock,
-            GlutinVirtualKeyCode::Numpad0 => VirtualKeyCode::Numpad0,
-            GlutinVirtualKeyCode::Numpad1 => VirtualKeyCode::Numpad1,
-            GlutinVirtualKeyCode::Numpad2 => VirtualKeyCode::Numpad2,
-            GlutinVirtualKeyCode::Numpad3 => VirtualKeyCode::Numpad3,
-            GlutinVirtualKeyCode::Numpad4 => VirtualKeyCode::Numpad4,
-            GlutinVirtualKeyCode::Numpad5 => VirtualKeyCode::Numpad5,
-            GlutinVirtualKeyCode::Numpad6 => VirtualKeyCode::Numpad6,
-            GlutinVirtualKeyCode::Numpad7 => VirtualKeyCode::Numpad7,
-            GlutinVirtualKeyCode::Numpad8 => VirtualKeyCode::Numpad8,
-            GlutinVirtualKeyCode::Numpad9 => VirtualKeyCode::Numpad9,
-            GlutinVirtualKeyCode::NumpadAdd => VirtualKeyCode::NumpadAdd,
-            GlutinVirtualKeyCode::NumpadDivide => VirtualKeyCode::NumpadDivide,
-            GlutinVirtualKeyCode::NumpadDecimal => VirtualKeyCode::NumpadDecimal,
-            GlutinVirtualKeyCode::NumpadComma => VirtualKeyCode::NumpadComma,
-            GlutinVirtualKeyCode::NumpadEnter => VirtualKeyCode::NumpadEnter,
-            GlutinVirtualKeyCode::NumpadEquals => VirtualKeyCode::NumpadEquals,
-            GlutinVirtualKeyCode::NumpadMultiply => VirtualKeyCode::NumpadMultiply,
-            GlutinVirtualKeyCode::NumpadSubtract => VirtualKeyCode::NumpadSubtract,
-            GlutinVirtualKeyCode::AbntC1 => VirtualKeyCode::AbntC1,
-            GlutinVirtualKeyCode::AbntC2 => VirtualKeyCode::AbntC2,
-            GlutinVirtualKeyCode::Apostrophe => VirtualKeyCode::Apostrophe,
-            GlutinVirtualKeyCode::Apps => VirtualKeyCode::Apps,
-            GlutinVirtualKeyCode::Asterisk => VirtualKeyCode::Asterisk,
-            GlutinVirtualKeyCode::At => VirtualKeyCode::At,
-            GlutinVirtualKeyCode::Ax => VirtualKeyCode::Ax,
-            GlutinVirtualKeyCode::Backslash => VirtualKeyCode::Backslash,
-            GlutinVirtualKeyCode::Calculator => VirtualKeyCode::Calculator,
-            GlutinVirtualKeyCode::Capital => VirtualKeyCode::Capital,
-            GlutinVirtualKeyCode::Colon => VirtualKeyCode::Colon,
-            GlutinVirtualKeyCode::Comma => VirtualKeyCode::Comma,
-            GlutinVirtualKeyCode::Convert => VirtualKeyCode::Convert,
-            GlutinVirtualKeyCode::Equals => VirtualKeyCode::Equals,
-            GlutinVirtualKeyCode::Grave => VirtualKeyCode::Grave,
-            GlutinVirtualKeyCode::Kana => VirtualKeyCode::Kana,
-            GlutinVirtualKeyCode::Kanji => VirtualKeyCode::Kanji,
-            GlutinVirtualKeyCode::LAlt => VirtualKeyCode::LAlt,
-            GlutinVirtualKeyCode::LBracket => VirtualKeyCode::LBracket,
-            GlutinVirtualKeyCode::LControl => VirtualKeyCode::LControl,
-            GlutinVirtualKeyCode::LShift => VirtualKeyCode::LShift,
-            GlutinVirtualKeyCode::LWin => VirtualKeyCode::LWin,
-            GlutinVirtualKeyCode::Mail => VirtualKeyCode::Mail,
-            GlutinVirtualKeyCode::MediaSelect => VirtualKeyCode::MediaSelect,
-            GlutinVirtualKeyCode::MediaStop => VirtualKeyCode::MediaStop,
-            GlutinVirtualKeyCode::Minus => VirtualKeyCode::Minus,
-            GlutinVirtualKeyCode::Mute => VirtualKeyCode::Mute,
-            GlutinVirtualKeyCode::MyComputer => VirtualKeyCode::MyComputer,
-            GlutinVirtualKeyCode::NavigateForward => VirtualKeyCode::NavigateForward,
-            GlutinVirtualKeyCode::NavigateBackward => VirtualKeyCode::NavigateBackward,
-            GlutinVirtualKeyCode::NextTrack => VirtualKeyCode::NextTrack,
-            GlutinVirtualKeyCode::NoConvert => VirtualKeyCode::NoConvert,
-            GlutinVirtualKeyCode::OEM102 => VirtualKeyCode::OEM102,
-            GlutinVirtualKeyCode::Period => VirtualKeyCode::Period,
-            GlutinVirtualKeyCode::PlayPause => VirtualKeyCode::PlayPause,
-            GlutinVirtualKeyCode::Plus => VirtualKeyCode::Plus,
-            GlutinVirtualKeyCode::Power => VirtualKeyCode::Power,
-            GlutinVirtualKeyCode::PrevTrack => VirtualKeyCode::PrevTrack,
-            GlutinVirtualKeyCode::RAlt => VirtualKeyCode::RAlt,
-            GlutinVirtualKeyCode::RBracket => VirtualKeyCode::RBracket,
-            GlutinVirtualKeyCode::RControl => VirtualKeyCode::RControl,
-            GlutinVirtualKeyCode::RShift => VirtualKeyCode::RShift,
-            GlutinVirtualKeyCode::RWin => VirtualKeyCode::RWin,
-            GlutinVirtualKeyCode::Semicolon => VirtualKeyCode::Semicolon,
-            GlutinVirtualKeyCode::Slash => VirtualKeyCode::Slash,
-            GlutinVirtualKeyCode::Sleep => VirtualKeyCode::Sleep,
-            GlutinVirtualKeyCode::Stop => VirtualKeyCode::Stop,
-            GlutinVirtualKeyCode::Sysrq => VirtualKeyCode::Sysrq,
-            GlutinVirtualKeyCode::Tab => VirtualKeyCode::Tab,
-            GlutinVirtualKeyCode::Underline => VirtualKeyCode::Underline,
-            GlutinVirtualKeyCode::Unlabeled => VirtualKeyCode::Unlabeled,
-            GlutinVirtualKeyCode::VolumeDown => VirtualKeyCode::VolumeDown,
-            GlutinVirtualKeyCode::VolumeUp => VirtualKeyCode::VolumeUp,
-            GlutinVirtualKeyCode::Wake => VirtualKeyCode::Wake,
-            GlutinVirtualKeyCode::WebBack => VirtualKeyCode::WebBack,
-            GlutinVirtualKeyCode::WebFavorites => VirtualKeyCode::WebFavorites,
-            GlutinVirtualKeyCode::WebForward => VirtualKeyCode::WebForward,
-            GlutinVirtualKeyCode::WebHome => VirtualKeyCode::WebHome,
-            GlutinVirtualKeyCode::WebRefresh => VirtualKeyCode::WebRefresh,
-            GlutinVirtualKeyCode::WebSearch => VirtualKeyCode::WebSearch,
-            GlutinVirtualKeyCode::WebStop => VirtualKeyCode::WebStop,
-            GlutinVirtualKeyCode::Yen => VirtualKeyCode::Yen,
-            GlutinVirtualKeyCode::Copy => VirtualKeyCode::Copy,
-            GlutinVirtualKeyCode::Paste => VirtualKeyCode::Paste,
-            GlutinVirtualKeyCode::Cut => VirtualKeyCode::Cut
-        }
+        let lr_variant =
+            |left: VirtualKeyCode, right: VirtualKeyCode| match event.location {
+                KeyLocation::Standard | KeyLocation::Left => left,
+                KeyLocation::Right | KeyLocation::Numpad => right
+            };
+
+        let numpad_variant =
+            |normal: VirtualKeyCode, numpad: VirtualKeyCode| match event.location {
+                KeyLocation::Standard | KeyLocation::Left | KeyLocation::Right => normal,
+                KeyLocation::Numpad => numpad
+            };
+
+        Ok(match event.logical_key.clone() {
+            Key::Named(virtual_key_code) => match virtual_key_code {
+                NamedKey::Alt => lr_variant(Self::LAlt, Self::RAlt),
+                NamedKey::AltGraph => Self::RAlt,
+                NamedKey::ArrowDown => Self::Down,
+                NamedKey::ArrowLeft => Self::Left,
+                NamedKey::ArrowRight => Self::Right,
+                NamedKey::ArrowUp => Self::Up,
+                NamedKey::AudioVolumeDown => Self::VolumeDown,
+                NamedKey::AudioVolumeMute => Self::Mute,
+                NamedKey::AudioVolumeUp => Self::VolumeUp,
+                NamedKey::Backspace => Self::Backspace,
+                NamedKey::BrowserBack => Self::WebBack,
+                NamedKey::BrowserFavorites => Self::WebFavorites,
+                NamedKey::BrowserForward => Self::WebForward,
+                NamedKey::BrowserHome => Self::WebHome,
+                NamedKey::BrowserRefresh => Self::WebRefresh,
+                NamedKey::BrowserSearch => Self::WebSearch,
+                NamedKey::BrowserStop => Self::WebStop,
+                NamedKey::Compose => Self::Compose,
+                NamedKey::Control => lr_variant(Self::LControl, Self::RControl),
+                NamedKey::Convert => Self::Convert,
+                NamedKey::Copy => Self::Copy,
+                NamedKey::Cut => Self::Cut,
+                NamedKey::Delete => Self::Delete,
+                NamedKey::End => Self::End,
+                NamedKey::Enter => numpad_variant(Self::Return, Self::NumpadEnter),
+                NamedKey::Escape => Self::Escape,
+                NamedKey::F1 => Self::F1,
+                NamedKey::F2 => Self::F2,
+                NamedKey::F3 => Self::F3,
+                NamedKey::F4 => Self::F4,
+                NamedKey::F5 => Self::F5,
+                NamedKey::F6 => Self::F6,
+                NamedKey::F7 => Self::F7,
+                NamedKey::F8 => Self::F8,
+                NamedKey::F9 => Self::F9,
+                NamedKey::F10 => Self::F10,
+                NamedKey::F11 => Self::F11,
+                NamedKey::F12 => Self::F12,
+                NamedKey::F13 => Self::F13,
+                NamedKey::F14 => Self::F14,
+                NamedKey::F15 => Self::F15,
+                NamedKey::F16 => Self::F16,
+                NamedKey::F17 => Self::F17,
+                NamedKey::F18 => Self::F18,
+                NamedKey::F19 => Self::F19,
+                NamedKey::F20 => Self::F20,
+                NamedKey::F21 => Self::F21,
+                NamedKey::F22 => Self::F22,
+                NamedKey::F23 => Self::F23,
+                NamedKey::F24 => Self::F24,
+                NamedKey::GoBack => Self::NavigateBackward,
+                NamedKey::GoHome => Self::Home,
+                NamedKey::Home => Self::Home,
+                NamedKey::Insert => Self::Insert,
+                NamedKey::KanaMode => Self::Kana,
+                NamedKey::KanjiMode => Self::Kanji,
+                NamedKey::LaunchMail => Self::Mail,
+                NamedKey::MediaPlayPause => Self::PlayPause,
+                NamedKey::MediaStop => Self::MediaStop,
+                NamedKey::NavigatePrevious => Self::NavigateBackward,
+                NamedKey::NonConvert => Self::NoConvert,
+                NamedKey::NumLock => Self::Numlock,
+                NamedKey::PageDown => Self::PageDown,
+                NamedKey::PageUp => Self::PageUp,
+                NamedKey::Paste => Self::Paste,
+                NamedKey::Power => Self::Power,
+                NamedKey::PrintScreen => Self::PrintScreen,
+                NamedKey::ScrollLock => Self::ScrollLock,
+                NamedKey::Shift => lr_variant(Self::LShift, Self::RShift),
+                NamedKey::Tab => Self::Tab,
+                NamedKey::Super => lr_variant(Self::LWin, Self::RWin),
+                _ => return Err(())
+            },
+            Key::Character(c) => match c.chars().next().unwrap_or('\0') {
+                'A' | 'a' => Self::A,
+                'B' | 'b' => Self::B,
+                'C' | 'c' => Self::C,
+                'D' | 'd' => Self::D,
+                'E' | 'e' => Self::E,
+                'F' | 'f' => Self::F,
+                'G' | 'g' => Self::G,
+                'H' | 'h' => Self::H,
+                'I' | 'i' => Self::I,
+                'J' | 'j' => Self::J,
+                'K' | 'k' => Self::K,
+                'L' | 'l' => Self::L,
+                'M' | 'm' => Self::M,
+                'N' | 'n' => Self::N,
+                'O' | 'o' => Self::O,
+                'P' | 'p' => Self::P,
+                'Q' | 'q' => Self::Q,
+                'R' | 'r' => Self::R,
+                'S' | 's' => Self::S,
+                'T' | 't' => Self::T,
+                'U' | 'u' => Self::U,
+                'V' | 'v' => Self::V,
+                'W' | 'w' => Self::W,
+                'X' | 'x' => Self::X,
+                'Y' | 'y' => Self::Y,
+                'Z' | 'z' => Self::Z,
+                '0' => numpad_variant(Self::Key0, Self::Numpad0),
+                '1' => numpad_variant(Self::Key1, Self::Numpad1),
+                '2' => numpad_variant(Self::Key2, Self::Numpad2),
+                '3' => numpad_variant(Self::Key3, Self::Numpad3),
+                '4' => numpad_variant(Self::Key4, Self::Numpad4),
+                '5' => numpad_variant(Self::Key5, Self::Numpad5),
+                '6' => numpad_variant(Self::Key6, Self::Numpad6),
+                '7' => numpad_variant(Self::Key7, Self::Numpad7),
+                '8' => numpad_variant(Self::Key8, Self::Numpad8),
+                '9' => numpad_variant(Self::Key9, Self::Numpad9),
+                '+' => numpad_variant(Self::Plus, Self::NumpadAdd),
+                '-' => numpad_variant(Self::Minus, Self::NumpadSubtract),
+                '*' => numpad_variant(Self::Asterisk, Self::NumpadMultiply),
+                '/' => numpad_variant(Self::Slash, Self::NumpadDivide),
+                ',' => numpad_variant(Self::Comma, Self::NumpadComma),
+                '.' => numpad_variant(Self::Period, Self::NumpadDecimal),
+                '=' => numpad_variant(Self::Equals, Self::NumpadEquals),
+                '^' => Self::Caret,
+                '\'' => Self::Apostrophe,
+                '\\' => Self::Backslash,
+                ':' => Self::Colon,
+                '`' => Self::Grave,
+                '(' => Self::LBracket,
+                ')' => Self::RBracket,
+                '\t' => Self::Tab,
+
+                _ => return Err(())
+            },
+            Key::Unidentified(_) | Key::Dead(_) => return Err(())
+        })
     }
 }
 
-impl From<glutin::event::ModifiersState> for ModifiersState
+impl From<winit::keyboard::ModifiersState> for ModifiersState
 {
-    fn from(state: glutin::event::ModifiersState) -> Self
+    fn from(state: winit::keyboard::ModifiersState) -> Self
     {
         ModifiersState {
-            ctrl: state.ctrl(),
-            alt: state.alt(),
-            shift: state.shift(),
-            logo: state.logo()
+            ctrl: state.control_key(),
+            alt: state.alt_key(),
+            shift: state.shift_key(),
+            logo: state.super_key()
         }
     }
 }
@@ -979,5 +1096,13 @@ impl<UserEventType> UserEventSenderGlutin<UserEventType>
             .map_err(|err| match err {
                 EventLoopClosed(_) => EventLoopSendError::EventLoopNoLongerExists
             })
+    }
+}
+
+impl From<EventLoopError> for BacktraceError<WindowCreationError>
+{
+    fn from(value: EventLoopError) -> Self
+    {
+        Self::new_with_cause(WindowCreationError::EventLoopCreationFailed, value)
     }
 }

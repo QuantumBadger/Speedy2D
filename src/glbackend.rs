@@ -158,6 +158,7 @@ pub trait GLBackend
     unsafe fn gl_bind_texture(&self, target: GLenum, handle: GLTypeTexture);
     unsafe fn gl_enable(&self, cap: GLenum);
     unsafe fn gl_disable(&self, cap: GLenum);
+    #[allow(dead_code)]
     unsafe fn gl_blend_func(&self, sfactor: GLenum, dfactor: GLenum);
     unsafe fn gl_blend_func_separate(
         &self,
@@ -181,7 +182,9 @@ pub trait GLBackend
     unsafe fn gl_draw_arrays(&self, mode: GLenum, first: GLint, count: GLsizei);
     unsafe fn gl_clear_color(&self, r: f32, g: f32, b: f32, a: f32);
     unsafe fn gl_clear(&self, mask: GLenum);
+    #[allow(dead_code)]
     unsafe fn gl_enable_debug_message_callback(&self);
+    #[allow(dead_code)]
     unsafe fn gl_get_string(&self, parameter: GLenum) -> String;
     unsafe fn gl_viewport(&self, x: i32, y: i32, width: i32, height: i32);
     unsafe fn gl_scissor(&self, x: GLint, y: GLint, width: GLsizei, height: GLsizei);
@@ -211,7 +214,7 @@ pub trait GLBackend
         pixels: Option<&[u8]>
     );
 
-    #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::too_many_arguments, dead_code)]
     unsafe fn gl_tex_sub_image_2d(
         &self,
         target: GLenum,
@@ -284,6 +287,7 @@ pub trait GLBackend
         Ok(())
     }
 
+    #[allow(dead_code)]
     fn gl_get_error_name(&self) -> Option<String>
     {
         let err = unsafe { self.gl_get_error() };

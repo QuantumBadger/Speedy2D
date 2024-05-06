@@ -93,7 +93,8 @@ Thanks to [Revertron](https://github.com/Revertron):
 
 ### New APIs
 
-* `WindowHandler::on_mouse_wheel_scroll()` (thanks to [GreatGodOfFire](https://github.com/GreatGodOfFire))
+* `WindowHandler::on_mouse_wheel_scroll()` (thanks
+  to [GreatGodOfFire](https://github.com/GreatGodOfFire))
 * `TextLayout::empty_line_vertical_metrics()`
 
 ## 1.5.0
@@ -113,15 +114,17 @@ Thanks to [UdHo](https://github.com/UdHo)
 
 ## 1.7.0
 
-* Remove `Sized` requirement from `TextLayout` functions (allowing them to be called on `&dyn TextLayout`)
+* Remove `Sized` requirement from `TextLayout` functions (allowing them to be called
+  on `&dyn TextLayout`)
 
 ## 1.8.0
 
 * Added convenient type aliases for:
-  * `Vector2` types: `Vec2`, `IVec2`, and `UVec2`
-  * `Rectangle` types: `Rect`, `IRect`, and `URect`
+    * `Vector2` types: `Vec2`, `IVec2`, and `UVec2`
+    * `Rectangle` types: `Rect`, `IRect`, and `URect`
 * Allow adding tuples to vectors, for example `my_vec + (1.0, 2.0)`
-* Added example code for managing GL context with glutin (thanks to [btbaggin](https://github.com/btbaggin))
+* Added example code for managing GL context with glutin (thanks
+  to [btbaggin](https://github.com/btbaggin))
 
 ### New APIs
 
@@ -135,13 +138,16 @@ Thanks to [UdHo](https://github.com/UdHo)
 
 ### New APIs
 
-* `Graphics2D::draw_text_cropped()`, for efficiently drawing a block of text cropped to the specified area
+* `Graphics2D::draw_text_cropped()`, for efficiently drawing a block of text cropped to the
+  specified area
 * `Graphics2D::capture()`, for capturing the current contents of the window
-* Added assignment operators (`+=`, `-=`, `*=`, `/=`) to `Vector2` (thanks to [amarao](https://github.com/amarao))
+* Added assignment operators (`+=`, `-=`, `*=`, `/=`) to `Vector2` (thanks
+  to [amarao](https://github.com/amarao))
 
 ### Fixes
 
-* Text drawn at a non-pixel-aligned position was getting snapped to the nearest pixel -- this is now fixed.
+* Text drawn at a non-pixel-aligned position was getting snapped to the nearest pixel -- this is now
+  fixed.
 
 ## 1.10.0
 
@@ -186,11 +192,13 @@ Thanks to [UdHo](https://github.com/UdHo)
 * `FormattedTextBlock` can now be cheaply cloned, and sent between threads.
 * Removed the deprecated function `new_for_current_context` -- please switch
   to `new_for_gl_context` instead.
-* `UserEventSender` now implements `Clone` even if the event type doesn't (thanks to [Alex Kladov](https://github.com/matklad))
+* `UserEventSender` now implements `Clone` even if the event type doesn't (thanks
+  to [Alex Kladov](https://github.com/matklad))
 
 ### New APIs
 
-* `TextOptions::with_trim_each_line()` (thanks to [InfiniteCoder01](https://github.com/InfiniteCoder01))
+* `TextOptions::with_trim_each_line()` (thanks
+  to [InfiniteCoder01](https://github.com/InfiniteCoder01))
 
 ## 2.1.0
 
@@ -201,3 +209,16 @@ Ability to draw rounded rectangles, thanks to [dennisorlando](https://github.com
 * `RoundedRectangle` struct
 * `Rectangle.rounded(radius)`
 * `Graphics2D.draw_rounded_rectangle()`
+
+## 3.0.0
+
+Updated to the latest version of Glutin.
+
+### New APIs
+
+* `MouseButton.Back` and `MouseButton.Forward`
+* `WindowCreationError.EventLoopCreationFailed`
+
+### Changed APIs
+
+* `MouseButton`, `VirtualKeyCode`, and `WindowCreationError` are marked as `non_exhaustive`
