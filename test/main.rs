@@ -22,8 +22,6 @@ compile_error!("The automated tests currently support Linux x86_64 only");
 use std::convert::TryInto;
 use std::sync::mpsc::channel;
 
-use glutin::dpi::PhysicalSize;
-use glutin::event_loop::EventLoop;
 use image::{ColorType, GenericImageView, ImageFormat};
 use num_traits::ToPrimitive;
 use speedy2d::color::Color;
@@ -32,6 +30,8 @@ use speedy2d::font::{Font, TextAlignment, TextLayout, TextOptions};
 use speedy2d::image::{ImageDataType, ImageSmoothingMode};
 use speedy2d::shape::{Polygon, Rect, Rectangle};
 use speedy2d::GLRenderer;
+use winit::dpi::PhysicalSize;
+use winit::event_loop::EventLoop;
 
 const NOTO_SANS_REGULAR_BYTES: &[u8] =
     include_bytes!("../assets/fonts/NotoSans-Regular.ttf");

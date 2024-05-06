@@ -112,7 +112,7 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
     ) -> Self
     {
         WindowHelperGlutin {
-            window: Rc::clone(&window),
+            window: Rc::clone(window),
             event_proxy,
             redraw_requested: Cell::new(false),
             terminate_requested: false,
@@ -489,7 +489,7 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
                         NonZeroU32::try_from(physical_size.width),
                         NonZeroU32::try_from(physical_size.height)
                     ) {
-                        surface.resize(&context, w, h);
+                        surface.resize(context, w, h);
                     }
                     helper.inner().physical_size = physical_size.into();
                     handler.on_resize(helper, physical_size.into())
