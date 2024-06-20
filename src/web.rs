@@ -497,6 +497,29 @@ impl WebCanvasElement
         )
     }
 
+    pub fn use_provided_webgl2_context<V>(
+        viewport_size_pixels: V,
+        context: web_sys::WebGl2RenderingContext
+    ) -> Result<GLRenderer, BacktraceError<GLRendererCreationError>>
+    where
+        V: Into<UVec2>
+    {
+        let viewport_size_pixels = viewport_size_pixels.into();
+
+        log::info!(
+            "Using WebGL2 context with viewport size {:?}",
+            viewport_size_pixels
+        );
+
+        let gl_context = glow::Context::from_webgl2_context(context);
+
+        GLRenderer::new_with_gl_backend(
+            viewport_size_pixels,
+            Rc::new(GLBackendGlow::new(gl_context)),
+            GLVersion::WebGL2_0
+        )
+    }
+
     #[cfg(feature = "windowing")]
     pub fn set_buffer_dimensions(&self, size: &UVec2)
     {
