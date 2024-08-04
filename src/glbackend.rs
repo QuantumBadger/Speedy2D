@@ -101,12 +101,6 @@ pub mod constants
     #[allow(dead_code)]
     pub const GL_INFO_LOG_LENGTH: GLenum = glow::INFO_LOG_LENGTH;
 
-    pub const GL_DEBUG_SEVERITY_HIGH: GLenum = glow::DEBUG_SEVERITY_HIGH;
-    pub const GL_DEBUG_SEVERITY_MEDIUM: GLenum = glow::DEBUG_SEVERITY_MEDIUM;
-    pub const GL_DEBUG_SEVERITY_LOW: GLenum = glow::DEBUG_SEVERITY_LOW;
-    pub const GL_DEBUG_OUTPUT: GLenum = glow::DEBUG_OUTPUT;
-    pub const GL_DEBUG_OUTPUT_SYNCHRONOUS: GLenum = glow::DEBUG_OUTPUT_SYNCHRONOUS;
-
     pub const GL_UNPACK_ALIGNMENT: GLenum = glow::UNPACK_ALIGNMENT;
 }
 
@@ -493,16 +487,16 @@ impl GLBackend for GLBackendGlow
         )
         {
             match severity {
-                GL_DEBUG_SEVERITY_HIGH => log::error!("GL debug log: {}", msg),
-                GL_DEBUG_SEVERITY_MEDIUM => log::warn!("GL debug log: {}", msg),
-                GL_DEBUG_SEVERITY_LOW => log::info!("GL debug log: {}", msg),
+                glow::DEBUG_SEVERITY_HIGH => log::error!("GL debug log: {}", msg),
+                glow::DEBUG_SEVERITY_MEDIUM => log::warn!("GL debug log: {}", msg),
+                glow::DEBUG_SEVERITY_LOW => log::info!("GL debug log: {}", msg),
                 _ => log::debug!("GL debug log: {}", msg)
             }
         }
 
         self.context.debug_message_callback(gl_log_callback);
-        self.gl_enable(GL_DEBUG_OUTPUT);
-        self.gl_enable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        self.gl_enable(glow::DEBUG_OUTPUT);
+        self.gl_enable(glow::DEBUG_OUTPUT_SYNCHRONOUS);
 
         log::info!("GL debug log enabled for glow backend");
     }
