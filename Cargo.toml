@@ -19,6 +19,7 @@ documentation = "https://docs.rs/speedy2d"
 default = ["windowing", "image-loading"]
 windowing = ["glutin", "winit", "glutin-winit", "raw-window-handle"]
 image-loading = ["image"]
+serde = ["dep:serde"]
 
 [dependencies]
 glow = "0.7"
@@ -32,6 +33,9 @@ smallvec = "1.9.0"
 
 # For image_loading feature
 image = { version = "0.23", optional = true }
+
+# For serde feature
+serde = { version = "1", features = ["derive"], optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 # For windowing feature
