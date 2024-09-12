@@ -305,6 +305,10 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
     {
         UserEventSender::new(UserEventSenderGlutin::new(self.event_proxy.clone()))
     }
+
+    pub fn set_mouse_passthrough(&self, passthrough: bool) {
+        self.window.set_cursor_hittest(!passthrough).ok();
+    }
 }
 
 pub(crate) struct WindowGlutin<UserEventType: 'static>
