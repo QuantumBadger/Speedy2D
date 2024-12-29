@@ -689,11 +689,13 @@ impl WebEventTarget
     {
         let closure = Closure::wrap(callback);
 
+        let event_listener_options = AddEventListenerOptions::new();
+        event_listener_options.set_once(once);
         self.target
             .add_event_listener_with_callback_and_add_event_listener_options(
                 listener_type,
                 closure.as_ref().unchecked_ref(),
-                AddEventListenerOptions::new().once(once)
+                &event_listener_options
             )
             .map_err(|err| {
                 ErrorMessage::msg(format!(
