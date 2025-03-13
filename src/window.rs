@@ -16,6 +16,7 @@
 
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
+use std::path::PathBuf;
 
 use crate::dimen::{IVec2, UVec2, Vec2};
 use crate::error::{BacktraceError, ErrorMessage};
@@ -315,6 +316,20 @@ pub trait WindowHandler<UserEventType = ()>
     )
     {
     }
+
+    /// Invoked when the user drags a file over the window.
+    ///
+    /// The file drag state contains the state of the drag (hover, dropped,
+    /// cancelled) and the file path.
+    #[allow(unused_variables)]
+    #[inline]
+    fn on_file_drag(
+        &mut self,
+        helper: &mut WindowHelper<UserEventType>,
+        file_drag_state: FileDragState
+    )
+    {
+    }
 }
 
 pub(crate) struct DrawingWindowHandler<UserEventType, H>
@@ -498,6 +513,18 @@ where
     {
         self.window_handler
             .on_keyboard_modifiers_changed(helper, state)
+    }
+
+    // Regarding dead_code: This function is never called for WASM
+    #[inline]
+    #[allow(dead_code)]
+    pub fn on_file_drag(
+        &mut self,
+        helper: &mut WindowHelper<UserEventType>,
+        file_drag_state: FileDragState
+    )
+    {
+        self.window_handler.on_file_drag(helper, file_drag_state);
     }
 }
 
@@ -1198,3 +1225,15 @@ impl WindowCreationOptions
 
 /// Type representing a keyboard scancode.
 pub type KeyScancode = u32;
+
+#[derive(Clone, Debug)]
+/// The Glutin File State Enum
+pub enum FileDragState
+{
+    /// When the user hovers a file above the window
+    Hover(PathBuf),
+    /// When the user drop a file into the window
+    Dropped(PathBuf),
+    /// When the user cancel a drop
+    Cancelled
+}
