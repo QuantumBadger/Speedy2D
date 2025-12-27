@@ -1123,7 +1123,6 @@ impl FormattedTextLine
 impl<T: Copy> From<&rusttype::Rect<T>> for Rectangle<T>
 {
     #[inline]
-    #[must_use]
     fn from(rect: &rusttype::Rect<T>) -> Self
     {
         Rectangle::new(
