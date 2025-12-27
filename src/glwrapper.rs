@@ -742,11 +742,11 @@ impl GLTexture
 
         let width_stride_bytes = size.x as usize * format.get_bytes_per_pixel();
 
-        let unpack_alignment = if width_stride_bytes % 8 == 0 {
+        let unpack_alignment = if width_stride_bytes.is_multiple_of(8) {
             8
-        } else if width_stride_bytes % 4 == 0 {
+        } else if width_stride_bytes.is_multiple_of(4) {
             4
-        } else if width_stride_bytes % 2 == 0 {
+        } else if width_stride_bytes.is_multiple_of(2) {
             2
         } else {
             1
