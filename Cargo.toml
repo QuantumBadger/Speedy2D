@@ -17,7 +17,21 @@ documentation = "https://docs.rs/speedy2d"
 
 [features]
 default = ["windowing", "image-loading"]
-windowing = ["glutin", "winit", "glutin-winit", "raw-window-handle"]
+
+# Windowing support via winit + glutin.
+windowing = [
+    "glutin",
+    "winit",
+    "raw-window-handle",
+    # Enable common desktop backends on supported targets.
+    "winit/x11",
+    "winit/wayland",
+    "glutin/x11",
+    "glutin/wayland",
+    "glutin/egl",
+    "glutin/glx",
+    "glutin/wgl",
+]
 image-loading = ["image"]
 
 [dependencies]
@@ -37,7 +51,6 @@ image = { version = "0.23", optional = true }
 # For windowing feature
 glutin = { version = "0.31.3", optional = true }
 winit = { version = "0.29.2", optional = true, default-features = false, features = ["rwh_05"] }
-glutin-winit = { version = "0.4.2", optional = true }
 raw-window-handle = { version = "0.5.2", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
@@ -60,22 +73,25 @@ features = [
     "Window",
 ]
 
+[build-dependencies.cfg_aliases]
+version = "0.1.1"
+
 # Tests using a headless GL context.
 
 [[test]]
 name = "test"
 path = "test/main.rs"
 harness = false
+required-features = ["windowing"]
 
 [dev-dependencies]
 simple_logger = { version = "1.11", default-features = false, features = ["colors"] }
 image = { version = "0.23" }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
-glutin = "0.31.3"
-winit = { version = "0.29.2", default-features = false, features = ["rwh_05"] }
-glutin-winit = { version = "0.4.2" }
-raw-window-handle = { version = "0.5.2" }
+# Used by `test/main.rs` (headless GL integration test). Kept as a dev-dependency
+# so it doesn't become part of Speedy2D's public API surface.
+glutin-winit = "0.4.2"
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 wasm-bindgen = { version = "0.2" }

@@ -387,6 +387,8 @@ mod web;
 
 mod font_cache;
 mod glbackend;
+#[cfg(all(feature = "windowing", not(target_arch = "wasm32")))]
+mod glutin_winit;
 mod glwrapper;
 mod renderer2d;
 mod texture_packer;

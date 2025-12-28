@@ -36,7 +36,6 @@ use glutin::surface::{
     SwapInterval,
     WindowSurface
 };
-use glutin_winit::{DisplayBuilder, GlWindow};
 use raw_window_handle::HasRawWindowHandle;
 use winit::dpi::{LogicalSize, PhysicalPosition, PhysicalSize};
 use winit::error::EventLoopError;
@@ -71,6 +70,7 @@ use crate::dimen::{IVec2, UVec2, Vec2, Vector2};
 use crate::error::{BacktraceError, ErrorMessage};
 use crate::glbackend::constants::GL_VERSION;
 use crate::glbackend::{GLBackend, GLBackendGlow};
+use crate::glutin_winit::{DisplayBuilder, GlWindow};
 use crate::window::{
     DrawingWindowHandler,
     EventLoopSendError,
@@ -749,7 +749,7 @@ fn create_best_context<UserEventType>(
                 }
             };
 
-        let window = match glutin_winit::finalize_window(
+        let window = match crate::glutin_winit::finalize_window(
             event_loop,
             window_builder.clone(),
             &gl_config
