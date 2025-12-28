@@ -212,7 +212,11 @@ Ability to draw rounded rectangles, thanks to [dennisorlando](https://github.com
 
 ## 3.0.0
 
-Updated to the latest version of Glutin.
+Updated to a newer version of Glutin.
+
+### Fixes
+
+* Resolved issues when running under Wayland on Linux
 
 ### New APIs
 
