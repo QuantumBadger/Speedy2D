@@ -22,6 +22,8 @@ use winit::platform::x11::register_xlib_error_hook;
 use winit::platform::x11::WindowBuilderExtX11;
 use winit::window::{Window, WindowBuilder};
 
+use crate::error::ErrorMessage;
+
 #[cfg(all(not(egl_backend), not(glx_backend), not(wgl_backend), not(cgl_backend)))]
 compile_error!("Please select at least one api backend");
 
@@ -88,7 +90,7 @@ impl DisplayBuilder
         config_picker: Picker
     ) -> Result<(Option<Window>, Config), Box<dyn Error>>
     where
-        Picker: FnOnce(Box<dyn Iterator<Item = Config> + '_>) -> Config
+        Picker: FnOnce(Box<dyn Iterator<Item = Config> + '_>) -> Option<Config>
     {
         // XXX with WGL backend window should be created first.
         #[cfg(wgl_backend)]
@@ -120,7 +122,8 @@ impl DisplayBuilder
         let gl_config = unsafe {
             let configs = gl_display.find_configs(template)?;
             config_picker(configs)
-        };
+        }
+        .ok_or_else(|| ErrorMessage::msg("No valid GL config"))?;
 
         #[cfg(not(wgl_backend))]
         let window = if let Some(wb) = self.window_builder.take() {

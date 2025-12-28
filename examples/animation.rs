@@ -18,6 +18,7 @@
 
 use std::time::Instant;
 
+use log::LevelFilter;
 use speedy2d::color::Color;
 use speedy2d::dimen::Vec2;
 use speedy2d::window::{WindowHandler, WindowHelper};
@@ -25,7 +26,10 @@ use speedy2d::{Graphics2D, Window};
 
 fn main()
 {
-    simple_logger::SimpleLogger::new().init().unwrap();
+    simple_logger::SimpleLogger::new()
+        .with_level(LevelFilter::Info)
+        .init()
+        .unwrap();
 
     let window = Window::new_centered("Speedy2D: Animation", (800, 800)).unwrap();
 

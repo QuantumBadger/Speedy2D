@@ -16,6 +16,7 @@
 
 #![deny(warnings)]
 
+use log::LevelFilter;
 use speedy2d::color::Color;
 use speedy2d::font::{Font, FormattedTextBlock, TextLayout, TextOptions};
 use speedy2d::window::{WindowHandler, WindowHelper};
@@ -23,7 +24,10 @@ use speedy2d::{Graphics2D, Window};
 
 fn main()
 {
-    simple_logger::SimpleLogger::new().init().unwrap();
+    simple_logger::SimpleLogger::new()
+        .with_level(LevelFilter::Info)
+        .init()
+        .unwrap();
 
     let window = Window::new_centered("Speedy2D: Hello World", (640, 240)).unwrap();
 

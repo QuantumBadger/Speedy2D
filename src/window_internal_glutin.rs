@@ -691,9 +691,10 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
     }
 }
 
-fn gl_config_picker(mut configs: Box<dyn Iterator<Item = Config> + '_>) -> Config
+fn gl_config_picker(mut configs: Box<dyn Iterator<Item = Config> + '_>)
+    -> Option<Config>
 {
-    configs.next().unwrap()
+    configs.next()
 }
 
 fn create_best_context<UserEventType>(
