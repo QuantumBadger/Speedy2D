@@ -12,8 +12,8 @@ build-example-webgl:
 	@echo "Note: for security reasons, some web browsers may not load the script from a local directory -- a webserver is required."
 
 precommit:
-	cargo test
-	cargo test --no-default-features --lib --examples --tests
+	xvfb-run --auto-servernum cargo test
+	xvfb-run --auto-servernum cargo test --no-default-features --lib --examples --tests
 	cargo clippy
 	cargo clippy --target wasm32-unknown-unknown
 	cargo +nightly fmt -- --check
