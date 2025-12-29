@@ -668,6 +668,12 @@ impl<UserEventType> WindowHelper<UserEventType>
     {
         self.inner.create_user_event_sender()
     }
+
+    /// Sets whether mouse events should pass through the window.
+    pub fn set_mouse_passthrough(&self, passthrough: bool)
+    {
+        self.inner.set_mouse_passthrough(passthrough)
+    }
 }
 
 #[cfg(any(doc, doctest, not(target_arch = "wasm32")))]
@@ -1079,7 +1085,8 @@ pub struct WindowCreationOptions
     pub(crate) resizable: bool,
     pub(crate) maximized: bool,
     pub(crate) transparent: bool,
-    pub(crate) decorations: bool
+    pub(crate) decorations: bool,
+    pub(crate) mouse_passthrough: bool
 }
 
 impl WindowCreationOptions
@@ -1112,7 +1119,8 @@ impl WindowCreationOptions
             resizable: true,
             maximized: false,
             decorations: true,
-            transparent: false
+            transparent: false,
+            mouse_passthrough: false
         }
     }
 
@@ -1192,6 +1200,15 @@ impl WindowCreationOptions
     pub fn with_transparent(mut self, transparent: bool) -> Self
     {
         self.transparent = transparent;
+        self
+    }
+
+    /// Set whether mouse events should pass through the window.
+    #[inline]
+    #[must_use]
+    pub fn with_mouse_passthrough(mut self, mouse_passthrough: bool) -> Self
+    {
+        self.mouse_passthrough = mouse_passthrough;
         self
     }
 }
