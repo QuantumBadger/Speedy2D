@@ -74,6 +74,7 @@ use crate::glutin_winit::{DisplayBuilder, GlWindow};
 use crate::window::{
     DrawingWindowHandler,
     EventLoopSendError,
+    FileDragState,
     ModifiersState,
     MouseButton,
     MouseScrollDistance,
@@ -588,6 +589,18 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
 
                 GlutinWindowEvent::RedrawRequested => {
                     helper.inner().set_redraw_requested(true);
+                }
+
+                GlutinWindowEvent::HoveredFile(path) => {
+                    handler.on_file_drag(helper, FileDragState::Hover(path));
+                }
+
+                GlutinWindowEvent::DroppedFile(path) => {
+                    handler.on_file_drag(helper, FileDragState::Dropped(path));
+                }
+
+                GlutinWindowEvent::HoveredFileCancelled => {
+                    handler.on_file_drag(helper, FileDragState::Cancelled);
                 }
 
                 _ => {}
