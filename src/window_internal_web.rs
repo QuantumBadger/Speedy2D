@@ -34,6 +34,7 @@ use crate::window::{
     KeyScancode,
     ModifiersState,
     MouseButton,
+    MouseCursorType,
     MouseScrollDistance,
     UserEventSender,
     VirtualKeyCode,
@@ -377,6 +378,38 @@ enum KeyEventType
     Up
 }
 
+impl From<MouseCursorType> for WebCursorType
+{
+    fn from(cursor: MouseCursorType) -> Self
+    {
+        match cursor {
+            MouseCursorType::Default => WebCursorType::Default,
+            MouseCursorType::Pointer => WebCursorType::Pointer,
+            MouseCursorType::Crosshair => WebCursorType::Crosshair,
+            MouseCursorType::Text => WebCursorType::Text,
+            MouseCursorType::VerticalText => WebCursorType::VerticalText,
+            MouseCursorType::Move => WebCursorType::Move,
+            MouseCursorType::Grab => WebCursorType::Grab,
+            MouseCursorType::Grabbing => WebCursorType::Grabbing,
+            MouseCursorType::Wait => WebCursorType::Wait,
+            MouseCursorType::Progress => WebCursorType::Progress,
+            MouseCursorType::Cell => WebCursorType::Cell,
+            MouseCursorType::Alias => WebCursorType::Alias,
+            MouseCursorType::Copy => WebCursorType::Copy,
+            MouseCursorType::NoDrop => WebCursorType::NoDrop,
+            MouseCursorType::NotAllowed => WebCursorType::NotAllowed,
+            MouseCursorType::ColResize => WebCursorType::ColResize,
+            MouseCursorType::RowResize => WebCursorType::RowResize,
+            MouseCursorType::EwResize => WebCursorType::EWResize,
+            MouseCursorType::NsResize => WebCursorType::NSResize,
+            MouseCursorType::NeswResize => WebCursorType::NESWResize,
+            MouseCursorType::NwseResize => WebCursorType::NWSEResize,
+            MouseCursorType::ZoomIn => WebCursorType::ZoomIn,
+            MouseCursorType::ZoomOut => WebCursorType::ZoomOut
+        }
+    }
+}
+
 pub struct WindowHelperWeb<UserEventType>
 where
     UserEventType: 'static
@@ -462,6 +495,11 @@ impl<UserEventType: 'static> WindowHelperWeb<UserEventType>
         } else {
             self.canvas.set_cursor(WebCursorType::None);
         }
+    }
+
+    pub fn set_cursor(&self, cursor: MouseCursorType)
+    {
+        self.canvas.set_cursor(cursor.into());
     }
 
     pub fn set_cursor_grab(
