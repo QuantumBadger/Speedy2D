@@ -142,6 +142,14 @@ impl<T: std::ops::Neg<Output = T> + Copy> Vector2<T>
     {
         Vector2::new(self.y, -self.x)
     }
+
+    /// Rotates the vector by 180 degrees. Equivalent to negating the vector.
+    #[inline]
+    #[must_use]
+    pub fn rotate_180_degrees(&self) -> Vector2<T>
+    {
+        -self
+    }
 }
 
 impl<T: num_traits::AsPrimitive<f32>> Vector2<T>
@@ -285,6 +293,30 @@ impl<T: Copy + std::ops::Sub<Output = T>, R: Into<Vector2<T>>> std::ops::Sub<R>
     }
 }
 
+impl<T: Copy + std::ops::Neg<Output = T>> std::ops::Neg for Vector2<T>
+{
+    type Output = Vector2<T>;
+
+    #[inline]
+    #[must_use]
+    fn neg(self) -> Self::Output
+    {
+        Vector2::new(-self.x, -self.y)
+    }
+}
+
+impl<T: Copy + std::ops::Neg<Output = T>> std::ops::Neg for &Vector2<T>
+{
+    type Output = Vector2<T>;
+
+    #[inline]
+    #[must_use]
+    fn neg(self) -> Self::Output
+    {
+        Vector2::new(-self.x, -self.y)
+    }
+}
+
 impl<T: Copy + std::ops::AddAssign, R: Into<Vector2<T>>> std::ops::AddAssign<R>
     for Vector2<T>
 {
@@ -392,6 +424,87 @@ impl<T: Copy + std::ops::Mul<Output = T>> std::ops::Mul<T> for Vector2<T>
     fn mul(self, rhs: T) -> Self::Output
     {
         Vector2::new(self.x * rhs, self.y * rhs)
+    }
+}
+
+// Unlike other operators, we can not implement the `scalar by vector`
+// multiplication operator generically, as that would require implementing
+// a foreign trait for a completely foreign type. For instance, someone
+// might want to impl Mul<Vector<TheirType>> for TheirType.
+
+// That said, putting a scalar on the left side of the multiplication
+// is so common (standard in textbooks) that we implement that for the
+// concrete vectors of this module.
+
+impl std::ops::Mul<Vector2<f32>> for f32
+{
+    type Output = Vector2<f32>;
+
+    #[inline]
+    #[must_use]
+    fn mul(self, rhs: Vector2<f32>) -> Self::Output
+    {
+        Vector2::new(self * rhs.x, self * rhs.y)
+    }
+}
+
+impl std::ops::Mul<Vector2<&f32>> for &f32
+{
+    type Output = Vector2<f32>;
+
+    #[inline]
+    #[must_use]
+    fn mul(self, rhs: Vector2<&f32>) -> Self::Output
+    {
+        Vector2::new(self * rhs.x, self * rhs.y)
+    }
+}
+
+impl std::ops::Mul<Vector2<i32>> for i32
+{
+    type Output = Vector2<i32>;
+
+    #[inline]
+    #[must_use]
+    fn mul(self, rhs: Vector2<i32>) -> Self::Output
+    {
+        Vector2::new(self * rhs.x, self * rhs.y)
+    }
+}
+
+impl std::ops::Mul<Vector2<&i32>> for &i32
+{
+    type Output = Vector2<i32>;
+
+    #[inline]
+    #[must_use]
+    fn mul(self, rhs: Vector2<&i32>) -> Self::Output
+    {
+        Vector2::new(self * rhs.x, self * rhs.y)
+    }
+}
+
+impl std::ops::Mul<Vector2<u32>> for u32
+{
+    type Output = Vector2<u32>;
+
+    #[inline]
+    #[must_use]
+    fn mul(self, rhs: Vector2<u32>) -> Self::Output
+    {
+        Vector2::new(self * rhs.x, self * rhs.y)
+    }
+}
+
+impl std::ops::Mul<Vector2<&u32>> for &u32
+{
+    type Output = Vector2<u32>;
+
+    #[inline]
+    #[must_use]
+    fn mul(self, rhs: Vector2<&u32>) -> Self::Output
+    {
+        Vector2::new(self * rhs.x, self * rhs.y)
     }
 }
 
