@@ -226,3 +226,11 @@ Updated to a newer version of Glutin.
 ### Changed APIs
 
 * `MouseButton`, `VirtualKeyCode`, and `WindowCreationError` are marked as `non_exhaustive`
+
+## 3.1.0
+
+Ability to change the shape of the mouse cursor, thanks to [Revertron](https://github.com/Revertron):
+
+### New APIs
+
+* `WindowHelper.set_cursor()`
