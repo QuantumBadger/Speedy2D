@@ -600,12 +600,10 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
                 _ => {}
             },
 
-            GlutinEvent::AboutToWait => {
-                if helper.inner().is_redraw_requested() {
-                    helper.inner().set_redraw_requested(false);
-                    handler.on_draw(helper);
-                    surface.swap_buffers(context).unwrap();
-                }
+            GlutinEvent::AboutToWait if helper.inner().is_redraw_requested() => {
+                helper.inner().set_redraw_requested(false);
+                handler.on_draw(helper);
+                surface.swap_buffers(context).unwrap();
             }
 
             _ => {}
