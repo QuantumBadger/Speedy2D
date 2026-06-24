@@ -555,7 +555,6 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
 
                 GlutinWindowEvent::KeyboardInput { event, .. } => {
                     let virtual_key_code = VirtualKeyCode::try_from(&event).ok();
-
                     match event.state {
                         GlutinElementState::Pressed => {
                             if let Some(text) = event.text {
@@ -978,6 +977,7 @@ impl TryFrom<&KeyEvent> for VirtualKeyCode
                 NamedKey::Shift => lr_variant(Self::LShift, Self::RShift),
                 NamedKey::Tab => Self::Tab,
                 NamedKey::Super => lr_variant(Self::LWin, Self::RWin),
+                NamedKey::Space => Self::Space,
                 _ => return Err(())
             },
             Key::Character(c) => match c.chars().next().unwrap_or('\0') {
@@ -1031,6 +1031,10 @@ impl TryFrom<&KeyEvent> for VirtualKeyCode
                 '`' => Self::Grave,
                 '(' => Self::LBracket,
                 ')' => Self::RBracket,
+                '[' => Self::LSquareBracket,
+                ']' => Self::RSquareBracket,
+                ';' => Self::Semicolon,
+                '#' => Self::Hash,
                 '\t' => Self::Tab,
 
                 _ => return Err(())
