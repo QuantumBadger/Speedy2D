@@ -33,6 +33,7 @@ pub type UVec2 = Vector2<u32>;
 /// A vector containing two numeric values. This may represent a size or
 /// position.
 #[repr(C)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(PartialEq, Eq, Clone, Copy, Hash, Debug)]
 pub struct Vector2<T>
 {
