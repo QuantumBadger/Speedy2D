@@ -59,6 +59,7 @@ use winit::monitor::MonitorHandle;
 use winit::platform::scancode::PhysicalKeyExtScancode;
 use winit::window::{
     CursorGrabMode,
+    CursorIcon,
     Icon,
     Window as GlutinWindow,
     Window,
@@ -76,6 +77,7 @@ use crate::window::{
     EventLoopSendError,
     ModifiersState,
     MouseButton,
+    MouseCursorType,
     MouseScrollDistance,
     UserEventSender,
     VirtualKeyCode,
@@ -166,6 +168,11 @@ impl<UserEventType> WindowHelperGlutin<UserEventType>
     pub fn set_cursor_visible(&self, visible: bool)
     {
         self.window.set_cursor_visible(visible);
+    }
+
+    pub fn set_cursor(&self, cursor: MouseCursorType)
+    {
+        self.window.set_cursor_icon(cursor.into());
     }
 
     pub fn set_cursor_grab(
@@ -593,12 +600,10 @@ impl<UserEventType: 'static> WindowGlutin<UserEventType>
                 _ => {}
             },
 
-            GlutinEvent::AboutToWait => {
-                if helper.inner().is_redraw_requested() {
-                    helper.inner().set_redraw_requested(false);
-                    handler.on_draw(helper);
-                    surface.swap_buffers(context).unwrap();
-                }
+            GlutinEvent::AboutToWait if helper.inner().is_redraw_requested() => {
+                helper.inner().set_redraw_requested(false);
+                handler.on_draw(helper);
+                surface.swap_buffers(context).unwrap();
             }
 
             _ => {}
@@ -883,6 +888,38 @@ impl From<winit::event::MouseButton> for MouseButton
             winit::event::MouseButton::Other(id) => MouseButton::Other(id),
             winit::event::MouseButton::Back => MouseButton::Back,
             winit::event::MouseButton::Forward => MouseButton::Forward
+        }
+    }
+}
+
+impl From<MouseCursorType> for CursorIcon
+{
+    fn from(cursor: MouseCursorType) -> Self
+    {
+        match cursor {
+            MouseCursorType::Default => CursorIcon::Default,
+            MouseCursorType::Pointer => CursorIcon::Pointer,
+            MouseCursorType::Crosshair => CursorIcon::Crosshair,
+            MouseCursorType::Text => CursorIcon::Text,
+            MouseCursorType::VerticalText => CursorIcon::VerticalText,
+            MouseCursorType::Move => CursorIcon::Move,
+            MouseCursorType::Grab => CursorIcon::Grab,
+            MouseCursorType::Grabbing => CursorIcon::Grabbing,
+            MouseCursorType::Wait => CursorIcon::Wait,
+            MouseCursorType::Progress => CursorIcon::Progress,
+            MouseCursorType::Cell => CursorIcon::Cell,
+            MouseCursorType::Alias => CursorIcon::Alias,
+            MouseCursorType::Copy => CursorIcon::Copy,
+            MouseCursorType::NoDrop => CursorIcon::NoDrop,
+            MouseCursorType::NotAllowed => CursorIcon::NotAllowed,
+            MouseCursorType::ColResize => CursorIcon::ColResize,
+            MouseCursorType::RowResize => CursorIcon::RowResize,
+            MouseCursorType::EwResize => CursorIcon::EwResize,
+            MouseCursorType::NsResize => CursorIcon::NsResize,
+            MouseCursorType::NeswResize => CursorIcon::NeswResize,
+            MouseCursorType::NwseResize => CursorIcon::NwseResize,
+            MouseCursorType::ZoomIn => CursorIcon::ZoomIn,
+            MouseCursorType::ZoomOut => CursorIcon::ZoomOut
         }
     }
 }

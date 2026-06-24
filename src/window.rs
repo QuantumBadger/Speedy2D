@@ -573,6 +573,12 @@ impl<UserEventType> WindowHelper<UserEventType>
         self.inner.set_cursor_grab(grabbed)
     }
 
+    /// Sets the shape of the mouse cursor shown over the window.
+    pub fn set_cursor(&self, cursor: MouseCursorType)
+    {
+        self.inner.set_cursor(cursor)
+    }
+
     /// Set to false to prevent the user from resizing the window.
     ///
     /// For `WebCanvas`, this function has no effect.
@@ -736,6 +742,66 @@ pub enum MouseButton
     Forward,
     /// Another mouse button, identified by a number.
     Other(u16)
+}
+
+/// Identifies the shape of the mouse cursor displayed over the window. See
+/// [WindowHelper::set_cursor].
+///
+/// The variants mirror the standard CSS cursor keywords and map directly onto
+/// the native cursors provided by each platform backend.
+#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, Default)]
+#[non_exhaustive]
+pub enum MouseCursorType
+{
+    /// The platform-dependent default cursor (usually an arrow).
+    #[default]
+    Default,
+    /// A pointing hand, typically used to indicate a link.
+    Pointer,
+    /// A crosshair.
+    Crosshair,
+    /// Indicates editable text (usually an I-beam).
+    Text,
+    /// Indicates editable vertical text.
+    VerticalText,
+    /// Indicates that something can be moved.
+    Move,
+    /// Indicates that something can be grabbed (an open hand).
+    Grab,
+    /// Indicates that something is being grabbed (a closed hand).
+    Grabbing,
+    /// Indicates that the program is busy and the user should wait.
+    Wait,
+    /// Indicates that the program is busy in the background, but the user can
+    /// still interact with the interface.
+    Progress,
+    /// Indicates that a cell or set of cells may be selected.
+    Cell,
+    /// Indicates an alias of/shortcut to something is to be created.
+    Alias,
+    /// Indicates something is to be copied.
+    Copy,
+    /// Indicates that the dragged item cannot be dropped at the current
+    /// location.
+    NoDrop,
+    /// Indicates that the requested action will not be carried out.
+    NotAllowed,
+    /// Indicates that an edge of a box is to be moved left/right.
+    ColResize,
+    /// Indicates that an edge of a box is to be moved up/down.
+    RowResize,
+    /// Indicates a horizontal (east-west) resize.
+    EwResize,
+    /// Indicates a vertical (north-south) resize.
+    NsResize,
+    /// Indicates a bidirectional north-east/south-west resize.
+    NeswResize,
+    /// Indicates a bidirectional north-west/south-east resize.
+    NwseResize,
+    /// Indicates that something can be zoomed in.
+    ZoomIn,
+    /// Indicates that something can be zoomed out.
+    ZoomOut
 }
 
 /// Describes a difference in the mouse scroll wheel position.
