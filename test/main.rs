@@ -168,12 +168,98 @@ fn run_test_with_new_context<S: AsRef<str>, F: FnOnce(&mut GLRenderer)>(
         "Actual image size mismatch"
     );
 
-    assert_eq!(
-        expected_image,
-        actual_image.into_data(),
-        "Generated image did not match expected ({})",
-        expected_image_name.as_ref()
+    assert_images_match(
+        expected_image_name.as_ref(),
+        width,
+        &expected_image,
+        actual_image.data()
     );
+}
+
+/// The maximum number of individual differing pixels to list when a generated
+/// image doesn't match the expected image.
+const MAX_REPORTED_PIXEL_DIFFERENCES: usize = 10;
+
+/// Panics with a summary of the differences if the two RGBA8 images (which
+/// must be the same size) are not identical.
+///
+/// This is used instead of `assert_eq!`, which would print the value of every
+/// byte in both images.
+fn assert_images_match(name: &str, width: u32, expected: &[u8], actual: &[u8])
+{
+    if expected == actual {
+        return;
+    }
+
+    let width: usize = width.try_into().unwrap();
+
+    let mut differing_pixel_count: usize = 0;
+    let mut max_channel_difference: u8 = 0;
+    let mut bounds: Option<(usize, usize, usize, usize)> = None;
+    let mut examples = String::new();
+
+    let pixels = expected.chunks_exact(4).zip(actual.chunks_exact(4));
+
+    for (index, (expected_pixel, actual_pixel)) in pixels.enumerate() {
+        if expected_pixel == actual_pixel {
+            continue;
+        }
+
+        let x = index % width;
+        let y = index / width;
+
+        differing_pixel_count += 1;
+
+        for (expected_channel, actual_channel) in expected_pixel.iter().zip(actual_pixel)
+        {
+            max_channel_difference =
+                max_channel_difference.max(expected_channel.abs_diff(*actual_channel));
+        }
+
+        bounds = Some(match bounds {
+            None => (x, y, x, y),
+            Some((left, top, right, bottom)) => {
+                (left.min(x), top.min(y), right.max(x), bottom.max(y))
+            }
+        });
+
+        if differing_pixel_count <= MAX_REPORTED_PIXEL_DIFFERENCES {
+            examples.push_str(&format!(
+                "\n    ({}, {}): expected {:?}, actual {:?}",
+                x, y, expected_pixel, actual_pixel
+            ));
+        }
+    }
+
+    if differing_pixel_count > MAX_REPORTED_PIXEL_DIFFERENCES {
+        examples.push_str(&format!(
+            "\n    ...and {} more",
+            differing_pixel_count - MAX_REPORTED_PIXEL_DIFFERENCES
+        ));
+    }
+
+    let (left, top, right, bottom) = bounds.unwrap();
+
+    let summary = [
+        format!("Generated image did not match expected ({})", name),
+        format!(
+            "  {} of {} pixels differ (max difference in a single channel: {})",
+            differing_pixel_count,
+            expected.len() / 4,
+            max_channel_difference
+        ),
+        format!(
+            "  Differing pixels are within x: {}..={}, y: {}..={}",
+            left, right, top, bottom
+        ),
+        format!("  Differing pixels (x, y) with RGBA values:{}", examples),
+        format!(
+            "  Generated image written to {}",
+            get_expected_image_path(format!("{}_ACTUAL", name))
+        )
+    ];
+
+    panic!("{}", summary.join("\n"));
 }
 
 struct GLTest
