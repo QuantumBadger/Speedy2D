@@ -551,9 +551,9 @@ impl BitmapRGBA
             assert!(bitmap.data.len() >= src_pos_bytes + line_size_bytes);
             assert!(self.data.len() >= dest_pos_bytes + line_size_bytes);
 
-            // As much as I hate to use unsafe here, this more than doubles performance
-            // with large glyphs in debug builds, compared to using
-            // clone_from_slice.
+            // As much as I hate to use unsafe here, this more than doubles
+            // performance with large glyphs in debug builds,
+            // compared to using clone_from_slice.
             unsafe {
                 std::ptr::copy_nonoverlapping(
                     bitmap.data.as_ptr().add(src_pos_bytes),

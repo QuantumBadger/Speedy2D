@@ -334,8 +334,9 @@ impl Polygon
     {
         // We have to flatten the vertices in order for
         // [earcutr](https://github.com/frewsxcv/earcutr/) to accept it.
-        // In the future, we can add a triangulation algorithm directly into Speed2D if
-        // performance is an issue, but for now, this is simpler and easier
+        // In the future, we can add a triangulation algorithm directly into
+        // Speed2D if performance is an issue, but for now, this is
+        // simpler and easier
         let mut flattened = Vec::with_capacity(vertices.len() * 2);
 
         for vertex in vertices {

@@ -357,7 +357,8 @@ fn try_layout_word_internal<T: TextLayout + ?Sized>(
         }
     ) in word.codepoints.iter().enumerate()
     {
-        // We can't modify the actual values until we're sure we can render this glyph
+        // We can't modify the actual values until we're sure we can render this
+        // glyph
         let mut new_glyph_metrics = new_word_metrics.clone();
 
         let glyph = match layout_helper.lookup_glyph_for_codepoint(*c) {
@@ -392,12 +393,13 @@ fn try_layout_word_internal<T: TextLayout + ?Sized>(
             if new_glyph_metrics.x_pos > pos_x_max {
                 return if first_word_on_line {
                     if i == 0 {
-                        // First glyph in word, we should render it even though it goes
-                        // over the boundary
+                        // First glyph in word, we should render it even though
+                        // it goes over the boundary
                         glyphs.push(formatted_glyph);
                         new_word_metrics = new_glyph_metrics;
 
-                        // If there are more codepoints, we need to split the word
+                        // If there are more codepoints, we need to split the
+                        // word
                         if word.codepoints.len() > 1 {
                             remaining_words.add_pending(Word::Renderable(
                                 word.starting_from_codepoint_location(i + 1)

@@ -217,9 +217,9 @@ mod tests
     #[test]
     fn test_from_hex()
     {
-        // We're comparing floats for equality here, which is normally a bad idea, but
-        // here the result should be deterministic as it's computed the same way both
-        // times.
+        // We're comparing floats for equality here, which is normally a bad
+        // idea, but here the result should be deterministic as it's
+        // computed the same way both times.
 
         assert_eq!(
             Color::from_hex_rgb(0xFF5511),
