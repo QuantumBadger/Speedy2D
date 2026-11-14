@@ -21,6 +21,7 @@ compile_error!("The automated tests currently support Linux x86_64 only");
 
 use std::convert::TryInto;
 use std::ffi::CString;
+use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::mpsc::channel;
 
 use glutin::config::ConfigTemplateBuilder;
@@ -1400,17 +1401,47 @@ fn main()
         })
     });
 
+    let test_count = tests.len();
+    let mut failed_tests = Vec::new();
+
     for test in tests {
         log::info!("Running test {}", test.name);
 
-        run_test_with_new_context(
-            &event_loop,
-            test.name,
-            test.width,
-            test.height,
-            test.action
-        );
+        let GLTest {
+            width,
+            height,
+            name,
+            action
+        } = test;
+
+        // Catch panics (including assertion failures) so that the remaining
+        // tests still run. The details of the failure are printed by the
+        // default panic hook at the point the test fails.
+        let result = catch_unwind(AssertUnwindSafe(|| {
+            run_test_with_new_context(&event_loop, &name, width, height, action)
+        }));
+
+        if result.is_err() {
+            log::error!("Test {} failed", name);
+            failed_tests.push(name);
+        }
     }
 
-    log::info!("All tests succeeded");
+    if failed_tests.is_empty() {
+        log::info!("All {} tests succeeded", test_count);
+        return;
+    }
+
+    log::error!(
+        "{} of {} tests failed ({} succeeded):",
+        failed_tests.len(),
+        test_count,
+        test_count - failed_tests.len()
+    );
+
+    for name in &failed_tests {
+        log::error!("  {}", name);
+    }
+
+    std::process::exit(1);
 }
