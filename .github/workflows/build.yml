@@ -18,6 +18,17 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      # Temporary: objc2 0.4.1 (used by winit 0.29 and glutin 0.31) doesn't
+      # compile on Rust 1.100 due to a compiler regression. Remove this once
+      # that's fixed, or once we've upgraded to winit 0.30 and glutin 0.32.
+      #   https://github.com/rust-lang/rust/issues/166229
+      #   https://github.com/madsmtm/objc2/issues/898
+      - name: Pin Rust 1.99 (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          rustup toolchain install 1.99 --profile minimal
+          rustup override set 1.99
+
       - name: Build
         run: cargo build
 
