@@ -74,7 +74,7 @@ features = [
 ]
 
 [build-dependencies.cfg_aliases]
-version = "0.1.1"
+version = "0.2.1"
 
 # Tests using a headless GL context.
 

@@ -2,29 +2,10 @@ use cfg_aliases::cfg_aliases;
 
 fn main()
 {
-    // Rust 1.77+ validates cfg names via `unexpected_cfgs` (and this crate uses
-    // `#![deny(warnings)]`), so we must declare any custom cfg names we use.
-    for name in [
-        // Systems.
-        "android_platform",
-        "wasm_platform",
-        "macos_platform",
-        "ios_platform",
-        "apple",
-        "free_unix",
-        // Native displays.
-        "x11_platform",
-        "wayland_platform",
-        // Backends.
-        "egl_backend",
-        "glx_backend",
-        "wgl_backend",
-        "cgl_backend"
-    ] {
-        println!("cargo:rustc-check-cfg=cfg({name})");
-    }
-
-    // Needed for the internal `glutin_winit` module
+    // Needed for the internal `glutin_winit` module. As well as setting the
+    // cfg aliases, this also declares them via `cargo:rustc-check-cfg`, which
+    // is needed because Rust 1.77+ validates cfg names via `unexpected_cfgs`
+    // (and this crate uses `#![deny(warnings)]`).
     cfg_aliases! {
         // Systems.
         android_platform: { target_os = "android" },
