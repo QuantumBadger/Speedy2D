@@ -364,7 +364,8 @@ impl Polygon
 #[cfg(test)]
 mod test
 {
-    use crate::shape::URect;
+    use crate::dimen::Vec2;
+    use crate::shape::{RoundedRectangle, URect};
 
     #[test]
     pub fn test_intersect_1()
@@ -397,6 +398,34 @@ mod test
         let r2 = URect::from_tuples((100, 200), (200, 300));
 
         assert_eq!(None, r1.intersect(&r2));
+    }
+
+    #[test]
+    pub fn test_rounded_rect_contains()
+    {
+        // Inner rectangle is (120, 120) to (180, 180)
+        let r = RoundedRectangle::from_tuples((100.0, 100.0), (200.0, 200.0), 20.0);
+
+        // Inside the inner rectangle
+        assert!(r.contains(Vec2::new(150.0, 150.0)));
+
+        // Outside the bounding rectangle
+        assert!(!r.contains(Vec2::new(50.0, 50.0)));
+        assert!(!r.contains(Vec2::new(150.0, 250.0)));
+
+        // On the straight edges, outside the inner rectangle
+        assert!(r.contains(Vec2::new(100.0, 150.0)));
+        assert!(r.contains(Vec2::new(150.0, 100.0)));
+
+        // In the bounding rectangle's corner, outside the rounded corner
+        assert!(!r.contains(Vec2::new(100.0, 100.0)));
+        assert!(!r.contains(Vec2::new(105.0, 105.0)));
+
+        // Inside the rounded corner
+        assert!(r.contains(Vec2::new(110.0, 110.0)));
+
+        // Exactly on the arc of the rounded corner (12^2 + 16^2 == 20^2)
+        assert!(r.contains(Vec2::new(108.0, 104.0)));
     }
 }
 
@@ -620,11 +649,7 @@ where
             T::zero()
         );
 
-        if dx * dx + dy * dy <= radius_squared {
-            return true;
-        }
-
-        false
+        dx * dx + dy * dy <= radius_squared
     }
 }
 

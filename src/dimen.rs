@@ -458,6 +458,8 @@ mod test
     }
 
     #[test]
+    // Deliberately exercises the operator impls for references.
+    #[allow(clippy::op_ref)]
     fn test_arithmetic_ref()
     {
         assert_eq!(
@@ -492,6 +494,8 @@ mod test
     }
 
     #[test]
+    // Deliberately exercises the operator impls for references.
+    #[allow(clippy::op_ref)]
     fn test_arithmetic_tuples()
     {
         assert_eq!(Vector2::new(15, 20), Vector2::new(10, 4) + (5, 16));

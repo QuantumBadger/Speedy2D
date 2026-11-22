@@ -105,7 +105,7 @@ impl WindowHandler for MyWindowHandler
         );
 
         if self.grabbed {
-            self.offset = self.offset + position;
+            self.offset += position;
             self.offset.x = self.offset.x.rem_euclid(self.window_size.x as f32);
             self.offset.y = self.offset.y.rem_euclid(self.window_size.y as f32);
         } else {

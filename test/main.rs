@@ -140,7 +140,7 @@ fn run_test_with_new_context<S: AsRef<str>, F: FnOnce(&mut GLRenderer)>(
             renderer.draw_frame(|graphics| graphics.capture(ImageDataType::RGBA));
 
         if expected_image.is_none()
-            || (&expected_image).as_ref().unwrap() != actual_image.data()
+            || expected_image.as_ref().unwrap() != actual_image.data()
         {
             write_framebuffer_to_png(
                 format!("{}_ACTUAL", expected_image_name.as_ref()),
@@ -199,7 +199,9 @@ fn assert_images_match(name: &str, width: u32, expected: &[u8], actual: &[u8])
     let mut bounds: Option<(usize, usize, usize, usize)> = None;
     let mut examples = String::new();
 
-    let pixels = expected.chunks_exact(4).zip(actual.chunks_exact(4));
+    let (expected_pixels, _) = expected.as_chunks::<4>();
+    let (actual_pixels, _) = actual.as_chunks::<4>();
+    let pixels = expected_pixels.iter().zip(actual_pixels);
 
     for (index, (expected_pixel, actual_pixel)) in pixels.enumerate() {
         if expected_pixel == actual_pixel {
@@ -469,6 +471,7 @@ fn main()
                 );
 
                 // Passes a reference to the rectangle
+                #[allow(clippy::needless_borrows_for_generic_args)]
                 graphics.draw_rectangle(
                     &Rectangle::from_tuples((15.0, 30.0), (49.0, 48.0)),
                     Color::GREEN
@@ -540,11 +543,7 @@ fn main()
                         Vec2::new(200.0, 100.0),
                         Vec2::new(200.0, 200.0)
                     ],
-                    [
-                        Color::MAGENTA.clone(),
-                        Color::MAGENTA.clone(),
-                        Color::MAGENTA.clone()
-                    ],
+                    [Color::MAGENTA, Color::MAGENTA, Color::MAGENTA],
                     [
                         Vec2::new(-1.0, -1.0),
                         Vec2::new(1.0, -1.0),

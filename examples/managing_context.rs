@@ -71,10 +71,10 @@ fn main()
             target.set_control_flow(ControlFlow::Poll);
 
             match event {
-                Event::WindowEvent { event, .. } => match event {
-                    WindowEvent::CloseRequested => target.exit(),
-                    _ => {}
-                },
+                Event::WindowEvent {
+                    event: WindowEvent::CloseRequested,
+                    ..
+                } => target.exit(),
 
                 Event::AboutToWait => {
                     renderer.draw_frame(|graphics| {
