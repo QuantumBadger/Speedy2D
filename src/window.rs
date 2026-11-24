@@ -726,6 +726,7 @@ impl WindowStartupInfo
 
 /// Identifies a mouse button.
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[non_exhaustive]
 pub enum MouseButton
 {
@@ -805,6 +806,7 @@ pub enum MouseCursorType
 
 /// Describes a difference in the mouse scroll wheel position.
 #[derive(Debug, PartialEq, Clone, Copy)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum MouseScrollDistance
 {
     /// Number of lines or rows to scroll in each direction. The `y` field
@@ -853,6 +855,7 @@ pub enum MouseScrollDistance
 
 /// A virtual key code.
 #[allow(missing_docs)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Hash, Ord, PartialOrd, PartialEq, Eq, Clone, Copy)]
 #[non_exhaustive]
 pub enum VirtualKeyCode
@@ -1099,6 +1102,7 @@ pub(crate) enum WindowCreationMode
 
 /// The size of the window to create.
 #[derive(Debug, PartialEq, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum WindowSize
 {
     /// Define the window size in pixels.
@@ -1115,6 +1119,7 @@ pub enum WindowSize
 
 /// The position of the window to create.
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum WindowPosition
 {
     /// Place the window in the center of the primary monitor.
@@ -1126,6 +1131,7 @@ pub enum WindowPosition
 
 /// Whether or not the window is in fullscreen mode.
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum WindowFullscreenMode
 {
     /// Non-fullscreen mode.

@@ -16,6 +16,7 @@
 
 /// A struct representing a color with red, green, blue, and alpha components.
 /// Each component is stored as a float.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Color
 {
