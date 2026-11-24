@@ -41,6 +41,7 @@ use Speedy2D only for rendering, you can disable the `windowing` feature.
 | Window control           | ✔️      | ✔️  | ✔️    | ℹ️ Partial |
 | DPI/scale change events  | ✔️      | ✔️  | ✔️    | ✔️         |
 | System clock/timer       | ✔️      | ✔️  | ✔️    | ✔️         |
+| File drag/drop           | ✔️      | ✔️  | ✔️    | ❌️         |
 
 ## Example code
 
